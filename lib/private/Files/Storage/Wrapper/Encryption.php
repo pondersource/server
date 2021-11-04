@@ -136,7 +136,7 @@ class Encryption extends Wrapper {
 	 * The result for filesize when called on a folder is required to be 0
 	 *
 	 * @param string $path
-	 * @return int
+	 * @return int|bool
 	 */
 	public function filesize($path) {
 		$fullPath = $this->getFullPath($path);
@@ -209,7 +209,7 @@ class Encryption extends Wrapper {
 	 * see http://php.net/manual/en/function.file_get_contents.php
 	 *
 	 * @param string $path
-	 * @return string
+	 * @return string|bool
 	 */
 	public function file_get_contents($path) {
 		$encryptionModule = $this->getEncryptionModule($path);
