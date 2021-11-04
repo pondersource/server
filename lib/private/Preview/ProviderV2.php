@@ -80,7 +80,7 @@ abstract class ProviderV2 implements IProviderV2 {
 	 *
 	 * @param File $file
 	 * @param int $maxSize maximum size for temporary files
-	 * @return bool|string
+	 * @return string
 	 */
 	protected function getLocalFile(File $file, int $maxSize = null): string {
 		if ($this->useTempFile($file)) {
