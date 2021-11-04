@@ -14,7 +14,7 @@ use OCP\Migration\IOutput;
 use OCP\Migration\SimpleMigrationStep;
 use Psr\Log\LoggerInterface;
 
-class Version23000Date20211104103506 extends SimpleMigrationStep {
+class Version1015Date20211104103506 extends SimpleMigrationStep {
 
 	/** @var IDBConnection */
 	private $connection;
