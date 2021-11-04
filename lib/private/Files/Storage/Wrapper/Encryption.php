@@ -778,7 +778,7 @@ class Encryption extends Wrapper {
 	 * The local version of the file can be temporary and doesn't have to be persistent across requests
 	 *
 	 * @param string $path
-	 * @return string
+	 * @return bool|string
 	 */
 	public function getLocalFile($path) {
 		if ($this->encryptionManager->isEnabled()) {
@@ -807,7 +807,7 @@ class Encryption extends Wrapper {
 	 * only the following keys are required in the result: size and mtime
 	 *
 	 * @param string $path
-	 * @return array
+	 * @return array|bool
 	 */
 	public function stat($path) {
 		$stat = $this->storage->stat($path);
