@@ -413,6 +413,16 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 			}
 			$this->content = false;
 			return fopen($this->inputStream, 'rb');
+		} else if ($this->method === 'POST'
+			&& $this->getHeader('Content-Length') !== '0'
+			&& $this->getHeader('Content-Length') !== ''
+			&& strpos($this->getHeader('Content-Type'), 'multipart/related;') == 0
+		) {
+			if (isset($this->items['body'])) {
+				return $this->items['body'];
+			}
+			$this->items['body'] = file_get_contents($this->inputStream);
+			return $this->items['body'];
 		} else {
 			$this->decodeContent();
 			return $this->items['parameters'];
