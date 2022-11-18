@@ -41,6 +41,7 @@ use OCA\WorkflowEngine\Check\RequestTime;
 use OCA\WorkflowEngine\Check\RequestURL;
 use OCA\WorkflowEngine\Check\RequestUserAgent;
 use OCA\WorkflowEngine\Check\UserGroupMembership;
+use OCA\WorkflowEngine\Check\MfaVerified;
 use OCA\WorkflowEngine\Entity\File;
 use OCA\WorkflowEngine\Helper\ScopeContext;
 use OCA\WorkflowEngine\Service\Logger;
@@ -727,6 +728,7 @@ class Manager implements IManager {
 				$this->container->query(RequestURL::class),
 				$this->container->query(RequestUserAgent::class),
 				$this->container->query(UserGroupMembership::class),
+				$this->container->query(MfaVerified::class),
 			];
 		} catch (QueryException $e) {
 			$this->logger->logException($e);

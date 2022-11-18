@@ -164,6 +164,7 @@ const store = new Vuex.Store({
 		 * @returns {Array} the available plugins
 		 */
 		getChecksForEntity(state) {
+			window.console.log(state)
 			return (entity) => {
 				return Object.values(state.checks)
 					.filter((check) => check.supportedEntities.indexOf(entity) > -1 || check.supportedEntities.length === 0)
