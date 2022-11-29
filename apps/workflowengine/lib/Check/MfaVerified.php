@@ -26,14 +26,9 @@
  */
 namespace OCA\WorkflowEngine\Check;
 
-use OCA\Files_Sharing\SharedStorage;
 use OCA\WorkflowEngine\Entity\File;
 use OCP\Files\Cache\ICache;
-use OCP\Files\IHomeStorage;
 use OCP\IL10N;
-use OCP\SystemTag\ISystemTagManager;
-use OCP\SystemTag\ISystemTagObjectMapper;
-use OCP\SystemTag\TagNotFoundException;
 use OCP\WorkflowEngine\ICheck;
 use OCP\WorkflowEngine\IFileCheck;
 use OC\Files\Storage\Wrapper\Wrapper;
@@ -48,8 +43,8 @@ class MfaVerified implements ICheck, IFileCheck {
 	/** @var IL10N */
 	protected $l;
 
-    /** @var ISession */
-    protected $session;
+	/** @var ISession */
+	protected $session;
 
 	/**
 	 * @param IL10N $l
@@ -57,7 +52,7 @@ class MfaVerified implements ICheck, IFileCheck {
 	 */
 	public function __construct(IL10N $l, ISession $session) {
 		$this->l = $l;
-        $this->session = $session;
+		$this->session = $session;
 	}
 
 	/**
@@ -67,7 +62,7 @@ class MfaVerified implements ICheck, IFileCheck {
 	 */
 	public function executeCheck($operator, $value) {
 		$mfaVerified = $this->session->get('user_saml.samlUserData')["mfa_verified"][0];
-		if(strtolower($value) == 'true'){
+		if (strtolower($value) == 'true') {
 			return $mfaVerified != '1'; //Mfa verified must not have access
 		} else {
 			return $mfaVerified == '1';
@@ -84,7 +79,7 @@ class MfaVerified implements ICheck, IFileCheck {
 			throw new \UnexpectedValueException($this->l->t('The given operator is invalid'), 1);
 		}
 
-        if (!in_array($value, ['true', 'false'])) {
+		if (!in_array($value, ['true', 'false'])) {
 			throw new \UnexpectedValueException($this->l->t('The given value is invalid, must be one of ("true", "false")'), 1);
 		}
 	}
