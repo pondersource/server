@@ -63,9 +63,9 @@ class MfaVerified implements ICheck, IFileCheck {
 	public function executeCheck($operator, $value) {
 		$mfaVerified = $this->session->get('user_saml.samlUserData')["mfa_verified"][0];
 		if (strtolower($value) == 'true') {
-			return $mfaVerified != '1'; //Mfa verified must not have access
+			return $mfaVerified == '1'; //Mfa verified must not have access
 		} else {
-			return $mfaVerified == '1';
+			return $mfaVerified != '1';
 		}
 	}
 
