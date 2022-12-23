@@ -29,6 +29,9 @@ use OCP\BackgroundJob\IJob;
 use OCP\BackgroundJob\IJobList;
 use OCP\ILogger;
 
+/**
+ * @deprecated internal class, use \OCP\BackgroundJob\Job
+ */
 abstract class Job implements IJob {
 	/** @var int */
 	protected $id;
@@ -61,6 +64,10 @@ abstract class Job implements IJob {
 				]);
 			}
 		}
+	}
+
+	public function start(IJobList $jobList): void {
+		$this->execute($jobList);
 	}
 
 	abstract protected function run($argument);

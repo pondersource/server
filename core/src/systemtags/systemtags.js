@@ -7,7 +7,7 @@
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Vincent Petry <vincent@nextcloud.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -35,34 +35,37 @@ import escapeHTML from 'escape-html'
 		/**
 		 *
 		 * @param {OC.SystemTags.SystemTagModel|Object|String} tag
-		 * @returns {jQuery}
+		 * @returns {HTMLElement}
 		 */
 		getDescriptiveTag: function(tag) {
 			if (_.isUndefined(tag.name) && !_.isUndefined(tag.toJSON)) {
 				tag = tag.toJSON()
 			}
 
+			var $span = document.createElement('span')
+
 			if (_.isUndefined(tag.name)) {
-				return $('<span>').addClass('non-existing-tag').text(
-					t('core', 'Non-existing tag #{tag}', {
+				$span.classList.add('non-existing-tag')
+				$span.textContent = t('core', 'Non-existing tag #{tag}', {
 						tag: tag
-					})
-				)
+				})
+				return $span
 			}
 
-			var $span = $('<span>')
-			$span.append(escapeHTML(tag.name))
+			$span.textContent = escapeHTML(tag.name)
 
 			var scope
 			if (!tag.userAssignable) {
-				scope = t('core', 'restricted')
+				scope = t('core', 'Restricted')
 			}
 			if (!tag.userVisible) {
 				// invisible also implicitly means not assignable
-				scope = t('core', 'invisible')
+				scope = t('core', 'Invisible')
 			}
 			if (scope) {
-				$span.append($('<em>').text(' (' + scope + ')'))
+				var $scope = document.createElement('em')
+				$scope.textContent = ' (' + scope + ')'
+				$span.appendChild($scope)
 			}
 			return $span
 		}

@@ -24,18 +24,17 @@
 namespace OCA\Files_Sharing\Activity\Providers;
 
 use OCP\Activity\IEvent;
+use OCP\Activity\IEventMerger;
 use OCP\Activity\IManager;
 use OCP\Activity\IProvider;
 use OCP\Contacts\IManager as IContactsManager;
 use OCP\Federation\ICloudIdManager;
 use OCP\IL10N;
 use OCP\IURLGenerator;
-use OCP\IUser;
 use OCP\IUserManager;
 use OCP\L10N\IFactory;
 
 abstract class Base implements IProvider {
-
 	/** @var IFactory */
 	protected $languageFactory;
 
@@ -51,6 +50,9 @@ abstract class Base implements IProvider {
 	/** @var IUserManager */
 	protected $userManager;
 
+	/** @var IEventMerger */
+	protected $eventMerger;
+
 	/** @var IContactsManager */
 	protected $contactsManager;
 
@@ -65,13 +67,15 @@ abstract class Base implements IProvider {
 								IManager $activityManager,
 								IUserManager $userManager,
 								ICloudIdManager $cloudIdManager,
-								IContactsManager $contactsManager) {
+								IContactsManager $contactsManager,
+								IEventMerger $eventMerger) {
 		$this->languageFactory = $languageFactory;
 		$this->url = $url;
 		$this->activityManager = $activityManager;
 		$this->userManager = $userManager;
 		$this->cloudIdManager = $cloudIdManager;
 		$this->contactsManager = $contactsManager;
+		$this->eventMerger = $eventMerger;
 	}
 
 	/**
@@ -97,7 +101,7 @@ abstract class Base implements IProvider {
 			}
 		}
 
-		return $this->parseLongVersion($event);
+		return $this->parseLongVersion($event, $previousEvent);
 	}
 
 	/**
@@ -110,31 +114,18 @@ abstract class Base implements IProvider {
 
 	/**
 	 * @param IEvent $event
+	 * @param IEvent|null $previousEvent
 	 * @return IEvent
 	 * @throws \InvalidArgumentException
 	 * @since 11.0.0
 	 */
-	abstract protected function parseLongVersion(IEvent $event);
+	abstract protected function parseLongVersion(IEvent $event, IEvent $previousEvent = null);
 
 	/**
-	 * @param IEvent $event
-	 * @param string $subject
-	 * @param array $parameters
 	 * @throws \InvalidArgumentException
 	 */
-	protected function setSubjects(IEvent $event, $subject, array $parameters) {
-		$placeholders = $replacements = [];
-		foreach ($parameters as $placeholder => $parameter) {
-			$placeholders[] = '{' . $placeholder . '}';
-			if ($parameter['type'] === 'file') {
-				$replacements[] = $parameter['path'];
-			} else {
-				$replacements[] = $parameter['name'];
-			}
-		}
-
-		$event->setParsedSubject(str_replace($placeholders, $replacements, $subject))
-			->setRichSubject($subject, $parameters);
+	protected function setSubjects(IEvent $event, string $subject, array $parameters): void {
+		$event->setRichSubject($subject, $parameters);
 	}
 
 	/**
@@ -170,12 +161,12 @@ abstract class Base implements IProvider {
 	 */
 	protected function getUser($uid) {
 		// First try local user
-		$user = $this->userManager->get($uid);
-		if ($user instanceof IUser) {
+		$displayName = $this->userManager->getDisplayName($uid);
+		if ($displayName !== null) {
 			return [
 				'type' => 'user',
-				'id' => $user->getUID(),
-				'name' => $user->getDisplayName(),
+				'id' => $uid,
+				'name' => $displayName,
 			];
 		}
 
@@ -203,7 +194,12 @@ abstract class Base implements IProvider {
 			return $this->displayNames[$search];
 		}
 
-		$addressBookContacts = $this->contactsManager->search($search, ['CLOUD']);
+		$addressBookContacts = $this->contactsManager->search($search, ['CLOUD'], [
+			'limit' => 1,
+			'enumeration' => false,
+			'fullmatch' => false,
+			'strict_search' => true,
+		]);
 		foreach ($addressBookContacts as $contact) {
 			if (isset($contact['isLocalSystemBook'])) {
 				continue;

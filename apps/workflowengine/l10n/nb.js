@@ -53,10 +53,6 @@ OC.L10N.register(
     "Office documents" : "Office dokumenter",
     "PDF documents" : "PDF dokumenter",
     "Custom mimetype" : "Egendefinert MIME-type",
-    "Select a tag" : "Velg en etikett",
-    "No results" : "Ingen resultater",
-    "%s (invisible)" : "%s (usynlig)",
-    "%s (restricted)" : "%s (begrenset)",
     "Please enter a valid time span" : "Vennligst skriv inn en gyldig tidsperiode",
     "Select a request URL" : "Velg en forespurt URL",
     "Predefined URLs" : "Forhåndsdefinerte URLer",
@@ -112,6 +108,9 @@ OC.L10N.register(
     "User group membership" : "Brukerens gruppemedlemsskap",
     "is member of" : "er medlem av",
     "is not member of" : "er ikke medlem av",
-    "Browse the app store" : "Bla gjennom app-butikken"
+    "Select a tag" : "Velg en etikett",
+    "No results" : "Ingen resultater",
+    "%s (invisible)" : "%s (usynlig)",
+    "%s (restricted)" : "%s (begrenset)"
 },
 "nplurals=2; plural=(n != 1);");

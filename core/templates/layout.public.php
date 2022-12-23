@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="ng-csp" data-placeholder-focus="false" lang="<?php p($_['language']); ?>" data-locale="<?php p($_['locale']); ?>" >
+<html class="ng-csp" data-placeholder-focus="false" lang="<?php p($_['language']); ?>" data-locale="<?php p($_['locale']); ?>" translate="no" >
 <head data-requesttoken="<?php p($_['requesttoken']); ?>">
 	<meta charset="utf-8">
 	<title>
@@ -8,7 +8,6 @@
 		p($theme->getTitle());
 		?>
 	</title>
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
 	<?php if ($theme->getiTunesAppId() !== '') { ?>
 	<meta name="apple-itunes-app" content="app-id=<?php p($theme->getiTunesAppId()); ?>">
@@ -32,26 +31,19 @@
 <?php foreach ($_['initialStates'] as $app => $initialState) { ?>
 	<input type="hidden" id="initial-state-<?php p($app); ?>" value="<?php p(base64_encode($initialState)); ?>">
 <?php }?>
-	<div id="notification-container">
-		<div id="notification"></div>
+	<div id="skip-actions">
+		<?php if ($_['id-app-content'] !== null) { ?><a href="<?php p($_['id-app-content']); ?>" class="button primary skip-navigation skip-content"><?php p($l->t('Skip to main content')); ?></a><?php } ?>
+		<?php if ($_['id-app-navigation'] !== null) { ?><a href="<?php p($_['id-app-navigation']); ?>" class="button primary skip-navigation"><?php p($l->t('Skip to navigation of app')); ?></a><?php } ?>
 	</div>
+
 	<header id="header">
-		<div class="header-left">
-			<span id="nextcloud">
-				<div class="logo logo-icon svg"></div>
-				<h1 class="header-appname">
-					<?php if (isset($template) && $template->getHeaderTitle() !== '') { ?>
-						<?php p($template->getHeaderTitle()); ?>
-					<?php } else { ?>
-						<?php	p($theme->getName()); ?>
-					<?php } ?>
-				</h1>
-				<?php if (isset($template) && $template->getHeaderDetails() !== '') { ?>
+		<div class="header-left" id="nextcloud">
+			<img class="logo logo-icon svg" alt="<?php p($l->t('%s logo', [$theme->getName()])); ?>" src="<?= ($_['logoUrl'] ?? '') !== '' ? $_['logoUrl'] : $theme->getLogo(); ?>">
+			<?php if (isset($template) && $template->getHeaderDetails() !== '') { ?>
 				<div class="header-shared-by">
 					<?php p($template->getHeaderDetails()); ?>
 				</div>
-				<?php } ?>
-			</span>
+			<?php } ?>
 		</div>
 
 		<div class="header-right">
@@ -86,9 +78,16 @@
 		} ?>
 		</div>
 	</header>
-	<div id="content" class="app-<?php p($_['appid']) ?>" role="main">
+	<main id="content" class="app-<?php p($_['appid']) ?>">
+		<h1 class="hidden-visually">
+			<?php if (isset($template) && $template->getHeaderTitle() !== '') { ?>
+				<?php p($template->getHeaderTitle()); ?>
+			<?php } else { ?>
+				<?php	p($theme->getName()); ?>
+			<?php } ?>
+		</h1>
 		<?php print_unescaped($_['content']); ?>
-	</div>
+	</main>
 	<?php if (isset($template) && $template->getFooterVisible()) { ?>
 	<footer>
 		<p><?php print_unescaped($theme->getLongFooter()); ?></p>

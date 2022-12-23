@@ -25,7 +25,6 @@
 
 			<LoginButton v-if="validCredentials"
 				:loading="loading"
-				:inverted-colors="invertedColors"
 				@click="authenticate" />
 		</fieldset>
 	</form>
@@ -72,10 +71,6 @@ export default {
 		},
 		redirectUrl: {
 			type: [String, Boolean],
-			default: false,
-		},
-		invertedColors: {
-			type: Boolean,
 			default: false,
 		},
 		autoCompleteAllowed: {
@@ -205,12 +200,13 @@ export default {
 		completeAuthentication(challenge) {
 			console.debug('TIME TO COMPLETE')
 
-			const location = this.redirectUrl
+			const redirectUrl = this.redirectUrl
 
 			return finishAuthentication(JSON.stringify(challenge))
-				.then(data => {
+				.then(({ defaultRedirectUrl }) => {
 					console.debug('Logged in redirecting')
-					window.location.href = location
+					// Redirect url might be false so || should be used instead of ??.
+					window.location.href = redirectUrl || defaultRedirectUrl
 				})
 				.catch(error => {
 					console.debug('GOT AN ERROR WHILE SUBMITTING CHALLENGE!')

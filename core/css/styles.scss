@@ -13,12 +13,13 @@
  * @license GNU AGPL version 3 or any later version
  *
  */
+@use 'sass:math';
+@use 'variables';
 
-html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, code, del, dfn, em, img, q, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, dialog, figure, footer, header, hgroup, nav, section {
+html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, code, del, dfn, em, img, q, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, dialog, figure, footer, header, hgroup, nav, section, main {
 	margin: 0;
 	padding: 0;
 	border: 0;
-	outline: 0;
 	font-weight: inherit;
 	font-size: 100%;
 	font-family: inherit;
@@ -26,6 +27,17 @@ html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pr
 	cursor: default;
 	scrollbar-color: var(--color-border-dark) transparent;
 	scrollbar-width: thin;
+}
+
+.js-focus-visible :focus:not(.focus-visible) {
+	outline: none;
+}
+
+/** Let vue apps handle the focus themselves */
+.content:not(#content-vue) :focus-visible,
+.app-navigation:not(#app-navigation-vue) :focus-visible {
+	box-shadow: inset 0 0 0 2px var(--color-primary);
+	outline: none;
 }
 
 html, body {
@@ -86,7 +98,6 @@ ul {
 }
 
 body {
-	background-color: var(--color-main-background);
 	font-weight: normal;
 	/* bring the default font size up to 15px */
 	font-size: var(--default-font-size);
@@ -160,7 +171,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-	background: var(--color-border-dark);
+	background: var(--color-scrollbar);
 	border-radius: var(--border-radius-large);
 	border: 2px solid transparent;
 	background-clip: content-box;
@@ -177,49 +188,8 @@ body {
 
 /* CONTENT ------------------------------------------------------------------ */
 
-#controls {
-	box-sizing: border-box;
-	@include position('sticky');
-	height: 44px;
-	padding: 0;
-	margin: 0;
-	background-color: var(--color-main-background-translucent);
-	z-index: 62; /* must be above the filelist sticky header and texteditor menubar */
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-	display: flex;
-	top: $header-height;
-}
-
-/* position controls for apps with app-navigation */
-
-.viewer-mode #app-navigation + #app-content #controls {
-	left: 0;
-}
-
 #app-navigation * {
 	box-sizing: border-box;
-}
-
-#controls .actions {
-	> div,
-	& {
-		> .button, button {
-			box-sizing: border-box;
-			display: inline-block;
-			display: flex;
-			height: 36px;
-			width: 36px;
-			padding: 9px; // width - border - icon width = 18px
-			align-items: center;
-			justify-content: center;
-		}
-		.button.hidden {
-			display: none;
-		}
-	}
 }
 
 /* EMPTY CONTENT DISPLAY ------------------------------------------------------------ */
@@ -291,12 +261,17 @@ body {
 #show:checked + label, #dbpassword:checked + label, #personal-show:checked + label {
 	opacity: .8;
 }
+#show:focus-visible + label, #dbpassword-toggle:focus-visible + label, #personal-show:focus-visible + label {
+	box-shadow: var(--color-primary) 0 0 0 2px;
+	opacity: 1;
+	border-radius: 9999px;
+}
 
 #show + label, #dbpassword + label, #personal-show + label {
 	position: absolute !important;
 	height: 20px;
 	width: 24px;
-	background-image: var(--icon-toggle-000);
+	background-image: var(--icon-toggle-dark);
 	background-repeat: no-repeat;
 	background-position: center;
 	opacity: .3;
@@ -341,13 +316,12 @@ body {
 	margin-top: 8px;
 	padding: 5px;
 	border-radius: var(--border-radius);
-	color: var(--color-primary-text);
-	background-color: var(--color-warning);
+	color: var(--color-main-text);
+	background-color: rgba(var(--color-warning-rgb), 0.2);
 }
 
 .warning {
 	legend, a {
-		color: var(--color-primary-text) !important;
 		font-weight: bold !important;
 	}
 }
@@ -381,26 +355,7 @@ body {
 }
 
 /* fixes for update page TODO should be fixed some time in a proper way */
-/* this is just for an error while updating the ownCloud instance */
-
-/* Alternative Logins */
-
-#alternative-logins {
-	legend {
-		margin-bottom: 10px;
-	}
-	li {
-		height: 40px;
-		display: inline-block;
-		white-space: nowrap;
-	}
-}
-
-/* Log in and install button */
-
-#remember_login {
-	margin: 18px 5px 0 16px !important;
-}
+/* this is just for an error while updating the Nextcloud instance */
 
 /* Sticky footer */
 
@@ -417,51 +372,6 @@ body {
 
 td.avatar {
 	border-radius: 0;
-}
-
-#notification-container {
-	left: 50%;
-	max-width: 60%;
-	position: fixed;
-	top: 0;
-	text-align: center;
-	transform: translateX(-50%);
-	z-index: 8000;
-}
-
-#notification {
-	margin: 0 auto;
-	z-index: 8000;
-	background-color: var(--color-main-background);
-	border: 0;
-	padding: 1px 8px;
-	display: none;
-	position: relative;
-	top: 0;
-	border-bottom-left-radius: 3px;
-	border-bottom-right-radius: 3px;
-	opacity: .9;
-	span {
-		cursor: pointer;
-		margin-left: 1em;
-	}
-	overflow-x: hidden;
-	overflow-y: auto;
-	max-height: 100px;
-	.row {
-		position: relative;
-		.close {
-			display: inline-block;
-			vertical-align: middle;
-			position: absolute;
-			right: 0;
-			top: 0;
-			margin-top: 2px;
-		}
-		&.closeable {
-			padding-right: 20px;
-		}
-	}
 }
 
 tr .action:not(.permanent), .selectedActions > a {
@@ -733,12 +643,11 @@ code {
 
 	.dirtree {
 		flex-wrap: wrap;
-		padding-left: 12px;
-		padding-right: 0px;
 		box-sizing: border-box;
+		padding-right: 140px;
 
 		div:first-child a {
-			background-image: var(--icon-home-000);
+			background-image: var(--icon-home-dark);
 			background-repeat: no-repeat;
 			background-position: left center;
 		}
@@ -756,8 +665,7 @@ code {
 		}
 	}
 
-	/* Grid view toggle */
-	#picker-view-toggle {
+	#picker-showgridview {
 		position: absolute;
 		background-color: transparent;
 		border: none;
@@ -768,14 +676,11 @@ code {
 		top: 0;
 
 		&:hover,
+		&:active,
 		&:focus {
+			box-shadow: 0 0 0 2px var(--color-primary);
 			opacity: 1;
 		}
-	}
-
-	// keyboard focus
-	#picker-showgridview:focus + #picker-view-toggle {
-		opacity: 1;
 	}
 
 	.actions.creatable {
@@ -795,7 +700,7 @@ code {
 		order:1;
 
 		.icon.icon-add{
-			background-image: var(--icon-add-000);
+			background-image: var(--icon-add-dark);
 			background-size: 16px 16px;
 			width: 34px;
 			height: 34px;
@@ -810,12 +715,11 @@ code {
 		}
 
 		.menu {
-			top:100%;
-			margin:10px;
-			margin-left: 1px;
+			top: 100%;
+			margin-top: 10px;
 			form {
-				display:flex;
-				margin:10px;
+				display: flex;
+				margin: 10px;
 			}
 		}
 
@@ -964,7 +868,7 @@ code {
 							}
 						}
 						&.filesize {
-							line-height: $name-height / 3;
+							line-height: math.div($name-height, 3);
 							width: 100%;
 						}
 						&.date {
@@ -993,9 +897,18 @@ span.ui-icon {
 
 #contactsmenu {
 	.menutoggle {
-		background-size: 20px 20px;
-		padding: 14px;
 		cursor: pointer;
+		&:before {
+			background-size: 20px 20px;
+			background-repeat: no-repeat;
+			background-position-x: 3px;
+			background-position-y: 4px;
+			padding: 14px;
+			content: ' ';
+			// Force white
+			background-image: var(--original-icon-contacts-white);
+			filter: var(--background-image-invert-if-bright);
+		}
 
 		&:hover,
 		&:focus,
@@ -1003,12 +916,22 @@ span.ui-icon {
 			opacity: 1 !important;
 		}
 	}
+
+	#contactsmenu-menu {
+		a {
+			padding: 2px;
+
+			&:focus-visible {
+				box-shadow: inset 0 0 0 2px var(--color-main-text) !important; // override rule in core/css/headers.scss #header a:focus-visible
+			}
+		}
+	}
 }
 
 #header .header-right > div#contactsmenu > .menu {
 	/* show 2.5 to 4.5 entries depending on the screen height */
 	height: calc(100vh - 50px * 3);
-	max-height: calc(50px * 4.5 + 50px);
+	max-height: calc(50px * 6 + 2px);
 	min-height: calc(50px * 3.5);
 	width: 350px;
 
@@ -1024,7 +947,7 @@ span.ui-icon {
 	.content {
 		/* fixed max height of the parent container without the search input */
 		height: calc(100vh - 50px * 3 - 50px);
-		max-height: calc(50px * 4.5);
+		max-height: calc(50px * 5);
 		min-height: calc(50px * 3.5 - 50px);
 		overflow-y: auto;
 
@@ -1045,11 +968,6 @@ span.ui-icon {
 		position: relative;
 		align-items: center;
 		padding: 3px 3px 3px 10px;
-		border-bottom: 1px solid var(--color-border);
-
-		:last-of-type {
-			border-bottom: none;
-		}
 
 		.avatar {
 			height: 32px;
@@ -1073,20 +991,41 @@ span.ui-icon {
 				white-space: nowrap;
 				text-overflow: ellipsis;
 			}
-			.last-message {
-				opacity: .5;
+			.last-message, .email-address {
+				color: var(--color-text-maxcontrast);
 			}
 		}
 
 		.top-action, .second-action, .other-actions {
 			width: 16px;
 			height: 16px;
-			padding: 14px;
 			opacity: .5;
 			cursor: pointer;
 
-			:hover {
+			&:not(button) {
+				padding: 14px;
+			}
+			img {
+				filter: var(--background-invert-if-dark);
+			}
+
+			&:hover,
+			&:active,
+			&:focus {
 				opacity: 1;
+			}
+		}
+
+		button.other-actions {
+			width: 44px;
+
+			&:focus {
+				border-color: transparent;
+				box-shadow: 0 0 0 2px var(--color-main-text);
+			}
+
+			&:focus-visible {
+				border-radius: var(--border-radius-pill);
 			}
 		}
 

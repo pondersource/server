@@ -29,9 +29,9 @@ namespace OC\Files\ObjectStore;
 use Aws\S3\Exception\S3MultipartUploadException;
 use Aws\S3\MultipartUploader;
 use Aws\S3\S3Client;
+use GuzzleHttp\Psr7;
 use GuzzleHttp\Psr7\Utils;
 use OC\Files\Stream\SeekableHttpStream;
-use GuzzleHttp\Psr7;
 use Psr\Http\Message\StreamInterface;
 
 trait S3ObjectTrait {
@@ -43,8 +43,11 @@ trait S3ObjectTrait {
 	 */
 	abstract protected function getConnection();
 
+	abstract protected function getCertificateBundlePath(): ?string;
+
 	/**
 	 * @param string $urn the unified resource name used to identify the object
+	 *
 	 * @return resource stream with the read data
 	 * @throws \Exception when something goes wrong, message will be logged
 	 * @since 7.0.0
@@ -67,8 +70,14 @@ trait S3ObjectTrait {
 				'http' => [
 					'protocol_version' => $request->getProtocolVersion(),
 					'header' => $headers,
-				],
+				]
 			];
+			$bundle = $this->getCertificateBundlePath();
+			if ($bundle) {
+				$opts['ssl'] = [
+					'cafile' => $bundle
+				];
+			}
 
 			if ($this->getProxy()) {
 				$opts['http']['proxy'] = $this->getProxy();
@@ -79,6 +88,7 @@ trait S3ObjectTrait {
 			return fopen($request->getUri(), 'r', false, $context);
 		});
 	}
+
 
 	/**
 	 * Single object put helper
@@ -126,7 +136,7 @@ trait S3ObjectTrait {
 			if ($e->getState()->isInitiated() && (array_key_exists('UploadId', $uploadInfo))) {
 				$this->getConnection()->abortMultipartUpload($uploadInfo);
 			}
-			throw $e;
+			throw new \OCA\DAV\Connector\Sabre\Exception\BadGateway("Error while uploading to S3 bucket", 0, $e);
 		}
 	}
 
@@ -144,9 +154,9 @@ trait S3ObjectTrait {
 		// ($psrStream->isSeekable() && $psrStream->getSize() !== null) evaluates to true for a On-Seekable stream
 		// so the optimisation does not apply
 		$buffer = new Psr7\Stream(fopen("php://memory", 'rwb+'));
-		Utils::copyToStream($psrStream, $buffer, MultipartUploader::PART_MIN_SIZE);
+		Utils::copyToStream($psrStream, $buffer, $this->putSizeLimit);
 		$buffer->seek(0);
-		if ($buffer->getSize() < MultipartUploader::PART_MIN_SIZE) {
+		if ($buffer->getSize() < $this->putSizeLimit) {
 			// buffer is fully seekable, so use it directly for the small upload
 			$this->writeSingle($urn, $buffer, $mimetype);
 		} else {

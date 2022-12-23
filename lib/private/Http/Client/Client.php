@@ -37,9 +37,11 @@ use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\RequestOptions;
 use OCP\Http\Client\IClient;
 use OCP\Http\Client\IResponse;
+use OCP\Http\Client\LocalServerException;
 use OCP\ICertificateManager;
 use OCP\IConfig;
-use OCP\ILogger;
+use OCP\Security\IRemoteHostValidator;
+use function parse_url;
 
 /**
  * Class Client
@@ -51,25 +53,20 @@ class Client implements IClient {
 	private $client;
 	/** @var IConfig */
 	private $config;
-	/** @var ILogger */
-	private $logger;
 	/** @var ICertificateManager */
 	private $certificateManager;
-	/** @var LocalAddressChecker */
-	private $localAddressChecker;
+	private IRemoteHostValidator $remoteHostValidator;
 
 	public function __construct(
 		IConfig $config,
-		ILogger $logger,
 		ICertificateManager $certificateManager,
 		GuzzleClient $client,
-		LocalAddressChecker $localAddressChecker
+		IRemoteHostValidator $remoteHostValidator
 	) {
 		$this->config = $config;
-		$this->logger = $logger;
 		$this->client = $client;
 		$this->certificateManager = $certificateManager;
-		$this->localAddressChecker = $localAddressChecker;
+		$this->remoteHostValidator = $remoteHostValidator;
 	}
 
 	private function buildRequestOptions(array $options): array {
@@ -133,7 +130,7 @@ class Client implements IClient {
 	}
 
 	/**
-	 * Returns a null or an associative array specifiying the proxy URI for
+	 * Returns a null or an associative array specifying the proxy URI for
 	 * 'http' and 'https' schemes, in addition to a 'no' key value pair
 	 * providing a list of host names that should not be proxied to.
 	 *
@@ -186,7 +183,13 @@ class Client implements IClient {
 			return;
 		}
 
-		$this->localAddressChecker->ThrowIfLocalAddress($uri);
+		$host = parse_url($uri, PHP_URL_HOST);
+		if ($host === false || $host === null) {
+			throw new LocalServerException('Could not detect any host');
+		}
+		if (!$this->remoteHostValidator->isValid($host)) {
+			throw new LocalServerException('Host violates local access rules');
+		}
 	}
 
 	/**
@@ -292,7 +295,8 @@ class Client implements IClient {
 			unset($options['body']);
 		}
 		$response = $this->client->request('post', $uri, $this->buildRequestOptions($options));
-		return new Response($response);
+		$isStream = isset($options['stream']) && $options['stream'];
+		return new Response($response, $isStream);
 	}
 
 	/**

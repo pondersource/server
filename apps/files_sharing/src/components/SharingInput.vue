@@ -21,31 +21,35 @@
   -->
 
 <template>
-	<Multiselect ref="multiselect"
-		class="sharing-input"
-		:clear-on-select="true"
-		:disabled="!canReshare"
-		:hide-selected="true"
-		:internal-search="false"
-		:loading="loading"
-		:options="options"
-		:placeholder="inputPlaceholder"
-		:preselect-first="true"
-		:preserve-search="true"
-		:searchable="true"
-		:user-select="true"
-		open-direction="below"
-		label="displayName"
-		track-by="id"
-		@search-change="asyncFind"
-		@select="addShare">
-		<template #noOptions>
-			{{ t('files_sharing', 'No recommendations. Start typing.') }}
-		</template>
-		<template #noResult>
-			{{ noResultText }}
-		</template>
-	</Multiselect>
+	<div class="sharing-search">
+		<label for="sharing-search-input">{{ t('files_sharing', 'Search for share recipients') }}</label>
+		<NcMultiselect ref="multiselect"
+			id="sharing-search-input"
+			class="sharing-search__input"
+			:clear-on-select="true"
+			:disabled="!canReshare"
+			:hide-selected="true"
+			:internal-search="false"
+			:loading="loading"
+			:options="options"
+			:placeholder="inputPlaceholder"
+			:preselect-first="true"
+			:preserve-search="true"
+			:searchable="true"
+			:user-select="true"
+			open-direction="below"
+			label="displayName"
+			track-by="id"
+			@search-change="asyncFind"
+			@select="addShare">
+			<template #noOptions>
+				{{ t('files_sharing', 'No recommendations. Start typing.') }}
+			</template>
+			<template #noResult>
+				{{ noResultText }}
+			</template>
+		</NcMultiselect>
+	</div>
 </template>
 
 <script>
@@ -53,7 +57,7 @@ import { generateOcsUrl } from '@nextcloud/router'
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import debounce from 'debounce'
-import Multiselect from '@nextcloud/vue/dist/Components/Multiselect'
+import NcMultiselect from '@nextcloud/vue/dist/Components/NcMultiselect'
 
 import Config from '../services/ConfigService'
 import GeneratePassword from '../utils/GeneratePassword'
@@ -65,7 +69,7 @@ export default {
 	name: 'SharingInput',
 
 	components: {
-		Multiselect,
+		NcMultiselect,
 	},
 
 	mixins: [ShareTypes, ShareRequests],
@@ -114,7 +118,7 @@ export default {
 		 * results into the autocomplete dropdown
 		 * Used for the guests app
 		 *
-		 * @returns {Array}
+		 * @return {Array}
 		 */
 		externalResults() {
 			return this.ShareSearch.results
@@ -249,7 +253,7 @@ export default {
 
 			const allSuggestions = exactSuggestions.concat(suggestions).concat(externalResults).concat(lookupEntry)
 
-			// Count occurances of display names in order to provide a distinguishable description if needed
+			// Count occurrences of display names in order to provide a distinguishable description if needed
 			const nameCounts = allSuggestions.reduce((nameCounts, result) => {
 				if (!result.displayName) {
 					return nameCounts
@@ -321,8 +325,8 @@ export default {
 		 * Filter out existing shares from
 		 * the provided shares search results
 		 *
-		 * @param {Object[]} shares the array of shares object
-		 * @returns {Object[]}
+		 * @param {object[]} shares the array of shares object
+		 * @return {object[]}
 		 */
 		filterOutExistingShares(shares) {
 			return shares.reduce((arr, share) => {
@@ -376,13 +380,14 @@ export default {
 
 		/**
 		 * Get the icon based on the share type
+		 *
 		 * @param {number} type the share type
-		 * @returns {string} the icon class
+		 * @return {string} the icon class
 		 */
 		shareTypeToIcon(type) {
 			switch (type) {
 			case this.SHARE_TYPES.SHARE_TYPE_GUEST:
-				// default is a user, other icons are here to differenciate
+				// default is a user, other icons are here to differentiate
 				// themselves from it, so let's not display the user icon
 				// case this.SHARE_TYPES.SHARE_TYPE_REMOTE:
 				// case this.SHARE_TYPES.SHARE_TYPE_USER:
@@ -406,8 +411,9 @@ export default {
 
 		/**
 		 * Format shares for the multiselect options
-		 * @param {Object} result select entry item
-		 * @returns {Object}
+		 *
+		 * @param {object} result select entry item
+		 * @return {object}
 		 */
 		formatForMultiselect(result) {
 			let subtitle
@@ -438,7 +444,8 @@ export default {
 
 		/**
 		 * Process the new share request
-		 * @param {Object} value the multiselect option
+		 *
+		 * @param {object} value the multiselect option
 		 */
 		async addShare(value) {
 			if (value.lookup) {
@@ -475,6 +482,7 @@ export default {
 					shareWith: value.shareWith,
 					password,
 					permissions: this.fileInfo.sharePermissions & OC.getCapabilities().files_sharing.default_permissions,
+					attributes: JSON.stringify(this.fileInfo.shareAttributes),
 				})
 
 				// If we had a password, we need to show it to the user as it was generated
@@ -517,20 +525,30 @@ export default {
 </script>
 
 <style lang="scss">
-.sharing-input {
-	width: 100%;
-	margin: 10px 0;
+.sharing-search {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 4px;
 
-	// properly style the lookup entry
-	.multiselect__option {
-		span[lookup] {
-			.avatardiv {
-				background-image: var(--icon-search-fff);
-				background-repeat: no-repeat;
-				background-position: center;
-				background-color: var(--color-text-maxcontrast) !important;
-				div {
-					display: none;
+	label[for="sharing-search-input"] {
+		margin-bottom: 2px;
+	}
+
+	&__input {
+		width: 100%;
+		margin: 10px 0;
+
+		// properly style the lookup entry
+		.multiselect__option {
+			span[lookup] {
+				.avatardiv {
+					background-image: var(--icon-search-white);
+					background-repeat: no-repeat;
+					background-position: center;
+					background-color: var(--color-text-maxcontrast) !important;
+					div {
+						display: none;
+					}
 				}
 			}
 		}

@@ -19,8 +19,7 @@
   -
   -->
 <template>
-	<div
-		class="predefined-status"
+	<div class="predefined-status"
 		tabindex="0"
 		@keyup.enter="select"
 		@keyup.space="select"
@@ -90,6 +89,10 @@ export default {
 		background-color: var(--color-background-hover);
 	}
 
+	&:active{
+		background-color: var(--color-background-dark);
+	}
+
 	&__icon {
 		flex-basis: 40px;
 		text-align: center;
@@ -104,7 +107,7 @@ export default {
 		opacity: .7;
 
 		&::before {
-			content: ' - ';
+			content: ' – ';
 		}
 	}
 }

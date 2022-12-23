@@ -19,7 +19,7 @@ OC.L10N.register(
     "Never" : "Nunca",
     "Once every direct access" : "Una vez cada acceso directo",
     "Read only" : "Solo lectura",
-    "Delete" : "Borrar",
+    "Disconnect" : "Desconectar",
     "Admin defined" : "Administrador definido",
     "Saved" : "Guardado",
     "Save" : "Guardar",
@@ -108,10 +108,6 @@ OC.L10N.register(
     "Available for" : "Disponible para",
     "Add storage" : "Agregar almacenamiento",
     "Advanced settings" : "Configuraciones avanzadas",
-    "Allow users to mount external storage" : "Permitir a los usuarios montar almacenamiento externo",
-    "External storages" : "Almacenamiento externo",
-    "(group)" : "(grupo)",
-    "SMB / CIFS" : "SMB / CIFS",
-    "SMB / CIFS using OC login" : "SMB / CIFS usando inicio de sesión OC"
+    "Allow users to mount external storage" : "Permitir a los usuarios montar almacenamiento externo"
 },
-"nplurals=2; plural=(n != 1);");
+"nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;");

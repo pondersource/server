@@ -34,9 +34,9 @@ namespace OC\Route;
 
 use OC\AppFramework\Routing\RouteParser;
 use OCP\AppFramework\App;
-use OCP\ILogger;
 use OCP\Route\IRouter;
 use OCP\Util;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGenerator;
@@ -61,15 +61,11 @@ class Router implements IRouter {
 	protected $loaded = false;
 	/** @var array */
 	protected $loadedApps = [];
-	/** @var ILogger */
-	protected $logger;
+	protected LoggerInterface $logger;
 	/** @var RequestContext */
 	protected $context;
 
-	/**
-	 * @param ILogger $logger
-	 */
-	public function __construct(ILogger $logger) {
+	public function __construct(LoggerInterface $logger) {
 		$this->logger = $logger;
 		$baseUrl = \OC::$WEBROOT;
 		if (!(\OC::$server->getConfig()->getSystemValue('htaccess.IgnoreFrontController', false) === true || getenv('front_controller_active') === 'true')) {
@@ -364,7 +360,7 @@ class Router implements IRouter {
 		try {
 			return $this->getGenerator()->generate($name, $parameters, $referenceType);
 		} catch (RouteNotFoundException $e) {
-			$this->logger->logException($e, ['level' => ILogger::INFO]);
+			$this->logger->info($e->getMessage(), ['exception' => $e]);
 			return '';
 		}
 	}
@@ -413,7 +409,7 @@ class Router implements IRouter {
 	 * register the routes for the app. The application class will be chosen by
 	 * camelcasing the appname, e.g.: my_app will be turned into
 	 * \OCA\MyApp\AppInfo\Application. If that class does not exist, a default
-	 * App will be intialized. This makes it optional to ship an
+	 * App will be initialized. This makes it optional to ship an
 	 * appinfo/application.php by using the built in query resolver
 	 *
 	 * @param array $routes the application routes

@@ -102,18 +102,29 @@ class MessageTest extends TestCase {
 		$this->assertSame('lukas@owncloud.com', $this->message->getReplyTo());
 	}
 
-	public function testSetTo() {
+	/** @dataProvider dataSetTo */
+	public function testSetTo(array $to, array $expected) {
 		$this->swiftMessage
 			->expects($this->once())
 			->method('setTo')
-			->with(['lukas@owncloud.com']);
-		$this->message->setTo(['lukas@owncloud.com']);
+			->with($expected);
+		$this->message->setTo($to);
+	}
+
+	public function dataSetTo(): array {
+		return [
+			[['robot@example.com'], ['robot@example.com']],
+			[['robot'], ['robot' => 'robot']],
+			[['robot' => 'robot display name'], ['robot' => 'robot display name']],
+			[['example@🤖.com'], ['example@xn--yp9h.com']],
+			[['example@🤖.com' => 'A robot'], ['example@xn--yp9h.com' => 'A robot']],
+		];
 	}
 
 	/**
 	 * @dataProvider  getMailAddressProvider
 	 */
-	public function testGetTo($swiftresult,$return) {
+	public function testGetTo($swiftresult, $return) {
 		$this->swiftMessage
 			->expects($this->once())
 			->method('getTo')
@@ -133,7 +144,7 @@ class MessageTest extends TestCase {
 	/**
 	 * @dataProvider  getMailAddressProvider
 	 */
-	public function testGetCc($swiftresult,$return) {
+	public function testGetCc($swiftresult, $return) {
 		$this->swiftMessage
 			->expects($this->once())
 			->method('getCc')
@@ -153,7 +164,7 @@ class MessageTest extends TestCase {
 	/**
 	 * @dataProvider  getMailAddressProvider
 	 */
-	public function testGetBcc($swiftresult,$return) {
+	public function testGetBcc($swiftresult, $return) {
 		$this->swiftMessage
 			->expects($this->once())
 			->method('getBcc')

@@ -37,6 +37,8 @@ declare(strict_types=1);
  */
 namespace OCA\Files\AppInfo;
 
+use OCA\Files\Controller\OpenLocalEditorController;
+
 /** @var Application $application */
 $application = \OC::$server->query(Application::class);
 $application->registerRoutes(
@@ -99,7 +101,7 @@ $application->registerRoutes(
 			],
 			[
 				'name' => 'ajax#getStorageStats',
-				'url' => '/ajax/getstoragestats.php',
+				'url' => '/ajax/getstoragestats',
 				'verb' => 'GET',
 			],
 			[
@@ -168,6 +170,18 @@ $application->registerRoutes(
 				'name' => 'TransferOwnership#reject',
 				'url' => '/api/v1/transferownership/{id}',
 				'verb' => 'DELETE',
+			],
+			[
+				/** @see OpenLocalEditorController::create() */
+				'name' => 'OpenLocalEditor#create',
+				'url' => '/api/v1/openlocaleditor',
+				'verb' => 'POST',
+			],
+			[
+				/** @see OpenLocalEditorController::validate() */
+				'name' => 'OpenLocalEditor#validate',
+				'url' => '/api/v1/openlocaleditor/{token}',
+				'verb' => 'POST',
 			],
 		],
 	]

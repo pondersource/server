@@ -10,6 +10,7 @@ declare(strict_types=1);
  * @author Georg Ehrke <oc.list@georgehrke.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Thomas Citharel <nextcloud@tcit.fr>
+ * @author Richard Steinmetz <richard@steinmetz.cloud>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -32,12 +33,12 @@ namespace OCA\DAV\CalDAV\Reminder\NotificationProvider;
 use OCA\DAV\AppInfo\Application;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
-use OCP\ILogger;
 use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\L10N\IFactory as L10NFactory;
 use OCP\Notification\IManager;
 use OCP\Notification\INotification;
+use Psr\Log\LoggerInterface;
 use Sabre\VObject\Component\VEvent;
 use Sabre\VObject\Property;
 
@@ -57,17 +58,9 @@ class PushProvider extends AbstractProvider {
 	/** @var ITimeFactory */
 	private $timeFactory;
 
-	/**
-	 * @param IConfig $config
-	 * @param IManager $manager
-	 * @param ILogger $logger
-	 * @param L10NFactory $l10nFactory
-	 * @param IUrlGenerator $urlGenerator
-	 * @param ITimeFactory $timeFactory
-	 */
 	public function __construct(IConfig $config,
 								IManager $manager,
-								ILogger $logger,
+								LoggerInterface $logger,
 								L10NFactory $l10nFactory,
 								IURLGenerator $urlGenerator,
 								ITimeFactory $timeFactory) {
@@ -81,11 +74,13 @@ class PushProvider extends AbstractProvider {
 	 *
 	 * @param VEvent $vevent
 	 * @param string $calendarDisplayName
+	 * @param string[] $principalEmailAddresses
 	 * @param IUser[] $users
 	 * @throws \Exception
 	 */
 	public function send(VEvent $vevent,
-						 string $calendarDisplayName = null,
+						 string $calendarDisplayName,
+						 array $principalEmailAddresses,
 						 array $users = []):void {
 		if ($this->config->getAppValue('dav', 'sendEventRemindersPush', 'no') !== 'yes') {
 			return;
@@ -117,8 +112,6 @@ class PushProvider extends AbstractProvider {
 	}
 
 	/**
-	 * @var VEvent $vevent
-	 * @return array
 	 * @throws \Exception
 	 */
 	protected function extractEventDetails(VEvent $vevent):array {

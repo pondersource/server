@@ -8,7 +8,7 @@
  * @author Julius Härtl <jus@bitgrid.net>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -27,12 +27,12 @@
 
 export default class Share {
 
-	_share;
+	_share
 
 	/**
 	 * Create the share object
 	 *
-	 * @param {Object} ocsData ocs request response
+	 * @param {object} ocsData ocs request response
 	 */
 	constructor(ocsData) {
 		if (ocsData.ocs && ocsData.ocs.data && ocsData.ocs.data[0]) {
@@ -42,6 +42,15 @@ export default class Share {
 		// convert int into boolean
 		ocsData.hide_download = !!ocsData.hide_download
 		ocsData.mail_send = !!ocsData.mail_send
+
+		if (ocsData.attributes) {
+			try {
+				ocsData.attributes = JSON.parse(ocsData.attributes)
+			} catch (e) {
+				console.warn('Could not parse share attributes returned by server: "' + ocsData.attributes + '"')
+			}
+		}
+		ocsData.attributes = ocsData.attributes ?? []
 
 		// store state
 		this._share = ocsData
@@ -54,7 +63,7 @@ export default class Share {
 	 * inject its watchers into the #share
 	 * state and make the whole class reactive
 	 *
-	 * @returns {Object} the share raw state
+	 * @return {object} the share raw state
 	 * @readonly
 	 * @memberof Sidebar
 	 */
@@ -65,7 +74,7 @@ export default class Share {
 	/**
 	 * get the share id
 	 *
-	 * @returns {int}
+	 * @return {number}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -76,7 +85,7 @@ export default class Share {
 	/**
 	 * Get the share type
 	 *
-	 * @returns {int}
+	 * @return {number}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -88,7 +97,7 @@ export default class Share {
 	 * Get the share permissions
 	 * See OC.PERMISSION_* variables
 	 *
-	 * @returns {int}
+	 * @return {number}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -97,10 +106,21 @@ export default class Share {
 	}
 
 	/**
+	 * Get the share attributes
+	 *
+	 * @return {Array}
+	 * @readonly
+	 * @memberof Share
+	 */
+	get attributes() {
+		return this._share.attributes
+	}
+
+	/**
 	 * Set the share permissions
 	 * See OC.PERMISSION_* variables
 	 *
-	 * @param {int} permissions valid permission, See OC.PERMISSION_* variables
+	 * @param {number} permissions valid permission, See OC.PERMISSION_* variables
 	 * @memberof Share
 	 */
 	set permissions(permissions) {
@@ -111,7 +131,7 @@ export default class Share {
 	/**
 	 * Get the share owner uid
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -122,7 +142,7 @@ export default class Share {
 	/**
 	 * Get the share owner's display name
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -134,7 +154,7 @@ export default class Share {
 	/**
 	 * Get the share with entity uid
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -146,7 +166,7 @@ export default class Share {
 	 * Get the share with entity display name
 	 * fallback to its uid if none
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -159,7 +179,7 @@ export default class Share {
 	 * Unique display name in case of multiple
 	 * duplicates results with the same name.
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -171,7 +191,7 @@ export default class Share {
 	/**
 	 * Get the share with entity link
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -182,7 +202,7 @@ export default class Share {
 	/**
 	 * Get the share with avatar if any
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -194,7 +214,7 @@ export default class Share {
 	/**
 	 * Get the shared item owner uid
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -206,7 +226,7 @@ export default class Share {
 	 * Get the shared item display name
 	 * fallback to its uid if none
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -219,7 +239,7 @@ export default class Share {
 	/**
 	 * Get the share creation timestamp
 	 *
-	 * @returns {int}
+	 * @return {number}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -228,9 +248,9 @@ export default class Share {
 	}
 
 	/**
-	 * Get the expiration date as a string format
+	 * Get the expiration date
 	 *
-	 * @returns {string}
+	 * @return {string} date with YYYY-MM-DD format
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -239,10 +259,9 @@ export default class Share {
 	}
 
 	/**
-	 * Set the expiration date as a string format
-	 * e.g. YYYY-MM-DD
+	 * Set the expiration date
 	 *
-	 * @param {string} date the share expiration date
+	 * @param {string} date the share expiration date with YYYY-MM-DD format
 	 * @memberof Share
 	 */
 	set expireDate(date) {
@@ -253,7 +272,7 @@ export default class Share {
 	/**
 	 * Get the public share token
 	 *
-	 * @returns {string} the token
+	 * @return {string} the token
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -264,7 +283,7 @@ export default class Share {
 	/**
 	 * Get the share note if any
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -286,7 +305,7 @@ export default class Share {
 	 * Get the share label if any
 	 * Should only exist on link shares
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -308,7 +327,7 @@ export default class Share {
 	/**
 	 * Have a mail been sent
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -319,7 +338,7 @@ export default class Share {
 	/**
 	 * Hide the download button on public page
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -340,7 +359,7 @@ export default class Share {
 	/**
 	 * Password protection of the share
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -359,9 +378,30 @@ export default class Share {
 	}
 
 	/**
+	 * Password expiration time
+	 *
+	 * @return {string}
+	 * @readonly
+	 * @memberof Share
+	 */
+	get passwordExpirationTime() {
+		return this._share.password_expiration_time
+	}
+
+	/**
+	 * Password expiration time
+	 *
+	 * @param {string} password expiration time
+	 * @memberof Share
+	 */
+	set passwordExpirationTime(passwordExpirationTime) {
+		this._share.password_expiration_time = passwordExpirationTime
+	}
+
+	/**
 	 * Password protection by Talk of the share
 	 *
-	 * @returns {Boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -372,7 +412,7 @@ export default class Share {
 	/**
 	 * Password protection by Talk of the share
 	 *
-	 * @param {Boolean} sendPasswordByTalk whether to send the password by Talk
+	 * @param {boolean} sendPasswordByTalk whether to send the password by Talk
 	 *        or not
 	 * @memberof Share
 	 */
@@ -384,7 +424,7 @@ export default class Share {
 	/**
 	 * Get the shared item absolute full path
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -395,7 +435,7 @@ export default class Share {
 	/**
 	 * Return the item type: file or folder
 	 *
-	 * @returns {string} 'folder' or 'file'
+	 * @return {string} 'folder' or 'file'
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -406,7 +446,7 @@ export default class Share {
 	/**
 	 * Get the shared item mimetype
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -417,7 +457,7 @@ export default class Share {
 	/**
 	 * Get the shared item id
 	 *
-	 * @returns {int}
+	 * @return {number}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -430,7 +470,7 @@ export default class Share {
 	 * e.g the file /xxx/aaa will be shared in
 	 * the receiving root as /aaa, the fileTarget is /aaa
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -441,7 +481,7 @@ export default class Share {
 	/**
 	 * Get the parent folder id if any
 	 *
-	 * @returns {int}
+	 * @return {number}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -454,7 +494,7 @@ export default class Share {
 	/**
 	 * Does this share have READ permissions
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -465,7 +505,7 @@ export default class Share {
 	/**
 	 * Does this share have CREATE permissions
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -476,7 +516,7 @@ export default class Share {
 	/**
 	 * Does this share have DELETE permissions
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -487,7 +527,7 @@ export default class Share {
 	/**
 	 * Does this share have UPDATE permissions
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -498,12 +538,53 @@ export default class Share {
 	/**
 	 * Does this share have SHARE permissions
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Share
 	 */
 	get hasSharePermission() {
 		return !!((this.permissions & OC.PERMISSION_SHARE))
+	}
+
+	/**
+	 * Does this share have download permissions
+	 *
+	 * @return {boolean}
+	 * @readonly
+	 * @memberof Share
+	 */
+	get hasDownloadPermission() {
+		for (const i in this._share.attributes) {
+			const attr = this._share.attributes[i]
+			if (attr.scope === 'permissions' && attr.key === 'download') {
+				return attr.enabled
+			}
+		}
+
+		return true
+	}
+
+	set hasDownloadPermission(enabled) {
+		this.setAttribute('permissions', 'download', !!enabled)
+	}
+
+	setAttribute(scope, key, enabled) {
+		const attrUpdate = {
+			scope,
+			key,
+			enabled,
+		}
+
+		// try and replace existing
+		for (const i in this._share.attributes) {
+			const attr = this._share.attributes[i]
+			if (attr.scope === attrUpdate.scope && attr.key === attrUpdate.key) {
+				this._share.attributes[i] = attrUpdate
+				return
+			}
+		}
+
+		this._share.attributes.push(attrUpdate)
 	}
 
 	// PERMISSIONS Shortcuts for the CURRENT USER
@@ -512,7 +593,7 @@ export default class Share {
 	/**
 	 * Can the current user EDIT this share ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -523,7 +604,7 @@ export default class Share {
 	/**
 	 * Can the current user DELETE this share ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -533,7 +614,8 @@ export default class Share {
 
 	/**
 	 * Top level accessible shared folder fileid for the current user
-	 * @returns {string}
+	 *
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */
@@ -543,7 +625,8 @@ export default class Share {
 
 	/**
 	 * Top level accessible shared folder path for the current user
-	 * @returns {string}
+	 *
+	 * @return {string}
 	 * @readonly
 	 * @memberof Share
 	 */

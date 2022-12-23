@@ -25,7 +25,9 @@
 				state.call.abort();
 			}
 			state.dir = currentDir;
-			state.call = $.getJSON(OC.filePath('files','ajax','getstoragestats.php') + '?dir=' + encodeURIComponent(currentDir),function(response) {
+			state.call = $.getJSON(OC.generateUrl('apps/files/ajax/getstoragestats?dir={dir}', {
+				dir: currentDir,
+			}), function(response) {
 				state.dir = null;
 				state.call = null;
 				Files.updateMaxUploadFilesize(response);
@@ -37,7 +39,7 @@
 		},
 		_updateStorageQuotas: function() {
 			var state = Files.updateStorageQuotas;
-			state.call = $.getJSON(OC.filePath('files','ajax','getstoragestats.php'),function(response) {
+			state.call = $.getJSON(OC.generateUrl('apps/files/ajax/getstoragestats'), function(response) {
 				Files.updateQuota(response);
 			});
 		},
@@ -96,16 +98,17 @@
 			}
 			if (response.data !== undefined
 			 && response.data.quota !== undefined
+			 && response.data.total !== undefined
 			 && response.data.used !== undefined
 			 && response.data.usedSpacePercent !== undefined) {
 				var humanUsed = OC.Util.humanFileSize(response.data.used, true);
-				var humanQuota = OC.Util.humanFileSize(response.data.quota, true);
+				var humanTotal = OC.Util.humanFileSize(response.data.total, true);
 				if (response.data.quota > 0) {
-					$('#quota').attr('data-original-title', Math.floor(response.data.used/response.data.quota*1000)/10 + '%');
+					$('#quota').attr('data-original-title', t('files', '{used}%', {used: Math.round(response.data.usedSpacePercent)}));
 					$('#quota progress').val(response.data.usedSpacePercent);
-					$('#quotatext').text(t('files', '{used} of {quota} used', {used: humanUsed, quota: humanQuota}));
+					$('#quotatext').html(t('files', '{used} of {quota} used', {used: humanUsed, quota: humanTotal}));
 				} else {
-					$('#quotatext').text(t('files', '{used} used', {used: humanUsed}));
+					$('#quotatext').html(t('files', '{used} used', {used: humanUsed}));
 				}
 				if (response.data.usedSpacePercent > 80) {
 					$('#quota progress').addClass('warn');
@@ -219,7 +222,7 @@
 		 * Returns the download URL of the given file(s)
 		 * @param {string} filename string or array of file names to download
 		 * @param {string} [dir] optional directory in which the file name is, defaults to the current directory
-		 * @param {bool} [isDir=false] whether the given filename is a directory and might need a special URL
+		 * @param {boolean} [isDir=false] whether the given filename is a directory and might need a special URL
 		 */
 		getDownloadUrl: function(filename, dir, isDir) {
 			if (!_.isArray(filename) && !isDir) {
@@ -271,8 +274,8 @@
 		/**
 		 * Generates a preview URL based on the URL space.
 		 * @param urlSpec attributes for the URL
-		 * @param {int} urlSpec.x width
-		 * @param {int} urlSpec.y height
+		 * @param {number} urlSpec.x width
+		 * @param {number} urlSpec.y height
 		 * @param {String} urlSpec.file path to the file
 		 * @return preview URL
 		 * @deprecated used OCA.Files.FileList.generatePreviewUrl instead
@@ -303,9 +306,6 @@
 		 */
 		initialize: function() {
 			Files.bindKeyboardShortcuts(document, $);
-
-			// TODO: move file list related code (upload) to OCA.Files.FileList
-			$('#file_action_panel').attr('activeAction', false);
 
 			// drag&drop support using jquery.fileupload
 			// TODO use OC.dialogs
@@ -422,12 +422,12 @@ var createDragShadow = function(event) {
 
 	$(selectedFiles).each(function(i,elem) {
 		// TODO: refactor this with the table row creation code
-		var newtr = $('<tr/>')
+		var newtr = $('<tr></tr>')
 			.attr('data-dir', dir)
 			.attr('data-file', elem.name)
 			.attr('data-origin', elem.origin);
-		newtr.append($('<td class="filename" />').text(elem.name).css('background-size', 32));
-		newtr.append($('<td class="size" />').text(OC.Util.humanFileSize(elem.size)));
+		newtr.append($('<td class="filename"></td>').text(elem.name).css('background-size', 32));
+		newtr.append($('<td class="size"></td>').text(OC.Util.humanFileSize(elem.size)));
 		tbody.append(newtr);
 		if (elem.type === 'dir') {
 			newtr.find('td.filename')
@@ -484,7 +484,7 @@ var dragOptions={
 		$('.crumbmenu').removeClass('canDropChildren');
 	},
 	drag: function(event, ui) {
-		var scrollingArea = window;
+		var scrollingArea = FileList.$container;
 		var currentScrollTop = $(scrollingArea).scrollTop();
 		var scrollArea = Math.min(Math.floor($(window).innerHeight() / 2), 100);
 

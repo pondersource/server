@@ -54,11 +54,8 @@ OC.L10N.register(
     "Images" : "Εικόνες",
     "Office documents" : "Έγγραφα γραφείου",
     "PDF documents" : "Έγγραφα PDF",
+    "Custom MIME type" : "Προσαρμοσμένος τύπος MIME",
     "Custom mimetype" : "Προσαρμοσμένος τύπος mime",
-    "Select a tag" : "Επιλογή ετικέτας",
-    "No results" : "Κανένα αποτέλεσμα",
-    "%s (invisible)" : "%s (αόρατο)",
-    "%s (restricted)" : "%s (περιορισμένο)",
     "Please enter a valid time span" : "Εισαγάγετε έγκυρο χρονικό διάστημα",
     "Select a request URL" : "Επιλέξτε μια διεύθυνση URL αιτήματος",
     "Predefined URLs" : "Προορισμένα URLs",
@@ -115,6 +112,9 @@ OC.L10N.register(
     "User group membership" : "Συμμετοχή σε ομάδα χρηστών",
     "is member of" : "είναι μέλος του",
     "is not member of" : "δεν είναι μέλος του",
-    "Browse the app store" : "Εξερεύνηση αγοράς αφαρμογών"
+    "Select a tag" : "Επιλογή ετικέτας",
+    "No results" : "Κανένα αποτέλεσμα",
+    "%s (invisible)" : "%s (αόρατο)",
+    "%s (restricted)" : "%s (περιορισμένο)"
 },
 "nplurals=2; plural=(n != 1);");

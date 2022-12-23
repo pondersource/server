@@ -11,6 +11,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Richard Steinmetz <richard@steinmetz.cloud>
  *
  * @license AGPL-3.0
  *
@@ -34,6 +35,10 @@ use OC\User\User;
 use OCA\DAV\CalDAV\Proxy\Proxy;
 use OCA\DAV\CalDAV\Proxy\ProxyMapper;
 use OCA\DAV\Connector\Sabre\Principal;
+use OCP\Accounts\IAccount;
+use OCP\Accounts\IAccountManager;
+use OCP\Accounts\IAccountProperty;
+use OCP\Accounts\IAccountPropertyCollection;
 use OCP\App\IAppManager;
 use OCP\IConfig;
 use OCP\IGroup;
@@ -49,7 +54,6 @@ use Sabre\DAV\PropPatch;
 use Test\TestCase;
 
 class PrincipalTest extends TestCase {
-
 	/** @var IUserManager | MockObject */
 	private $userManager;
 
@@ -58,6 +62,9 @@ class PrincipalTest extends TestCase {
 
 	/** @var IGroupManager | MockObject */
 	private $groupManager;
+
+	/** @var IAccountManager|MockObject */
+	private $accountManager;
 
 	/** @var IManager | MockObject */
 	private $shareManager;
@@ -81,6 +88,7 @@ class PrincipalTest extends TestCase {
 	protected function setUp(): void {
 		$this->userManager = $this->createMock(IUserManager::class);
 		$this->groupManager = $this->createMock(IGroupManager::class);
+		$this->accountManager = $this->createMock(IAccountManager::class);
 		$this->shareManager = $this->createMock(IManager::class);
 		$this->userSession = $this->createMock(IUserSession::class);
 		$this->appManager = $this->createMock(IAppManager::class);
@@ -92,6 +100,7 @@ class PrincipalTest extends TestCase {
 		$this->connector = new Principal(
 			$this->userManager,
 			$this->groupManager,
+			$this->accountManager,
 			$this->shareManager,
 			$this->userSession,
 			$this->appManager,
@@ -143,6 +152,45 @@ class PrincipalTest extends TestCase {
 			->withConsecutive([$fooUser], [$barUser])
 			->willReturnOnConsecutiveCalls('de', 'en');
 
+		$fooAccountPropertyCollection = $this->createMock(IAccountPropertyCollection::class);
+		$fooAccountPropertyCollection->expects($this->once())
+			->method('getProperties')
+			->with()
+			->willReturn([]);
+		$fooAccount = $this->createMock(IAccount::class);
+		$fooAccount->expects($this->once())
+			->method('getPropertyCollection')
+			->with(IAccountManager::COLLECTION_EMAIL)
+			->willReturn($fooAccountPropertyCollection);
+
+		$emailPropertyOne = $this->createMock(IAccountProperty::class);
+		$emailPropertyOne->expects($this->once())
+			->method('getValue')
+			->with()
+			->willReturn('alias@nextcloud.com');
+		$emailPropertyTwo = $this->createMock(IAccountProperty::class);
+		$emailPropertyTwo->expects($this->once())
+			->method('getValue')
+			->with()
+			->willReturn('alias2@nextcloud.com');
+
+		$barAccountPropertyCollection = $this->createMock(IAccountPropertyCollection::class);
+		$barAccountPropertyCollection->expects($this->once())
+			->method('getProperties')
+			->with()
+			->willReturn([$emailPropertyOne, $emailPropertyTwo]);
+		$barAccount = $this->createMock(IAccount::class);
+		$barAccount->expects($this->once())
+			->method('getPropertyCollection')
+			->with(IAccountManager::COLLECTION_EMAIL)
+			->willReturn($barAccountPropertyCollection);
+
+		$this->accountManager
+			->expects($this->exactly(2))
+			->method('getAccount')
+			->withConsecutive([$fooUser], [$barUser])
+			->willReturnOnConsecutiveCalls($fooAccount, $barAccount);
+
 		$expectedResponse = [
 			0 => [
 				'uri' => 'principals/users/foo',
@@ -156,6 +204,7 @@ class PrincipalTest extends TestCase {
 				'{urn:ietf:params:xml:ns:caldav}calendar-user-type' => 'INDIVIDUAL',
 				'{http://nextcloud.com/ns}language' => 'en',
 				'{http://sabredav.org/ns}email-address' => 'bar@nextcloud.com',
+				'{DAV:}alternate-URI-set' => ['mailto:alias@nextcloud.com', 'mailto:alias2@nextcloud.com']
 			]
 		];
 		$response = $this->connector->getPrincipalsByPrefix('principals/users');
@@ -608,12 +657,12 @@ class PrincipalTest extends TestCase {
 		$user2->method('getSystemEMailAddress')->willReturn('user2@foo.bar');
 		$user3 = $this->createMock(IUser::class);
 		$user3->method('getUID')->willReturn('user3');
-		$user2->method('getDisplayName')->willReturn('User 22');
-		$user2->method('getSystemEMailAddress')->willReturn('user2@foo.bar123');
+		$user3->method('getDisplayName')->willReturn('User 22');
+		$user3->method('getSystemEMailAddress')->willReturn('user2@foo.bar123');
 		$user4 = $this->createMock(IUser::class);
 		$user4->method('getUID')->willReturn('user4');
-		$user2->method('getDisplayName')->willReturn('User 222');
-		$user2->method('getSystemEMailAddress')->willReturn('user2@foo.bar456');
+		$user4->method('getDisplayName')->willReturn('User 222');
+		$user4->method('getSystemEMailAddress')->willReturn('user2@foo.bar456');
 
 		$this->userManager->expects($this->at(0))
 			->method('searchDisplayName')
@@ -660,6 +709,10 @@ class PrincipalTest extends TestCase {
 
 		$this->shareManager->expects($this->once())
 			->method('allowEnumerationFullMatch')
+			->willReturn(true);
+
+		$this->shareManager->expects($this->once())
+			->method('matchEmail')
 			->willReturn(true);
 
 		$user2 = $this->createMock(IUser::class);
@@ -920,5 +973,35 @@ class PrincipalTest extends TestCase {
 			['mailto:user2@foo.bar', 'user2@foo.bar', 'principals/users/user2'],
 			['mailto:user3@foo.bar', 'user3@foo.bar', 'principals/users/user3'],
 		];
+	}
+
+	public function testGetEmailAddressesOfPrincipal(): void {
+		$principal = [
+			'{http://sabredav.org/ns}email-address' => 'bar@company.org',
+			'{DAV:}alternate-URI-set' => [
+				'/some/url',
+				'mailto:foo@bar.com',
+				'mailto:duplicate@example.com',
+			],
+			'{urn:ietf:params:xml:ns:caldav}calendar-user-address-set' => [
+				'mailto:bernard@example.com',
+				'mailto:bernard.desruisseaux@example.com',
+			],
+			'{http://calendarserver.org/ns/}email-address-set' => [
+				'mailto:duplicate@example.com',
+				'mailto:user@some.org',
+			],
+		];
+
+		$expected = [
+			'bar@company.org',
+			'foo@bar.com',
+			'duplicate@example.com',
+			'bernard@example.com',
+			'bernard.desruisseaux@example.com',
+			'user@some.org',
+		];
+		$actual = $this->connector->getEmailAddressesOfPrincipal($principal);
+		$this->assertEquals($expected, $actual);
 	}
 }

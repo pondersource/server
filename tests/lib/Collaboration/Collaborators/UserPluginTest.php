@@ -23,9 +23,6 @@
 
 namespace Test\Collaboration\Collaborators;
 
-use OC\Collaboration\Collaborators\SearchResult;
-use OC\Collaboration\Collaborators\UserPlugin;
-use OC\KnownUser\KnownUserService;
 use OCP\Collaboration\Collaborators\ISearchResult;
 use OCP\IConfig;
 use OCP\IGroup;
@@ -35,25 +32,29 @@ use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Share\IShare;
 use OCP\UserStatus\IManager as IUserStatusManager;
+use OC\Collaboration\Collaborators\SearchResult;
+use OC\Collaboration\Collaborators\UserPlugin;
+use OC\KnownUser\KnownUserService;
+use PHPUnit\Framework\MockObject\MockObject;
 use Test\TestCase;
 
 class UserPluginTest extends TestCase {
-	/** @var  IConfig|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var  IConfig|MockObject */
 	protected $config;
 
-	/** @var  IUserManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var  IUserManager|MockObject */
 	protected $userManager;
 
-	/** @var  IGroupManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var  IGroupManager|MockObject */
 	protected $groupManager;
 
-	/** @var  IUserSession|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var  IUserSession|MockObject */
 	protected $session;
 
-	/** @var  KnownUserService|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var  KnownUserService|MockObject */
 	protected $knownUserService;
 
-	/** @var IUserStatusManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IUserStatusManager|MockObject */
 	protected $userStatusManager;
 
 	/** @var  UserPlugin */
@@ -62,13 +63,11 @@ class UserPluginTest extends TestCase {
 	/** @var  ISearchResult */
 	protected $searchResult;
 
-	/** @var int */
-	protected $limit = 2;
+	protected int $limit = 2;
 
-	/** @var int */
-	protected $offset = 0;
+	protected int $offset = 0;
 
-	/** @var  IUser|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var  IUser|MockObject */
 	protected $user;
 
 	protected function setUp(): void {
@@ -104,21 +103,12 @@ class UserPluginTest extends TestCase {
 		);
 	}
 
-	public function mockConfig($shareWithGroupOnly, $shareeEnumeration, $shareeEnumerationLimitToGroup, $shareeEnumerationPhone = false) {
+	public function mockConfig($mockedSettings) {
 		$this->config->expects($this->any())
 			->method('getAppValue')
 			->willReturnCallback(
-				function ($appName, $key, $default) use ($shareWithGroupOnly, $shareeEnumeration, $shareeEnumerationLimitToGroup, $shareeEnumerationPhone) {
-					if ($appName === 'core' && $key === 'shareapi_only_share_with_group_members') {
-						return $shareWithGroupOnly ? 'yes' : 'no';
-					} elseif ($appName === 'core' && $key === 'shareapi_allow_share_dialog_user_enumeration') {
-						return $shareeEnumeration ? 'yes' : 'no';
-					} elseif ($appName === 'core' && $key === 'shareapi_restrict_user_enumeration_to_group') {
-						return $shareeEnumerationLimitToGroup ? 'yes' : 'no';
-					} elseif ($appName === 'core' && $key === 'shareapi_restrict_user_enumeration_to_phone') {
-						return $shareeEnumerationPhone ? 'yes' : 'no';
-					}
-					return $default;
+				function ($appName, $key, $default) use ($mockedSettings) {
+					return $mockedSettings[$appName][$key] ?? $default;
 				}
 			);
 	}
@@ -470,7 +460,13 @@ class UserPluginTest extends TestCase {
 		array $users = [],
 		$shareeEnumerationPhone = false
 	) {
-		$this->mockConfig($shareWithGroupOnly, $shareeEnumeration, false, $shareeEnumerationPhone);
+		$this->mockConfig(["core" => [
+			'shareapi_only_share_with_group_members' => $shareWithGroupOnly ? 'yes' : 'no',
+			'shareapi_allow_share_dialog_user_enumeration' => $shareeEnumeration? 'yes' : 'no',
+			'shareapi_restrict_user_enumeration_to_group' => false ? 'yes' : 'no',
+			'shareapi_restrict_user_enumeration_to_phone' => $shareeEnumerationPhone ? 'yes' : 'no',
+		]]);
+
 		$this->instantiatePlugin();
 
 		$this->session->expects($this->any())
@@ -586,6 +582,83 @@ class UserPluginTest extends TestCase {
 					['uid' => 'test2', 'groups' => ['groupB']],
 				],
 				['exact' => [], 'wide' => ['test1']],
+				['core' => ['shareapi_restrict_user_enumeration_to_group' => 'yes']],
+			],
+			[
+				'test',
+				['groupA'],
+				[
+					['uid' => 'test1', 'displayName' => 'Test user 1', 'groups' => ['groupA']],
+					['uid' => 'test2', 'displayName' => 'Test user 2', 'groups' => ['groupA']],
+				],
+				['exact' => [], 'wide' => []],
+				['core' => ['shareapi_allow_share_dialog_user_enumeration' => 'no']],
+			],
+			[
+				'test1',
+				['groupA'],
+				[
+					['uid' => 'test1', 'displayName' => 'Test user 1', 'groups' => ['groupA']],
+					['uid' => 'test2', 'displayName' => 'Test user 2', 'groups' => ['groupA']],
+				],
+				['exact' => ['test1'], 'wide' => []],
+				['core' => ['shareapi_allow_share_dialog_user_enumeration' => 'no']],
+			],
+			[
+				'test1',
+				['groupA'],
+				[
+					['uid' => 'test1', 'displayName' => 'Test user 1', 'groups' => ['groupA']],
+					['uid' => 'test2', 'displayName' => 'Test user 2', 'groups' => ['groupA']],
+				],
+				['exact' => [], 'wide' => []],
+				[
+					'core' => [
+						'shareapi_allow_share_dialog_user_enumeration' => 'no',
+						'shareapi_restrict_user_enumeration_full_match_userid' => 'no',
+					],
+				]
+			],
+			[
+				'Test user 1',
+				['groupA'],
+				[
+					['uid' => 'test1', 'displayName' => 'Test user 1', 'groups' => ['groupA']],
+					['uid' => 'test2', 'displayName' => 'Test user 2', 'groups' => ['groupA']],
+				],
+				['exact' => ['test1'], 'wide' => []],
+				[
+					'core' => [
+						'shareapi_allow_share_dialog_user_enumeration' => 'no',
+						'shareapi_restrict_user_enumeration_full_match_userid' => 'no',
+					],
+				]
+			],
+			[
+				'Test user 1',
+				['groupA'],
+				[
+					['uid' => 'test1', 'displayName' => 'Test user 1 (Second displayName for user 1)', 'groups' => ['groupA']],
+					['uid' => 'test2', 'displayName' => 'Test user 2 (Second displayName for user 2)', 'groups' => ['groupA']],
+				],
+				['exact' => [], 'wide' => []],
+				['core' => ['shareapi_allow_share_dialog_user_enumeration' => 'no'],
+				]
+			],
+			[
+				'Test user 1',
+				['groupA'],
+				[
+					['uid' => 'test1', 'displayName' => 'Test user 1 (Second displayName for user 1)', 'groups' => ['groupA']],
+					['uid' => 'test2', 'displayName' => 'Test user 2 (Second displayName for user 2)', 'groups' => ['groupA']],
+				],
+				['exact' => ['test1'], 'wide' => []],
+				[
+					'core' => [
+						'shareapi_allow_share_dialog_user_enumeration' => 'no',
+						'shareapi_restrict_user_enumeration_full_match_ignore_second_dn' => 'yes',
+					],
+				]
 			],
 			[
 				'test1',
@@ -595,6 +668,7 @@ class UserPluginTest extends TestCase {
 					['uid' => 'test2', 'groups' => ['groupB']],
 				],
 				['exact' => ['test1'], 'wide' => []],
+				['core' => ['shareapi_restrict_user_enumeration_to_group' => 'yes']],
 			],
 			[
 				'test',
@@ -604,6 +678,7 @@ class UserPluginTest extends TestCase {
 					['uid' => 'test2', 'groups' => ['groupB', 'groupA']],
 				],
 				['exact' => [], 'wide' => ['test1', 'test2']],
+				['core' => ['shareapi_restrict_user_enumeration_to_group' => 'yes']],
 			],
 			[
 				'test',
@@ -613,6 +688,7 @@ class UserPluginTest extends TestCase {
 					['uid' => 'test2', 'groups' => ['groupB', 'groupA']],
 				],
 				['exact' => [], 'wide' => ['test1', 'test2']],
+				['core' => ['shareapi_restrict_user_enumeration_to_group' => 'yes']],
 			],
 			[
 				'test',
@@ -622,6 +698,7 @@ class UserPluginTest extends TestCase {
 					['uid' => 'test2', 'groups' => ['groupB', 'groupA']],
 				],
 				['exact' => [], 'wide' => ['test1', 'test2']],
+				['core' => ['shareapi_restrict_user_enumeration_to_group' => 'yes']],
 			],
 			[
 				'test',
@@ -631,6 +708,7 @@ class UserPluginTest extends TestCase {
 					['uid' => 'test2', 'groups' => ['groupB', 'groupA']],
 				],
 				['exact' => [], 'wide' => []],
+				['core' => ['shareapi_restrict_user_enumeration_to_group' => 'yes']],
 			],
 			[
 				'test',
@@ -640,6 +718,7 @@ class UserPluginTest extends TestCase {
 					['uid' => 'test2', 'groups' => []],
 				],
 				['exact' => [], 'wide' => []],
+				['core' => ['shareapi_restrict_user_enumeration_to_group' => 'yes']],
 			],
 			[
 				'test',
@@ -649,6 +728,7 @@ class UserPluginTest extends TestCase {
 					['uid' => 'test2', 'groups' => []],
 				],
 				['exact' => [], 'wide' => []],
+				['core' => ['shareapi_restrict_user_enumeration_to_group' => 'yes']],
 			],
 		];
 	}
@@ -656,19 +736,38 @@ class UserPluginTest extends TestCase {
 	/**
 	 * @dataProvider dataSearchEnumeration
 	 */
-	public function testSearchEnumerationLimit($search, $userGroups, $matchingUsers, $result) {
-		$this->mockConfig(false, true, true);
+	public function testSearchEnumerationLimit($search, $userGroups, $matchingUsers, $result, $mockedSettings) {
+		$this->mockConfig($mockedSettings);
 
 		$userResults = [];
 		foreach ($matchingUsers as $user) {
 			$userResults[$user['uid']] = $user['uid'];
 		}
 
-		$mappedResultExact = array_map(function ($user) {
-			return ['label' => $user, 'value' => ['shareType' => 0, 'shareWith' => $user], 'icon' => 'icon-user', 'subline' => null, 'status' => [], 'shareWithDisplayNameUnique' => $user];
+		$usersById = [];
+		foreach ($matchingUsers as $user) {
+			$usersById[$user['uid']] = $user;
+		}
+
+		$mappedResultExact = array_map(function ($user) use ($usersById, $search) {
+			return [
+				'label' => $search === $user ? $user : $usersById[$user]['displayName'],
+				'value' => ['shareType' => 0, 'shareWith' => $user],
+				'icon' => 'icon-user',
+				'subline' => null,
+				'status' => [],
+				'shareWithDisplayNameUnique' => $user,
+			];
 		}, $result['exact']);
 		$mappedResultWide = array_map(function ($user) {
-			return ['label' => $user, 'value' => ['shareType' => 0, 'shareWith' => $user], 'icon' => 'icon-user', 'subline' => null, 'status' => [], 'shareWithDisplayNameUnique' => $user];
+			return [
+				'label' => $user,
+				'value' => ['shareType' => 0, 'shareWith' => $user],
+				'icon' => 'icon-user',
+				'subline' => null,
+				'status' => [],
+				'shareWithDisplayNameUnique' => $user,
+			];
 		}, $result['wide']);
 
 		$this->userManager
@@ -679,6 +778,17 @@ class UserPluginTest extends TestCase {
 				}
 				return null;
 			});
+		$this->userManager
+		->method('searchDisplayName')
+		->willReturnCallback(function ($search) use ($matchingUsers) {
+			$users = array_filter(
+				$matchingUsers,
+				fn ($user) => str_contains(strtolower($user['displayName']), strtolower($search))
+			);
+			return array_map(
+				fn ($user) => $this->getUserMock($user['uid'], $user['displayName']),
+				$users);
+		});
 
 		$this->groupManager->method('displayNamesInGroup')
 			->willReturn($userResults);
@@ -687,13 +797,15 @@ class UserPluginTest extends TestCase {
 		$this->session->expects($this->any())
 			->method('getUser')
 			->willReturn($this->getUserMock('test', 'foo'));
-		// current user
-		$this->groupManager->expects($this->at(0))
-			->method('getUserGroupIds')
-			->willReturn($userGroups);
 		$this->groupManager->expects($this->any())
 			->method('getUserGroupIds')
-			->willReturnCallback(function ($user) use ($matchingUsers) {
+			->willReturnCallback(function ($user) use ($matchingUsers, $userGroups) {
+				static $firstCall = true;
+				if ($firstCall) {
+					$firstCall = false;
+					// current user
+					return $userGroups;
+				}
 				$neededObject = array_filter(
 					$matchingUsers,
 					function ($e) use ($user) {

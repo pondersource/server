@@ -74,6 +74,7 @@ class SharingTest extends TestCase {
 			->method('getAppValue')
 			->willReturnMap([
 				['core', 'shareapi_exclude_groups_list', '', ''],
+				['core', 'shareapi_allow_links_exclude_groups', '', ''],
 				['core', 'shareapi_allow_group_sharing', 'yes', 'yes'],
 				['core', 'shareapi_allow_links', 'yes', 'yes'],
 				['core', 'shareapi_allow_public_upload', 'yes', 'yes'],
@@ -82,6 +83,9 @@ class SharingTest extends TestCase {
 				['core', 'shareapi_restrict_user_enumeration_to_group', 'no', 'no'],
 				['core', 'shareapi_restrict_user_enumeration_to_phone', 'no', 'no'],
 				['core', 'shareapi_restrict_user_enumeration_full_match', 'yes', 'yes'],
+				['core', 'shareapi_restrict_user_enumeration_full_match_userid', 'yes', 'yes'],
+				['core', 'shareapi_restrict_user_enumeration_full_match_email', 'yes', 'yes'],
+				['core', 'shareapi_restrict_user_enumeration_full_match_ignore_second_dn', 'no', 'no'],
 				['core', 'shareapi_enabled', 'yes', 'yes'],
 				['core', 'shareapi_default_expire_date', 'no', 'no'],
 				['core', 'shareapi_expire_after_n_days', '7', '7'],
@@ -96,6 +100,7 @@ class SharingTest extends TestCase {
 				['core', 'shareapi_default_remote_expire_date', 'no', 'no'],
 				['core', 'shareapi_remote_expire_after_n_days', '7', '7'],
 				['core', 'shareapi_enforce_remote_expire_date', 'no', 'no'],
+				['core', 'shareapi_enforce_links_password_excluded_groups', '', ''],
 			]);
 		$this->shareManager->method('shareWithGroupMembersOnly')
 			->willReturn(false);
@@ -115,6 +120,9 @@ class SharingTest extends TestCase {
 				'restrictUserEnumerationToGroup' => 'no',
 				'restrictUserEnumerationToPhone' => 'no',
 				'restrictUserEnumerationFullMatch' => 'yes',
+				'restrictUserEnumerationFullMatchUserId' => 'yes',
+				'restrictUserEnumerationFullMatchEmail' => 'yes',
+				'restrictUserEnumerationFullMatchIgnoreSecondDN' => 'no',
 				'enforceLinkPassword' => false,
 				'onlyShareWithGroupMembers' => false,
 				'shareAPIEnabled' => 'yes',
@@ -134,6 +142,8 @@ class SharingTest extends TestCase {
 				'shareRemoteExpireAfterNDays' => '7',
 				'shareRemoteEnforceExpireDate' => 'no',
 				'allowLinksExcludeGroups' => '',
+				'passwordExcludedGroups' => '',
+				'passwordExcludedGroupsFeatureEnabled' => false,
 			],
 			''
 		);
@@ -146,6 +156,7 @@ class SharingTest extends TestCase {
 			->method('getAppValue')
 			->willReturnMap([
 				['core', 'shareapi_exclude_groups_list', '', '["NoSharers","OtherNoSharers"]'],
+				['core', 'shareapi_allow_links_exclude_groups', '', ''],
 				['core', 'shareapi_allow_group_sharing', 'yes', 'yes'],
 				['core', 'shareapi_allow_links', 'yes', 'yes'],
 				['core', 'shareapi_allow_public_upload', 'yes', 'yes'],
@@ -154,6 +165,9 @@ class SharingTest extends TestCase {
 				['core', 'shareapi_restrict_user_enumeration_to_group', 'no', 'no'],
 				['core', 'shareapi_restrict_user_enumeration_to_phone', 'no', 'no'],
 				['core', 'shareapi_restrict_user_enumeration_full_match', 'yes', 'yes'],
+				['core', 'shareapi_restrict_user_enumeration_full_match_userid', 'yes', 'yes'],
+				['core', 'shareapi_restrict_user_enumeration_full_match_email', 'yes', 'yes'],
+				['core', 'shareapi_restrict_user_enumeration_full_match_ignore_second_dn', 'no', 'no'],
 				['core', 'shareapi_enabled', 'yes', 'yes'],
 				['core', 'shareapi_default_expire_date', 'no', 'no'],
 				['core', 'shareapi_expire_after_n_days', '7', '7'],
@@ -168,6 +182,7 @@ class SharingTest extends TestCase {
 				['core', 'shareapi_default_remote_expire_date', 'no', 'no'],
 				['core', 'shareapi_remote_expire_after_n_days', '7', '7'],
 				['core', 'shareapi_enforce_remote_expire_date', 'no', 'no'],
+				['core', 'shareapi_enforce_links_password_excluded_groups', '', ''],
 			]);
 		$this->shareManager->method('shareWithGroupMembersOnly')
 			->willReturn(false);
@@ -187,6 +202,9 @@ class SharingTest extends TestCase {
 				'restrictUserEnumerationToGroup' => 'no',
 				'restrictUserEnumerationToPhone' => 'no',
 				'restrictUserEnumerationFullMatch' => 'yes',
+				'restrictUserEnumerationFullMatchUserId' => 'yes',
+				'restrictUserEnumerationFullMatchEmail' => 'yes',
+				'restrictUserEnumerationFullMatchIgnoreSecondDN' => 'no',
 				'enforceLinkPassword' => false,
 				'onlyShareWithGroupMembers' => false,
 				'shareAPIEnabled' => 'yes',
@@ -206,6 +224,8 @@ class SharingTest extends TestCase {
 				'shareRemoteExpireAfterNDays' => '7',
 				'shareRemoteEnforceExpireDate' => 'no',
 				'allowLinksExcludeGroups' => '',
+				'passwordExcludedGroups' => '',
+				'passwordExcludedGroupsFeatureEnabled' => false,
 			],
 			''
 		);

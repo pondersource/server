@@ -106,6 +106,15 @@ class RepairMimeTypes implements IRepairStep {
 		return $count;
 	}
 
+	private function introduceAsciidocType() {
+		$updatedMimetypes = [
+			'adoc' => 'text/asciidoc',
+			'asciidoc' => 'text/asciidoc',
+		];
+
+		return $this->updateMimetypes($updatedMimetypes);
+	}
+
 	private function introduceImageTypes() {
 		$updatedMimetypes = [
 			'jp2' => 'image/jp2',
@@ -211,6 +220,15 @@ class RepairMimeTypes implements IRepairStep {
 		return $this->updateMimetypes($updatedMimetypes);
 	}
 
+	private function introduceOnlyofficeFormType() {
+		$updatedMimetypes = [
+			"oform" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document.oform",
+			"docxf" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document.docxf",
+		];
+
+		return $this->updateMimetypes($updatedMimetypes);
+	}
+
 
 	/**
 	 * Fix mime types
@@ -259,6 +277,14 @@ class RepairMimeTypes implements IRepairStep {
 
 		if (version_compare($ocVersionFromBeforeUpdate, '23.0.0.2', '<') && $this->introduceFlatOpenDocumentType()) {
 			$out->info('Fixed Flat OpenDocument mime types');
+		}
+
+		if (version_compare($ocVersionFromBeforeUpdate, '25.0.0.2', '<') && $this->introduceOnlyofficeFormType()) {
+			$out->info('Fixed ONLYOFFICE Forms OpenXML mime types');
+		}
+
+		if (version_compare($ocVersionFromBeforeUpdate, '26.0.0.1', '<') && $this->introduceAsciidocType()) {
+			$out->info('Fixed AsciiDoc mime types');
 		}
 	}
 }

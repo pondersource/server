@@ -20,93 +20,100 @@
   -->
 
 <template>
-	<div v-if="!hideLoginForm || directLogin">
-		<transition name="fade" mode="out-in">
-			<div v-if="!passwordlessLogin && !resetPassword && resetPasswordTarget === ''"
-				key="login">
-				<LoginForm
-					:username.sync="user"
-					:redirect-url="redirectUrl"
-					:direct-login="directLogin"
-					:messages="messages"
-					:errors="errors"
-					:throttle-delay="throttleDelay"
-					:inverted-colors="invertedColors"
-					:auto-complete-allowed="autoCompleteAllowed"
-					@submit="loading = true" />
-				<a v-if="canResetPassword && resetPasswordLink !== ''"
-					id="lost-password"
-					:href="resetPasswordLink">
-					{{ t('core', 'Forgot password?') }}
-				</a>
-				<a v-else-if="canResetPassword && !resetPassword"
-					id="lost-password"
-					:href="resetPasswordLink"
-					@click.prevent="resetPassword = true">
-					{{ t('core', 'Forgot password?') }}
-				</a>
-				<br>
-				<template v-if="hasPasswordless">
-					<div v-if="countAlternativeLogins"
-						class="alternative-logins">
-						<a v-if="hasPasswordless"
-							class="button"
-							:class="{ 'single-alt-login-option': countAlternativeLogins }"
+	<div class="guest-box login-box">
+		<div v-if="!hideLoginForm || directLogin">
+			<transition name="fade" mode="out-in">
+				<div v-if="!passwordlessLogin && !resetPassword && resetPasswordTarget === ''">
+					<LoginForm :username.sync="user"
+						:redirect-url="redirectUrl"
+						:direct-login="directLogin"
+						:messages="messages"
+						:errors="errors"
+						:throttle-delay="throttleDelay"
+						:auto-complete-allowed="autoCompleteAllowed"
+						@submit="loading = true" />
+					<a v-if="canResetPassword && resetPasswordLink !== ''"
+						id="lost-password"
+						class="login-box__link"
+						:href="resetPasswordLink">
+						{{ t('core', 'Forgot password?') }}
+					</a>
+					<a v-else-if="canResetPassword && !resetPassword"
+						id="lost-password"
+						class="login-box__link"
+						:href="resetPasswordLink"
+						@click.prevent="resetPassword = true">
+						{{ t('core', 'Forgot password?') }}
+					</a>
+					<template v-if="hasPasswordless">
+						<div v-if="countAlternativeLogins"
+							class="alternative-logins">
+							<a v-if="hasPasswordless"
+								class="button"
+								:class="{ 'single-alt-login-option': countAlternativeLogins }"
+								href="#"
+								@click.prevent="passwordlessLogin = true">
+								{{ t('core', 'Log in with a device') }}
+							</a>
+						</div>
+						<a v-else
 							href="#"
 							@click.prevent="passwordlessLogin = true">
 							{{ t('core', 'Log in with a device') }}
 						</a>
-					</div>
-					<a v-else
-						href="#"
-						@click.prevent="passwordlessLogin = true">
-						{{ t('core', 'Log in with a device') }}
-					</a>
-				</template>
-			</div>
-			<div v-else-if="!loading && passwordlessLogin"
-				key="reset"
-				class="login-additional">
-				<PasswordLessLoginForm
-					:username.sync="user"
-					:redirect-url="redirectUrl"
-					:inverted-colors="invertedColors"
-					:auto-complete-allowed="autoCompleteAllowed"
-					:is-https="isHttps"
-					:is-localhost="isLocalhost"
-					:has-public-key-credential="hasPublicKeyCredential"
-					@submit="loading = true" />
-				<a href="#" @click.prevent="passwordlessLogin = false">
-					{{ t('core', 'Back') }}
-				</a>
-			</div>
-			<div v-else-if="!loading && canResetPassword"
-				key="reset"
-				class="login-additional">
-				<div class="lost-password-container">
-					<ResetPassword v-if="resetPassword"
-						:username.sync="user"
-						:reset-password-link="resetPasswordLink"
-						:inverted-colors="invertedColors"
-						@abort="resetPassword = false" />
+					</template>
 				</div>
-			</div>
-			<div v-else-if="resetPasswordTarget !== ''">
-				<UpdatePassword :username.sync="user"
-					:reset-password-target="resetPasswordTarget"
-					:inverted-colors="invertedColors"
-					@done="passwordResetFinished" />
-			</div>
-		</transition>
-	</div>
-	<div v-else>
-		<transition name="fade" mode="out-in">
-			<div class="warning">
-				{{ t('core', 'Login form is disabled.') }}<br>
-				<small>{{ t('core', 'Please contact your administrator.') }}
-				</small>
-			</div>
-		</transition>
+				<div v-else-if="!loading && passwordlessLogin"
+					key="reset"
+					class="login-additional">
+					<PasswordLessLoginForm :username.sync="user"
+						:redirect-url="redirectUrl"
+						:auto-complete-allowed="autoCompleteAllowed"
+						:is-https="isHttps"
+						:is-localhost="isLocalhost"
+						:has-public-key-credential="hasPublicKeyCredential"
+						@submit="loading = true" />
+					<a href="#" class="login-box__link" @click.prevent="passwordlessLogin = false">
+						{{ t('core', 'Back') }}
+					</a>
+				</div>
+				<div v-else-if="!loading && canResetPassword"
+					key="reset"
+					class="login-additional">
+					<div class="lost-password-container">
+						<ResetPassword v-if="resetPassword"
+							:username.sync="user"
+							:reset-password-link="resetPasswordLink"
+							@abort="resetPassword = false" />
+					</div>
+				</div>
+				<div v-else-if="resetPasswordTarget !== ''">
+					<UpdatePassword :username.sync="user"
+						:reset-password-target="resetPasswordTarget"
+						@done="passwordResetFinished" />
+				</div>
+			</transition>
+		</div>
+		<div v-else>
+			<transition name="fade" mode="out-in">
+				<NcNoteCard type="warning" :title="t('core', 'Login form is disabled.')">
+					{{ t('core', 'Please contact your administrator.') }}
+				</NcNoteCard>
+			</transition>
+		</div>
+
+		<div id="alternative-logins" class="alternative-logins">
+			<NcButton v-for="(alternativeLogin, index) in alternativeLogins"
+				:key="index"
+				type="secondary"
+				:wide="true"
+				:class="[alternativeLogin.class]"
+				role="link"
+				:href="alternativeLogin.href"
+				@click="goTo(alternativeLogin.href)">
+				{{ alternativeLogin.name }}
+			</NcButton>
+		</div>
 	</div>
 </template>
 
@@ -118,6 +125,8 @@ import LoginForm from '../components/login/LoginForm.vue'
 import PasswordLessLoginForm from '../components/login/PasswordLessLoginForm.vue'
 import ResetPassword from '../components/login/ResetPassword.vue'
 import UpdatePassword from '../components/login/UpdatePassword.vue'
+import NcButton from '@nextcloud/vue/dist/Components/NcButton.js'
+import NcNoteCard from '@nextcloud/vue/dist/Components/NcNoteCard.js'
 
 const query = queryString.parse(location.search)
 if (query.clear === '1') {
@@ -138,12 +147,14 @@ export default {
 		PasswordLessLoginForm,
 		ResetPassword,
 		UpdatePassword,
+		NcButton,
+		NcNoteCard,
 	},
 
 	data() {
 		return {
 			loading: false,
-			user: this.username,
+			user: loadState('core', 'loginUsername', ''),
 			passwordlessLogin: false,
 			resetPassword: false,
 
@@ -151,9 +162,7 @@ export default {
 			errors: loadState('core', 'loginErrors', []),
 			messages: loadState('core', 'loginMessages', []),
 			redirectUrl: loadState('core', 'loginRedirectUrl', false),
-			username: loadState('core', 'loginUsername', ''),
 			throttleDelay: loadState('core', 'loginThrottleDelay', 0),
-			invertedColors: OCA.Theming && OCA.Theming.inverted,
 			canResetPassword: loadState('core', 'loginCanResetPassword', false),
 			resetPasswordLink: loadState('core', 'loginResetPasswordLink', ''),
 			autoCompleteAllowed: loadState('core', 'loginAutocomplete', true),
@@ -162,26 +171,56 @@ export default {
 			directLogin: query.direct === '1',
 			hasPasswordless: loadState('core', 'webauthn-available', false),
 			countAlternativeLogins: loadState('core', 'countAlternativeLogins', false),
+			alternativeLogins: loadState('core', 'alternativeLogins', []),
 			isHttps: window.location.protocol === 'https:',
 			isLocalhost: window.location.hostname === 'localhost',
 			hasPublicKeyCredential: typeof (window.PublicKeyCredential) !== 'undefined',
 			hideLoginForm: loadState('core', 'hideLoginForm', false),
 		}
 	},
+
 	methods: {
 		passwordResetFinished() {
 			this.resetPasswordTarget = ''
 			this.directLogin = true
 		},
+		goTo(href) {
+			window.location.href = href
+		},
 	},
 }
 </script>
 
-<style>
-	.fade-enter-active, .fade-leave-active {
-		transition: opacity .3s;
+<style lang="scss">
+body {
+	font-size: var(--default-font-size);
+}
+
+.login-box {
+	width: 300px;
+
+	&__link {
+		display: block;
+		padding: 1rem;
+		font-size: var(--default-font-size);
+		text-align: center;
+		font-weight: normal !important;
 	}
-	.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
-		opacity: 0;
+}
+.fade-enter-active, .fade-leave-active {
+	transition: opacity .3s;
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+	opacity: 0;
+}
+
+.alternative-logins {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+
+	.button-vue {
+		box-sizing: border-box;
 	}
+}
 </style>

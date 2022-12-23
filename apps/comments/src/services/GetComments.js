@@ -3,7 +3,7 @@
  *
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -22,17 +22,18 @@
 
 import { parseXML, prepareFileFromProps } from 'webdav/dist/node/tools/dav'
 import { processResponsePayload } from 'webdav/dist/node/response'
+import { decodeHtmlEntities } from '../utils/decodeHtmlEntities'
 import client from './DavClient'
 
 export const DEFAULT_LIMIT = 20
 /**
  * Retrieve the comments list
  *
- * @param {Object} data destructuring object
+ * @param {object} data destructuring object
  * @param {string} data.commentsType the ressource type
  * @param {number} data.ressourceId the ressource ID
- * @param {Object} [options] optional options for axios
- * @returns {Object[]} the comments list
+ * @param {object} [options] optional options for axios
+ * @return {object[]} the comments list
  */
 export default async function({ commentsType, ressourceId }, options = {}) {
 	let response = null
@@ -50,7 +51,7 @@ export default async function({ commentsType, ressourceId }, options = {}) {
 				<oc:offset>${options.offset || 0}</oc:offset>
 			</oc:filter-comments>`,
 	}, options))
-		// See example on how it's done normaly
+		// See example on how it's done normally
 		// https://github.com/perry-mitchell/webdav-client/blob/9de2da4a2599e06bd86c2778145b7ade39fe0b3c/source/interface/stat.js#L19
 		// Waiting for proper REPORT integration https://github.com/perry-mitchell/webdav-client/issues/207
 		.then(res => {
@@ -64,6 +65,10 @@ export default async function({ commentsType, ressourceId }, options = {}) {
 }
 
 // https://github.com/perry-mitchell/webdav-client/blob/9de2da4a2599e06bd86c2778145b7ade39fe0b3c/source/interface/directoryContents.js#L32
+/**
+ * @param {any} result -
+ * @param {any} isDetailed -
+ */
 function processMultistatus(result, isDetailed = false) {
 	// Extract the response items (directory contents)
 	const {
@@ -84,13 +89,4 @@ function processMultistatus(result, isDetailed = false) {
 		}
 		return prepareFileFromProps(decodedProps, decodedProps.id.toString(), isDetailed)
 	})
-}
-
-function decodeHtmlEntities(value, passes = 1) {
-	const parser = new DOMParser()
-	let decoded = value
-	for (let i = 0; i < passes; i++) {
-		decoded = parser.parseFromString(decoded, 'text/html').documentElement.textContent
-	}
-	return decoded
 }

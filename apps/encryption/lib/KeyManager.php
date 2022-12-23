@@ -159,7 +159,7 @@ class KeyManager {
 			$this->config->setAppValue('encryption', 'masterKeyId', $this->masterKeyId);
 		}
 
-		$this->keyId = $userSession && $userSession->isLoggedIn() ? $userSession->getUser()->getUID() : false;
+		$this->keyId = $userSession->isLoggedIn() ? $userSession->getUser()->getUID() : false;
 		$this->log = $log;
 	}
 
@@ -623,7 +623,7 @@ class KeyManager {
 	}
 
 	/**
-	 * creat a backup of the users private and public key and then  delete it
+	 * create a backup of the users private and public key and then delete it
 	 *
 	 * @param string $uid
 	 */

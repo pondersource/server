@@ -5,7 +5,7 @@
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Julius Härtl <jus@bitgrid.net>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -27,19 +27,19 @@ export default class Config {
 	/**
 	 * Is public upload allowed on link shares ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
 	get isPublicUploadEnabled() {
-		return document.getElementById('filestable')
-			&& document.getElementById('filestable').dataset.allowPublicUpload === 'yes'
+		return document.getElementsByClassName('files-filestable')[0]
+			&& document.getElementsByClassName('files-filestable')[0].dataset.allowPublicUpload === 'yes'
 	}
 
 	/**
 	 * Are link share allowed ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -51,7 +51,7 @@ export default class Config {
 	/**
 	 * Get the federated sharing documentation link
 	 *
-	 * @returns {string}
+	 * @return {string}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -60,63 +60,51 @@ export default class Config {
 	}
 
 	/**
-	 * Get the default link share expiration date as string
+	 * Get the default link share expiration date
 	 *
-	 * @returns {string}
+	 * @return {Date|null}
 	 * @readonly
 	 * @memberof Config
 	 */
-	get defaultExpirationDateString() {
-		let expireDateString = ''
+	get defaultExpirationDate() {
 		if (this.isDefaultExpireDateEnabled) {
-			const date = window.moment.utc()
-			const expireAfterDays = this.defaultExpireDate
-			date.add(expireAfterDays, 'days')
-			expireDateString = date.format('YYYY-MM-DD')
+			return new Date(new Date().setDate(new Date().getDate() + this.defaultExpireDate))
 		}
-		return expireDateString
+		return null
 	}
 
 	/**
-	 * Get the default internal expiration date as string
+	 * Get the default internal expiration date
 	 *
-	 * @returns {string}
+	 * @return {Date|null}
 	 * @readonly
 	 * @memberof Config
 	 */
-	get defaultInternalExpirationDateString() {
-		let expireDateString = ''
+	get defaultInternalExpirationDate() {
 		if (this.isDefaultInternalExpireDateEnabled) {
-			const date = window.moment.utc()
-			const expireAfterDays = this.defaultInternalExpireDate
-			date.add(expireAfterDays, 'days')
-			expireDateString = date.format('YYYY-MM-DD')
+			return new Date(new Date().setDate(new Date().getDate() + this.defaultInternalExpireDate))
 		}
-		return expireDateString
+		return null
 	}
 
 	/**
-	 * Get the default remote expiration date as string
+	 * Get the default remote expiration date
 	 *
-	 * @returns {string}
+	 * @return {Date|null}
 	 * @readonly
 	 * @memberof Config
 	 */
 	get defaultRemoteExpirationDateString() {
-		let expireDateString = ''
 		if (this.isDefaultRemoteExpireDateEnabled) {
-			const date = window.moment.utc()
-			const expireAfterDays = this.defaultRemoteExpireDate
-			date.add(expireAfterDays, 'days')
-			expireDateString = date.format('YYYY-MM-DD')
+			return new Date(new Date().setDate(new Date().getDate() + this.defaultRemoteExpireDate))
 		}
-		return expireDateString
+		return null
 	}
 
 	/**
 	 * Are link shares password-enforced ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -127,7 +115,7 @@ export default class Config {
 	/**
 	 * Is password asked by default on link shares ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -138,7 +126,7 @@ export default class Config {
 	/**
 	 * Is link shares expiration enforced ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -149,7 +137,7 @@ export default class Config {
 	/**
 	 * Is there a default expiration date for new link shares ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -160,7 +148,7 @@ export default class Config {
 	/**
 	 * Is internal shares expiration enforced ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -171,7 +159,7 @@ export default class Config {
 	/**
 	 * Is remote shares expiration enforced ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -182,7 +170,7 @@ export default class Config {
 	/**
 	 * Is there a default expiration date for new internal shares ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -191,9 +179,20 @@ export default class Config {
 	}
 
 	/**
+	 * Is there a default expiration date for new remote shares ?
+	 *
+	 * @return {boolean}
+	 * @readonly
+	 * @memberof Config
+	 */
+	get isDefaultRemoteExpireDateEnabled() {
+		return OC.appConfig.core.defaultRemoteExpireDateEnabled === true
+	}
+
+	/**
 	 * Are users on this server allowed to send shares to other servers ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -204,7 +203,7 @@ export default class Config {
 	/**
 	 * Is sharing my mail (link share) enabled ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -219,7 +218,7 @@ export default class Config {
 	/**
 	 * Get the default days to link shares expiration
 	 *
-	 * @returns {int}
+	 * @return {number}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -230,7 +229,7 @@ export default class Config {
 	/**
 	 * Get the default days to internal shares expiration
 	 *
-	 * @returns {int}
+	 * @return {number}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -241,7 +240,7 @@ export default class Config {
 	/**
 	 * Get the default days to remote shares expiration
 	 *
-	 * @returns {int}
+	 * @return {number}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -252,7 +251,7 @@ export default class Config {
 	/**
 	 * Is resharing allowed ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -263,7 +262,7 @@ export default class Config {
 	/**
 	 * Is password enforced for mail shares ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -272,7 +271,7 @@ export default class Config {
 	}
 
 	/**
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -283,7 +282,7 @@ export default class Config {
 	/**
 	 * Is sharing with groups allowed ?
 	 *
-	 * @returns {boolean}
+	 * @return {boolean}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -294,7 +293,7 @@ export default class Config {
 	/**
 	 * Get the maximum results of a share search
 	 *
-	 * @returns {int}
+	 * @return {number}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -306,7 +305,7 @@ export default class Config {
 	 * Get the minimal string length
 	 * to initiate a share search
 	 *
-	 * @returns {int}
+	 * @return {number}
 	 * @readonly
 	 * @memberof Config
 	 */
@@ -317,7 +316,7 @@ export default class Config {
 	/**
 	 * Get the password policy config
 	 *
-	 * @returns {Object}
+	 * @return {object}
 	 * @readonly
 	 * @memberof Config
 	 */

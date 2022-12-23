@@ -5,7 +5,7 @@
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -25,6 +25,7 @@
 import $ from 'jquery'
 
 import OC from '../OC'
+import { isA11yActivation } from '../Util/a11y.js'
 
 const LIST = ''
 	+ '<div class="menu popovermenu menu-left hidden contactsmenu-popover">'
@@ -50,7 +51,11 @@ $.fn.contactsMenu = function(shareWith, shareType, appendTo) {
 	appendTo.append(LIST)
 	const $list = appendTo.find('div.contactsmenu-popover')
 
-	$div.click(function() {
+	$div.on('click keydown', function(event) {
+		if (!isA11yActivation(event)) {
+			return
+		}
+
 		if (!$list.hasClass('hidden')) {
 			$list.addClass('hidden')
 			$list.hide()

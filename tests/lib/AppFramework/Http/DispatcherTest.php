@@ -32,10 +32,12 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\Response;
+use OCP\Diagnostics\IEventLogger;
 use OCP\IConfig;
 use OCP\IRequest;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
+use OCP\IRequestId;
 
 class TestController extends Controller {
 	/**
@@ -49,11 +51,12 @@ class TestController extends Controller {
 	/**
 	 * @param int $int
 	 * @param bool $bool
+	 * @param double $foo
 	 * @param int $test
-	 * @param int $test2
+	 * @param integer $test2
 	 * @return array
 	 */
-	public function exec($int, $bool, $test = 4, $test2 = 1) {
+	public function exec($int, $bool, $foo, $test = 4, $test2 = 1) {
 		$this->registerResponder('text', function ($in) {
 			return new JSONResponse(['text' => $in]);
 		});
@@ -87,6 +90,8 @@ class DispatcherTest extends \Test\TestCase {
 	/** @var Dispatcher */
 	private $dispatcher;
 	private $controllerMethod;
+	/** @var Controller|MockObject  */
+	private $controller;
 	private $response;
 	/** @var IRequest|MockObject  */
 	private $request;
@@ -99,6 +104,10 @@ class DispatcherTest extends \Test\TestCase {
 	private $config;
 	/** @var LoggerInterface|MockObject  */
 	private $logger;
+	/**
+	 * @var IEventLogger|MockObject
+	 */
+	private $eventLogger;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -106,6 +115,7 @@ class DispatcherTest extends \Test\TestCase {
 
 		$this->config = $this->createMock(IConfig::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
+		$this->eventLogger = $this->createMock(IEventLogger::class);
 		$app = $this->getMockBuilder(
 			'OC\AppFramework\DependencyInjection\DIContainer')
 			->disableOriginalConstructor()
@@ -143,7 +153,8 @@ class DispatcherTest extends \Test\TestCase {
 			$this->request,
 			$this->config,
 			\OC::$server->getDatabaseConnection(),
-			$this->logger
+			$this->logger,
+			$this->eventLogger
 		);
 
 		$this->response = $this->createMock(Response::class);
@@ -305,23 +316,21 @@ class DispatcherTest extends \Test\TestCase {
 			[
 				'post' => [
 					'int' => '3',
-					'bool' => 'false'
+					'bool' => 'false',
+					'double' => 1.2,
 				],
 				'method' => 'POST'
 			],
-			$this->getMockBuilder('\OCP\Security\ISecureRandom')
-				->disableOriginalConstructor()
-				->getMock(),
-			$this->getMockBuilder(IConfig::class)
-				->disableOriginalConstructor()
-				->getMock()
+			$this->createMock(IRequestId::class),
+			$this->createMock(IConfig::class)
 		);
 		$this->dispatcher = new Dispatcher(
 			$this->http, $this->middlewareDispatcher, $this->reflector,
 			$this->request,
 			$this->config,
 			\OC::$server->getDatabaseConnection(),
-			$this->logger
+			$this->logger,
+			$this->eventLogger
 		);
 		$controller = new TestController('app', $this->request);
 
@@ -339,23 +348,21 @@ class DispatcherTest extends \Test\TestCase {
 				'post' => [
 					'int' => '3',
 					'bool' => 'false',
+					'double' => 1.2,
 					'test2' => 7
 				],
 				'method' => 'POST',
 			],
-			$this->getMockBuilder('\OCP\Security\ISecureRandom')
-				->disableOriginalConstructor()
-				->getMock(),
-			$this->getMockBuilder(IConfig::class)
-				->disableOriginalConstructor()
-				->getMock()
+			$this->createMock(IRequestId::class),
+			$this->createMock(IConfig::class)
 		);
 		$this->dispatcher = new Dispatcher(
 			$this->http, $this->middlewareDispatcher, $this->reflector,
 			$this->request,
 			$this->config,
 			\OC::$server->getDatabaseConnection(),
-			$this->logger
+			$this->logger,
+			$this->eventLogger
 		);
 		$controller = new TestController('app', $this->request);
 
@@ -373,26 +380,24 @@ class DispatcherTest extends \Test\TestCase {
 			[
 				'post' => [
 					'int' => '3',
-					'bool' => 'false'
+					'bool' => 'false',
+					'double' => 1.2,
 				],
 				'urlParams' => [
 					'format' => 'text'
 				],
 				'method' => 'GET'
 			],
-			$this->getMockBuilder('\OCP\Security\ISecureRandom')
-				->disableOriginalConstructor()
-				->getMock(),
-			$this->getMockBuilder(IConfig::class)
-				->disableOriginalConstructor()
-				->getMock()
+			$this->createMock(IRequestId::class),
+			$this->createMock(IConfig::class)
 		);
 		$this->dispatcher = new Dispatcher(
 			$this->http, $this->middlewareDispatcher, $this->reflector,
 			$this->request,
 			$this->config,
 			\OC::$server->getDatabaseConnection(),
-			$this->logger
+			$this->logger,
+			$this->eventLogger
 		);
 		$controller = new TestController('app', $this->request);
 
@@ -409,26 +414,24 @@ class DispatcherTest extends \Test\TestCase {
 			[
 				'post' => [
 					'int' => '3',
-					'bool' => 'false'
+					'bool' => 'false',
+					'double' => 1.2,
 				],
 				'urlParams' => [
 					'format' => 'json'
 				],
 				'method' => 'GET'
 			],
-			$this->getMockBuilder('\OCP\Security\ISecureRandom')
-				->disableOriginalConstructor()
-				->getMock(),
-			$this->getMockBuilder(IConfig::class)
-				->disableOriginalConstructor()
-				->getMock()
+			$this->createMock(IRequestId::class),
+			$this->createMock(IConfig::class)
 		);
 		$this->dispatcher = new Dispatcher(
 			$this->http, $this->middlewareDispatcher, $this->reflector,
 			$this->request,
 			$this->config,
 			\OC::$server->getDatabaseConnection(),
-			$this->logger
+			$this->logger,
+			$this->eventLogger
 		);
 		$controller = new TestController('app', $this->request);
 
@@ -445,7 +448,8 @@ class DispatcherTest extends \Test\TestCase {
 			[
 				'post' => [
 					'int' => '3',
-					'bool' => 'false'
+					'bool' => 'false',
+					'double' => 1.2,
 				],
 				'server' => [
 					'HTTP_ACCEPT' => 'application/text, test',
@@ -453,19 +457,16 @@ class DispatcherTest extends \Test\TestCase {
 				],
 				'method' => 'PUT'
 			],
-			$this->getMockBuilder('\OCP\Security\ISecureRandom')
-				->disableOriginalConstructor()
-				->getMock(),
-			$this->getMockBuilder(IConfig::class)
-				->disableOriginalConstructor()
-				->getMock()
+			$this->createMock(IRequestId::class),
+			$this->createMock(IConfig::class)
 		);
 		$this->dispatcher = new Dispatcher(
 			$this->http, $this->middlewareDispatcher, $this->reflector,
 			$this->request,
 			$this->config,
 			\OC::$server->getDatabaseConnection(),
-			$this->logger
+			$this->logger,
+			$this->eventLogger
 		);
 		$controller = new TestController('app', $this->request);
 
@@ -482,7 +483,8 @@ class DispatcherTest extends \Test\TestCase {
 			[
 				'post' => [
 					'int' => '3',
-					'bool' => 'false'
+					'bool' => 'false',
+					'double' => 1.2,
 				],
 				'get' => [
 					'format' => 'text'
@@ -492,19 +494,16 @@ class DispatcherTest extends \Test\TestCase {
 				],
 				'method' => 'POST'
 			],
-			$this->getMockBuilder('\OCP\Security\ISecureRandom')
-				->disableOriginalConstructor()
-				->getMock(),
-			$this->getMockBuilder(IConfig::class)
-				->disableOriginalConstructor()
-				->getMock()
+			$this->createMock(IRequestId::class),
+			$this->createMock(IConfig::class)
 		);
 		$this->dispatcher = new Dispatcher(
 			$this->http, $this->middlewareDispatcher, $this->reflector,
 			$this->request,
 			$this->config,
 			\OC::$server->getDatabaseConnection(),
-			$this->logger
+			$this->logger,
+			$this->eventLogger
 		);
 		$controller = new TestController('app', $this->request);
 

@@ -43,6 +43,7 @@ use Icewind\SMB\Exception\ConnectException;
 use Icewind\SMB\Exception\Exception;
 use Icewind\SMB\Exception\ForbiddenException;
 use Icewind\SMB\Exception\InvalidArgumentException;
+use Icewind\SMB\Exception\InvalidTypeException;
 use Icewind\SMB\Exception\NotFoundException;
 use Icewind\SMB\Exception\OutOfSpaceException;
 use Icewind\SMB\Exception\TimedOutException;
@@ -53,7 +54,7 @@ use Icewind\SMB\ServerFactory;
 use Icewind\SMB\System;
 use Icewind\Streams\CallbackWrapper;
 use Icewind\Streams\IteratorDirectory;
-use OC\Cache\CappedMemoryCache;
+use OCP\Cache\CappedMemoryCache;
 use OC\Files\Filesystem;
 use OC\Files\Storage\Common;
 use OCA\Files_External\Lib\Notify\SMBNotifyHandler;
@@ -83,10 +84,8 @@ class SMB extends Common implements INotifyStorage {
 	 */
 	protected $root;
 
-	/**
-	 * @var \Icewind\SMB\IFileInfo[]
-	 */
-	protected $statCache;
+	/** @var CappedMemoryCache<IFileInfo> */
+	protected CappedMemoryCache $statCache;
 
 	/** @var ILogger */
 	protected $logger;
@@ -179,20 +178,24 @@ class SMB extends Common implements INotifyStorage {
 
 	/**
 	 * @param string $path
-	 * @return \Icewind\SMB\IFileInfo
+	 * @return IFileInfo
 	 * @throws StorageAuthException
 	 */
 	protected function getFileInfo($path) {
 		try {
 			$path = $this->buildPath($path);
-			if (!isset($this->statCache[$path])) {
-				$this->statCache[$path] = $this->share->stat($path);
+			$cached = $this->statCache[$path] ?? null;
+			if ($cached instanceof IFileInfo) {
+				return $cached;
+			} else {
+				$stat = $this->share->stat($path);
+				$this->statCache[$path] = $stat;
+				return $stat;
 			}
-			return $this->statCache[$path];
 		} catch (ConnectException $e) {
 			$this->throwUnavailable($e);
 		} catch (ForbiddenException $e) {
-			// with php-smbclient, this exceptions is thrown when the provided password is invalid.
+			// with php-smbclient, this exception is thrown when the provided password is invalid.
 			// Possible is also ForbiddenException with a different error code, so we check it.
 			if ($e->getCode() === 1) {
 				$this->throwUnavailable($e);
@@ -203,6 +206,7 @@ class SMB extends Common implements INotifyStorage {
 
 	/**
 	 * @param \Exception $e
+	 * @return never
 	 * @throws StorageAuthException
 	 */
 	protected function throwUnavailable(\Exception $e) {
@@ -230,7 +234,7 @@ class SMB extends Common implements INotifyStorage {
 
 	/**
 	 * @param string $path
-	 * @return \Icewind\SMB\IFileInfo[]
+	 * @return \Generator<IFileInfo>
 	 * @throws StorageNotAvailableException
 	 */
 	protected function getFolderContents($path): iterable {
@@ -241,6 +245,8 @@ class SMB extends Common implements INotifyStorage {
 			} catch (ForbiddenException $e) {
 				$this->logger->critical($e->getMessage(), ['exception' => $e]);
 				throw new NotPermittedException();
+			} catch (InvalidTypeException $e) {
+				return;
 			}
 			foreach ($files as $file) {
 				$this->statCache[$path . '/' . $file->getName()] = $file;
@@ -276,12 +282,12 @@ class SMB extends Common implements INotifyStorage {
 			}
 		} catch (ConnectException $e) {
 			$this->logger->logException($e, ['message' => 'Error while getting folder content']);
-			throw new StorageNotAvailableException($e->getMessage(), $e->getCode(), $e);
+			throw new StorageNotAvailableException($e->getMessage(), (int)$e->getCode(), $e);
 		}
 	}
 
 	/**
-	 * @param \Icewind\SMB\IFileInfo $info
+	 * @param IFileInfo $info
 	 * @return array
 	 */
 	protected function formatInfo($info) {
@@ -304,7 +310,7 @@ class SMB extends Common implements INotifyStorage {
 	 * @param string $target the new name of the path
 	 * @return bool true if the rename is successful, false otherwise
 	 */
-	public function rename($source, $target, $retry = true) {
+	public function rename($source, $target, $retry = true): bool {
 		if ($this->isRootDir($source) || $this->isRootDir($target)) {
 			return false;
 		}
@@ -316,7 +322,7 @@ class SMB extends Common implements INotifyStorage {
 		} catch (AlreadyExistsException $e) {
 			if ($retry) {
 				$this->remove($target);
-				$result = $this->share->rename($absoluteSource, $absoluteTarget, false);
+				$result = $this->share->rename($absoluteSource, $absoluteTarget);
 			} else {
 				$this->logger->logException($e, ['level' => ILogger::WARN]);
 				return false;
@@ -324,7 +330,7 @@ class SMB extends Common implements INotifyStorage {
 		} catch (InvalidArgumentException $e) {
 			if ($retry) {
 				$this->remove($target);
-				$result = $this->share->rename($absoluteSource, $absoluteTarget, false);
+				$result = $this->share->rename($absoluteSource, $absoluteTarget);
 			} else {
 				$this->logger->logException($e, ['level' => ILogger::WARN]);
 				return false;
@@ -422,7 +428,7 @@ class SMB extends Common implements INotifyStorage {
 			return false;
 		} catch (ConnectException $e) {
 			$this->logger->logException($e, ['message' => 'Error while deleting file']);
-			throw new StorageNotAvailableException($e->getMessage(), $e->getCode(), $e);
+			throw new StorageNotAvailableException($e->getMessage(), (int)$e->getCode(), $e);
 		}
 	}
 
@@ -509,7 +515,7 @@ class SMB extends Common implements INotifyStorage {
 			throw new EntityTooLargeException("not enough available space to create file", 0, $e);
 		} catch (ConnectException $e) {
 			$this->logger->logException($e, ['message' => 'Error while opening file']);
-			throw new StorageNotAvailableException($e->getMessage(), $e->getCode(), $e);
+			throw new StorageNotAvailableException($e->getMessage(), (int)$e->getCode(), $e);
 		}
 	}
 
@@ -519,7 +525,7 @@ class SMB extends Common implements INotifyStorage {
 		}
 
 		try {
-			$this->statCache = [];
+			$this->statCache = new CappedMemoryCache();
 			$content = $this->share->dir($this->buildPath($path));
 			foreach ($content as $file) {
 				if ($file->isDirectory()) {
@@ -536,7 +542,7 @@ class SMB extends Common implements INotifyStorage {
 			return false;
 		} catch (ConnectException $e) {
 			$this->logger->logException($e, ['message' => 'Error while removing folder']);
-			throw new StorageNotAvailableException($e->getMessage(), $e->getCode(), $e);
+			throw new StorageNotAvailableException($e->getMessage(), (int)$e->getCode(), $e);
 		}
 	}
 
@@ -552,7 +558,7 @@ class SMB extends Common implements INotifyStorage {
 			throw new EntityTooLargeException("not enough available space to create file", 0, $e);
 		} catch (ConnectException $e) {
 			$this->logger->logException($e, ['message' => 'Error while creating file']);
-			throw new StorageNotAvailableException($e->getMessage(), $e->getCode(), $e);
+			throw new StorageNotAvailableException($e->getMessage(), (int)$e->getCode(), $e);
 		}
 	}
 
@@ -613,16 +619,22 @@ class SMB extends Common implements INotifyStorage {
 			return false;
 		}
 		$names = array_map(function ($info) {
-			/** @var \Icewind\SMB\IFileInfo $info */
+			/** @var IFileInfo $info */
 			return $info->getName();
 		}, iterator_to_array($files));
 		return IteratorDirectory::wrap($names);
 	}
 
 	public function getDirectoryContent($directory): \Traversable {
-		$files = $this->getFolderContents($directory);
-		foreach ($files as $file) {
-			yield $this->getMetaDataFromFileInfo($file);
+		try {
+			$files = $this->getFolderContents($directory);
+			foreach ($files as $file) {
+				yield $this->getMetaDataFromFileInfo($file);
+			}
+		} catch (NotFoundException $e) {
+			return;
+		} catch (NotPermittedException $e) {
+			return;
 		}
 	}
 
@@ -643,7 +655,7 @@ class SMB extends Common implements INotifyStorage {
 			return true;
 		} catch (ConnectException $e) {
 			$this->logger->logException($e, ['message' => 'Error while creating folder']);
-			throw new StorageNotAvailableException($e->getMessage(), $e->getCode(), $e);
+			throw new StorageNotAvailableException($e->getMessage(), (int)$e->getCode(), $e);
 		} catch (Exception $e) {
 			return false;
 		}
@@ -658,7 +670,7 @@ class SMB extends Common implements INotifyStorage {
 		} catch (ForbiddenException $e) {
 			return false;
 		} catch (ConnectException $e) {
-			throw new StorageNotAvailableException($e->getMessage(), $e->getCode(), $e);
+			throw new StorageNotAvailableException($e->getMessage(), (int)$e->getCode(), $e);
 		}
 	}
 

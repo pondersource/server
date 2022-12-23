@@ -3,14 +3,14 @@ OC.L10N.register(
     {
     "Recent statuses" : "Последни състояния",
     "In a meeting" : "В среща",
-    "Commuting" : "Пътуване",
+    "Commuting" : "Работно пътуване",
     "Out sick" : "Болничен",
     "Vacationing" : "Отпуск",
     "Working remotely" : "Работа от разстояние",
     "In a call" : "В обаждане",
     "User status" : "Потребителско състояние",
     "View profile" : "Преглед на профил",
-    "Clear status message after" : "Изчистване на съобщение за състоянието след",
+    "Clear status after" : "Изчистване на състоянието след",
     "What is your status?" : "Какъв е вашият статус?",
     "Set status" : "Задаване на състояние",
     "Online status" : "Състояние на линия",
@@ -35,7 +35,6 @@ OC.L10N.register(
     "4 hours" : "4 часа",
     "Mute all notifications" : "Заглушаване на всички известия",
     "Appear offline" : "Показване като офлайн",
-    "Clear status after" : "Изчистване на състоянието след",
-    "What's your status?" : "Какъв е вашият статус?"
+    "Clear status message after" : "Изчистване на съобщение за състоянието след"
 },
 "nplurals=2; plural=(n != 1);");

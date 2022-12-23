@@ -20,7 +20,7 @@
   -->
 
 <template>
-	<div class="body-login-container">
+	<div class="guest-box">
 		<h2>{{ t('core', 'Recommended apps') }}</h2>
 		<p v-if="loadingApps" class="loading text-center">
 			{{ t('core', 'Loading apps …') }}
@@ -28,32 +28,48 @@
 		<p v-else-if="loadingAppsError" class="loading-error text-center">
 			{{ t('core', 'Could not fetch list of apps from the App Store.') }}
 		</p>
-		<p v-else class="text-center">
+		<p v-else-if="installingApps" class="text-center">
 			{{ t('core', 'Installing apps …') }}
 		</p>
+
 		<div v-for="app in recommendedApps" :key="app.id" class="app">
-			<img :src="customIcon(app.id)" alt="">
-			<div class="info">
-				<h3>
-					{{ app.name }}
-					<span v-if="app.loading" class="icon icon-loading-small-dark" />
-					<span v-else-if="app.active" class="icon icon-checkmark-white" />
-				</h3>
-				<p v-html="customDescription(app.id)" />
-				<p v-if="app.installationError">
-					<strong>{{ t('core', 'App download or installation failed') }}</strong>
-				</p>
-				<p v-else-if="!app.isCompatible">
-					<strong>{{ t('core', 'Cannot install this app because it is not compatible') }}</strong>
-				</p>
-				<p v-else-if="!app.canInstall">
-					<strong>{{ t('core', 'Cannot install this app') }}</strong>
-				</p>
-			</div>
+			<template v-if="!isHidden(app.id)">
+				<img :src="customIcon(app.id)" alt="">
+				<div class="info">
+					<h3>
+						{{ customName(app) }}
+						<span v-if="app.loading" class="icon icon-loading-small-dark" />
+						<span v-else-if="app.active" class="icon icon-checkmark-white" />
+					</h3>
+					<p v-html="customDescription(app.id)" />
+					<p v-if="app.installationError">
+						<strong>{{ t('core', 'App download or installation failed') }}</strong>
+					</p>
+					<p v-else-if="!app.isCompatible">
+						<strong>{{ t('core', 'Cannot install this app because it is not compatible') }}</strong>
+					</p>
+					<p v-else-if="!app.canInstall">
+						<strong>{{ t('core', 'Cannot install this app') }}</strong>
+					</p>
+				</div>
+			</template>
 		</div>
-		<p class="text-center">
-			<a :href="defaultPageUrl">{{ t('core', 'Cancel') }}</a>
-		</p>
+
+		<div class="dialog-row">
+			<NcButton v-if="showInstallButton"
+				type="tertiary"
+				role="link"
+				href="defaultPageUrl"
+				@click="goTo(defaultPageUrl)">
+				{{ t('core', 'Skip') }}
+			</NcButton>
+
+			<NcButton v-if="showInstallButton"
+				type="primary"
+				@click.stop.prevent="installApps">
+				{{ t('core', 'Install recommended apps') }}
+			</NcButton>
+		</div>
 	</div>
 </template>
 
@@ -63,6 +79,8 @@ import { generateUrl, imagePath } from '@nextcloud/router'
 import { loadState } from '@nextcloud/initial-state'
 import pLimit from 'p-limit'
 import { translate as t } from '@nextcloud/l10n'
+
+import NcButton from '@nextcloud/vue/dist/Components/NcButton'
 
 import logger from '../../logger'
 
@@ -81,15 +99,15 @@ const recommended = {
 	},
 	spreed: {
 		description: t('core', 'Chatting, video calls, screensharing, online meetings and web conferencing – in your browser and with mobile apps.'),
-		icon: imagePath('core', 'apps/spreed.svg')
+		icon: imagePath('core', 'apps/spreed.svg'),
 	},
 	richdocuments: {
-		description: t('core', 'Collaboratively edit office documents.'),
-		icon: imagePath('core', 'apps/richdocuments.svg')
+		name: 'Nextcloud Office',
+		description: t('core', 'Collaborative documents, spreadsheets and presentations, built on Collabora Online.'),
+		icon: imagePath('core', 'apps/richdocuments.svg'),
 	},
 	richdocumentscode: {
-		description: t('core', 'Local document editing back-end used by the Collabora Online app.'),
-		icon: imagePath('core', 'apps/richdocumentscode.svg')
+		hidden: true,
 	},
 }
 const recommendedIds = Object.keys(recommended)
@@ -97,8 +115,13 @@ const defaultPageUrl = loadState('core', 'defaultPageUrl')
 
 export default {
 	name: 'RecommendedApps',
+	components: {
+		NcButton,
+	},
 	data() {
 		return {
+			showInstallButton: false,
+			installingApps: false,
 			loadingApps: true,
 			loadingAppsError: false,
 			apps: [],
@@ -110,28 +133,28 @@ export default {
 			return this.apps.filter(app => recommendedIds.includes(app.id))
 		},
 	},
-	mounted() {
-		return axios.get(generateUrl('settings/apps/list'))
-			.then(resp => resp.data)
-			.then(data => {
-				logger.info(`${data.apps.length} apps fetched`)
+	async mounted() {
+		try {
+			const { data } = await axios.get(generateUrl('settings/apps/list'))
+			logger.info(`${data.apps.length} apps fetched`)
 
-				this.apps = data.apps.map(app => Object.assign(app, { loading: false, installationError: false }))
-				logger.debug(`${this.recommendedApps.length} recommended apps found`, { apps: this.recommendedApps })
+			this.apps = data.apps.map(app => Object.assign(app, { loading: false, installationError: false }))
+			logger.debug(`${this.recommendedApps.length} recommended apps found`, { apps: this.recommendedApps })
 
-				this.installApps()
-			})
-			.catch(error => {
-				logger.error('could not fetch app list', { error })
+			this.showInstallButton = true
+		} catch (error) {
+			logger.error('could not fetch app list', { error })
 
-				this.loadingAppsError = true
-			})
-			.then(() => {
-				this.loadingApps = false
-			})
+			this.loadingAppsError = true
+		} finally {
+			this.loadingApps = false
+		}
 	},
 	methods: {
 		installApps() {
+			this.showInstallButton = false
+			this.installingApps = true
+
 			const limit = pLimit(1)
 			const installing = this.recommendedApps
 				.filter(app => !app.active && app.isCompatible && app.canInstall)
@@ -164,6 +187,12 @@ export default {
 			}
 			return recommended[appId].icon
 		},
+		customName(app) {
+			if (!(app.id in recommended)) {
+				return app.name
+			}
+			return recommended[app.id].name || app.name
+		},
 		customDescription(appId) {
 			if (!(appId in recommended)) {
 				logger.warn(`no app description for recommended app ${appId}`)
@@ -171,17 +200,35 @@ export default {
 			}
 			return recommended[appId].description
 		},
+		isHidden(appId) {
+			if (!(appId in recommended)) {
+				return false
+			}
+			return !!recommended[appId].hidden
+		},
+		goTo(href) {
+			window.location.href = href
+		},
 	},
 }
 </script>
 
 <style lang="scss" scoped>
-.body-login-container {
-
+.dialog-row {
+	display: flex;
+	justify-content: end;
+	margin-top: 8px;
 }
 
-p.loading, p.loading-error {
-	height: 100px;
+p {
+	&.loading,
+	&.loading-error {
+		height: 100px;
+	}
+
+	&:last-child {
+		margin-top: 10px;
+	}
 }
 
 .text-center {
@@ -195,7 +242,7 @@ p.loading, p.loading-error {
 	img {
 		height: 50px;
 		width: 50px;
-		filter: invert(1);
+		filter: var(--background-invert-if-dark);
 	}
 
 	img, .info {
@@ -208,7 +255,6 @@ p.loading, p.loading-error {
 		}
 
 		h3 {
-			color: #fff;
 			margin-top: 0;
 		}
 

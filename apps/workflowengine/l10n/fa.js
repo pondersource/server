@@ -23,7 +23,6 @@ OC.L10N.register(
     "Flow" : "جریان",
     "Folder" : "پوشه",
     "Images" : "عکسها",
-    "No results" : "نتیجه ای یافت نشد",
     "Predefined URLs" : "URL از پیش تعریف شده ",
     "Files WebDAV" : "فایل های WebDAV",
     "Others" : "دیگران",
@@ -60,6 +59,6 @@ OC.L10N.register(
     "User group membership" : "عضویت کاربر در گروه",
     "is member of" : "عضو است در ",
     "is not member of" : "عضو نیست در ",
-    "Browse the app store" : "فروشگاه برنامه را مرور کنید"
+    "No results" : "نتیجه ای یافت نشد"
 },
 "nplurals=2; plural=(n > 1);");

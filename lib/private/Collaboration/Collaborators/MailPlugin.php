@@ -38,6 +38,7 @@ use OCP\IGroupManager;
 use OCP\IUser;
 use OCP\IUserSession;
 use OCP\Share\IShare;
+use OCP\Mail\IMailer;
 
 class MailPlugin implements ISearchPlugin {
 	/* @var bool */
@@ -50,6 +51,8 @@ class MailPlugin implements ISearchPlugin {
 	protected $shareeEnumerationPhone;
 	/* @var bool */
 	protected $shareeEnumerationFullMatch;
+	/* @var bool */
+	protected $shareeEnumerationFullMatchEmail;
 
 	/** @var IManager */
 	private $contactsManager;
@@ -64,36 +67,46 @@ class MailPlugin implements ISearchPlugin {
 	private $knownUserService;
 	/** @var IUserSession */
 	private $userSession;
+	/** @var IMailer */
+	private $mailer;
 
 	public function __construct(IManager $contactsManager,
 								ICloudIdManager $cloudIdManager,
 								IConfig $config,
 								IGroupManager $groupManager,
 								KnownUserService $knownUserService,
-								IUserSession $userSession) {
+								IUserSession $userSession,
+								IMailer $mailer) {
 		$this->contactsManager = $contactsManager;
 		$this->cloudIdManager = $cloudIdManager;
 		$this->config = $config;
 		$this->groupManager = $groupManager;
 		$this->knownUserService = $knownUserService;
 		$this->userSession = $userSession;
+		$this->mailer = $mailer;
 
 		$this->shareeEnumeration = $this->config->getAppValue('core', 'shareapi_allow_share_dialog_user_enumeration', 'yes') === 'yes';
 		$this->shareWithGroupOnly = $this->config->getAppValue('core', 'shareapi_only_share_with_group_members', 'no') === 'yes';
 		$this->shareeEnumerationInGroupOnly = $this->shareeEnumeration && $this->config->getAppValue('core', 'shareapi_restrict_user_enumeration_to_group', 'no') === 'yes';
 		$this->shareeEnumerationPhone = $this->shareeEnumeration && $this->config->getAppValue('core', 'shareapi_restrict_user_enumeration_to_phone', 'no') === 'yes';
 		$this->shareeEnumerationFullMatch = $this->config->getAppValue('core', 'shareapi_restrict_user_enumeration_full_match', 'yes') === 'yes';
+		$this->shareeEnumerationFullMatchEmail = $this->config->getAppValue('core', 'shareapi_restrict_user_enumeration_full_match_email', 'yes') === 'yes';
 	}
 
 	/**
-	 * @param $search
-	 * @param $limit
-	 * @param $offset
-	 * @param ISearchResult $searchResult
-	 * @return bool
-	 * @since 13.0.0
+	 * {@inheritdoc}
 	 */
 	public function search($search, $limit, $offset, ISearchResult $searchResult) {
+		if ($this->shareeEnumerationFullMatch && !$this->shareeEnumerationFullMatchEmail) {
+			return false;
+		}
+
+		// Extract the email address from "Foo Bar <foo.bar@example.tld>" and then search with "foo.bar@example.tld" instead
+		$result = preg_match('/<([^@]+@.+)>$/', $search, $matches);
+		if ($result && filter_var($matches[1], FILTER_VALIDATE_EMAIL)) {
+			return $this->search($matches[1], $limit, $offset, $searchResult);
+		}
+
 		$currentUserId = $this->userSession->getUser()->getUID();
 
 		$result = $userResults = ['wide' => [], 'exact' => []];
@@ -101,7 +114,16 @@ class MailPlugin implements ISearchPlugin {
 		$emailType = new SearchResultType('emails');
 
 		// Search in contacts
-		$addressBookContacts = $this->contactsManager->search($search, ['EMAIL', 'FN'], ['limit' => $limit, 'offset' => $offset]);
+		$addressBookContacts = $this->contactsManager->search(
+			$search,
+			['EMAIL', 'FN'],
+			[
+				'limit' => $limit,
+				'offset' => $offset,
+				'enumeration' => (bool) $this->shareeEnumeration,
+				'fullmatch' => (bool) $this->shareeEnumerationFullMatch,
+			]
+		);
 		$lowerSearch = strtolower($search);
 		foreach ($addressBookContacts as $contact) {
 			if (isset($contact['EMAIL'])) {
@@ -149,8 +171,8 @@ class MailPlugin implements ISearchPlugin {
 							if (!$this->isCurrentUser($cloud) && !$searchResult->hasResult($userType, $cloud->getUser())) {
 								$singleResult = [[
 									'label' => $displayName,
-									'uuid' => $contact['UID'],
-									'name' => $contact['FN'],
+									'uuid' => $contact['UID'] ?? $emailAddress,
+									'name' => $contact['FN'] ?? $displayName,
 									'value' => [
 										'shareType' => IShare::TYPE_USER,
 										'shareWith' => $cloud->getUser(),
@@ -189,8 +211,8 @@ class MailPlugin implements ISearchPlugin {
 							if ($addToWide && !$this->isCurrentUser($cloud) && !$searchResult->hasResult($userType, $cloud->getUser())) {
 								$userResults['wide'][] = [
 									'label' => $displayName,
-									'uuid' => $contact['UID'],
-									'name' => $contact['FN'],
+									'uuid' => $contact['UID'] ?? $emailAddress,
+									'name' => $contact['FN'] ?? $displayName,
 									'value' => [
 										'shareType' => IShare::TYPE_USER,
 										'shareWith' => $cloud->getUser(),
@@ -210,8 +232,8 @@ class MailPlugin implements ISearchPlugin {
 						}
 						$result['exact'][] = [
 							'label' => $displayName,
-							'uuid' => $contact['UID'],
-							'name' => $contact['FN'],
+							'uuid' => $contact['UID'] ?? $emailAddress,
+							'name' => $contact['FN'] ?? $displayName,
 							'type' => $emailAddressType ?? '',
 							'value' => [
 								'shareType' => IShare::TYPE_EMAIL,
@@ -221,8 +243,8 @@ class MailPlugin implements ISearchPlugin {
 					} else {
 						$result['wide'][] = [
 							'label' => $displayName,
-							'uuid' => $contact['UID'],
-							'name' => $contact['FN'],
+							'uuid' => $contact['UID'] ?? $emailAddress,
+							'name' => $contact['FN'] ?? $displayName,
 							'type' => $emailAddressType ?? '',
 							'value' => [
 								'shareType' => IShare::TYPE_EMAIL,
@@ -235,10 +257,7 @@ class MailPlugin implements ISearchPlugin {
 		}
 
 		$reachedEnd = true;
-		if (!$this->shareeEnumeration) {
-			$result['wide'] = [];
-			$userResults['wide'] = [];
-		} else {
+		if ($this->shareeEnumeration) {
 			$reachedEnd = (count($result['wide']) < $offset + $limit) &&
 				(count($userResults['wide']) < $offset + $limit);
 
@@ -246,8 +265,7 @@ class MailPlugin implements ISearchPlugin {
 			$userResults['wide'] = array_slice($userResults['wide'], $offset, $limit);
 		}
 
-
-		if (!$searchResult->hasExactIdMatch($emailType) && filter_var($search, FILTER_VALIDATE_EMAIL)) {
+		if (!$searchResult->hasExactIdMatch($emailType) && $this->mailer->validateMailAddress($search)) {
 			$result['exact'][] = [
 				'label' => $search,
 				'uuid' => $search,

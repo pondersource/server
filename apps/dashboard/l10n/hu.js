@@ -3,11 +3,10 @@ OC.L10N.register(
     {
     "Dashboard" : "Irányítópult",
     "Dashboard app" : "Irányítópult alkalmazás",
-    "Show something" : "Mutasson valamit",
+    "Start your day informed\n\nThe Nextcloud Dashboard is your starting point of the day, giving you an\noverview of your upcoming appointments, urgent emails, chat messages,\nincoming tickets, latest tweets and much more! Users can add the widgets\nthey like and change the background to their liking." : "Kezdje informáltan a napot\n\nA Nextcloud irányítópult a napja kezdőpontja, áttekintést nyújtva a közelgő találkozókról, sürgős levelekről, csevegőüzenetekről, hibajegyekről, a legfrissebb tweetekről és sok másról. A felhasználók modulokat adhatnak hozzá, és tetszés szerint változtathatják a hátteret.",
     "Customize" : "Testreszabás",
     "Edit widgets" : "Modulok szerkesztése",
     "Get more widgets from the App Store" : "További modulok letöltése az alkalmazástárból.",
-    "Change background image" : "Háttérkép megváltoztatása",
     "Weather service" : "Időjárás szolgáltatás",
     "For your privacy, the weather data is requested by your Nextcloud server on your behalf so the weather service receives no personal information." : "Az adatvédelem érdekében az információt a Nextcloud kiszolgáló kéri le az Ön nevében, így az Ön személyes adatai nem kerülnek az időjárási adatok szolgáltatójához.",
     "Weather data from Met.no" : "Időjárási adatok a Met.no-tól",
@@ -23,13 +22,10 @@ OC.L10N.register(
     "Good evening, {name}" : "Jó estét, {name}",
     "Hello" : "Üdv",
     "Hello, {name}" : "Üdv {name}!",
+    "Change background image" : "Háttérkép megváltoztatása",
     "Pick from Files" : "Választás a fájlok közül",
     "Default images" : "Alapértelmezett képek",
     "Plain background" : "Egyszerű háttér",
-    "Insert from {productName}" : "Beillesztés innen: {productName}-",
-    "Get more widgets from the app store" : "Töltsön le további modulokat az alkalmazástárból",
-    "Good night, {name}" : "Jó éjszakát, {name}",
-    "Good night" : "Jó éjszakát",
-    "Pick from files" : "Választás a fájlok közül"
+    "Insert from {productName}" : "Beillesztés innen: {productName}"
 },
 "nplurals=2; plural=(n != 1);");

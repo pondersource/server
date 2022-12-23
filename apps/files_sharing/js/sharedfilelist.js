@@ -17,7 +17,7 @@
 	 * @classdesc Sharing file list.
 	 * Contains both "shared with others" and "shared with you" modes.
 	 *
-	 * @param $el container element with existing markup for the #controls
+	 * @param $el container element with existing markup for the .files-controls
 	 * and a table
 	 * @param [options] map of options, see other parameters
 	 * @param {boolean} [options.sharedWithUser] true to return files shared with
@@ -135,9 +135,7 @@
 						'class': 'modified',
 						'title': formatted,
 						'style': 'color:rgb(' + modifiedColor + ',' + modifiedColor + ',' + modifiedColor + ')'
-					}).text(text)
-						.tooltip({ placement: 'top' })
-					)
+					}).text(text))
 
 					$tr.append(td)
 				}
@@ -158,8 +156,8 @@
 				var dir = this.getCurrentDirectory()
 				if (dir === '/') {
 				// root has special permissions
-					this.$el.find('#emptycontent').toggleClass('hidden', !this.isEmpty)
-					this.$el.find('#filestable thead th').toggleClass('hidden', this.isEmpty)
+					this.$el.find('.emptyfilelist.emptycontent').toggleClass('hidden', !this.isEmpty)
+					this.$el.find('.files-filestable thead th').toggleClass('hidden', this.isEmpty)
 
 					// hide expiration date header for non link only shares
 					if (!this._linksOnly) {
@@ -177,11 +175,6 @@
 			updateStorageStatistics: function() {
 			// no op because it doesn't have
 			// storage info like free space / used space
-			},
-
-			updateRow: function($tr, fileInfo, options) {
-			// no-op, suppress re-rendering
-				return $tr
 			},
 
 			reload: function() {
@@ -374,7 +367,7 @@
 		 * Converts the OCS API share response data to a file info
 		 * list
 		 * @param {Array} data OCS API share array
-		 * @param {bool} sharedWithUser
+		 * @param {boolean} sharedWithUser
 		 * @returns {Array.<OCA.Sharing.SharedFileInfo>} array of shared file info
 		 */
 			_makeFilesFromShares: function(data, sharedWithUser) {
@@ -511,10 +504,10 @@
 	 *
 	 * @typedef {Object} OCA.Sharing.ShareInfo
 	 *
-	 * @property {int} id share ID
-	 * @property {int} type share type
+	 * @property {number} id share ID
+	 * @property {number} type share type
 	 * @property {String} target share target, either user name or group name
-	 * @property {int} stime share timestamp in milliseconds
+	 * @property {number} stime share timestamp in milliseconds
 	 * @property {String} [targetDisplayName] display name of the recipient
 	 * (only when shared with others)
 	 * @property {String} [targetShareWithId] id of the recipient
@@ -536,7 +529,7 @@
 	 *
 	 * @property {Array.<OCA.Sharing.ShareInfo>} shares array of shares for
 	 * this file
-	 * @property {int} mtime most recent share time (if multiple shares)
+	 * @property {number} mtime most recent share time (if multiple shares)
 	 * @property {String} shareOwner name of the share owner
 	 * @property {Array.<String>} recipients name of the first 4 recipients
 	 * (this is mostly for display purposes)

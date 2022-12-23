@@ -7,17 +7,20 @@
 
 namespace Test\Files;
 
-use OC\Cache\CappedMemoryCache;
+use OCP\Cache\CappedMemoryCache;
 use OC\Files\Cache\Watcher;
 use OC\Files\Filesystem;
 use OC\Files\Mount\MountPoint;
+use OC\Files\SetupManager;
 use OC\Files\Storage\Common;
+use OC\Files\Storage\Storage;
 use OC\Files\Storage\Temporary;
 use OC\Files\View;
 use OCP\Constants;
 use OCP\Files\Config\IMountProvider;
 use OCP\Files\FileInfo;
 use OCP\Files\GenericFileException;
+use OCP\Files\Mount\IMountManager;
 use OCP\Files\Storage\IStorage;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
@@ -103,9 +106,10 @@ class ViewTest extends \Test\TestCase {
 		$this->groupObject->addUser($this->userObject);
 
 		self::loginAsUser($this->user);
-		// clear mounts but somehow keep the root storage
-		// that was initialized above...
-		Filesystem::clearMounts();
+
+		/** @var IMountManager $manager */
+		$manager = \OC::$server->get(IMountManager::class);
+		$manager->removeMount('/test');
 
 		$this->tempStorage = null;
 	}
@@ -123,6 +127,10 @@ class ViewTest extends \Test\TestCase {
 		}
 
 		self::logout();
+
+		/** @var SetupManager $setupManager */
+		$setupManager = \OC::$server->get(SetupManager::class);
+		$setupManager->setupRoot();
 
 		$this->userObject->delete();
 		$this->groupObject->delete();
@@ -223,11 +231,13 @@ class ViewTest extends \Test\TestCase {
 		$storage1 = $this->getTestStorage();
 		$storage2 = $this->getTestStorage();
 		$storage3 = $this->getTestStorage();
+
 		Filesystem::mount($storage1, [], '/');
 		Filesystem::mount($storage2, [], '/substorage');
 		Filesystem::mount($storage3, [], '/folder/anotherstorage');
 
 		$rootView = new View('');
+
 
 		$cachedData = $rootView->getFileInfo('/foo.txt');
 		/** @var int $id1 */
@@ -315,7 +325,6 @@ class ViewTest extends \Test\TestCase {
 
 	public function testCacheIncompleteFolder() {
 		$storage1 = $this->getTestStorage(false);
-		Filesystem::clearMounts();
 		Filesystem::mount($storage1, [], '/incomplete');
 		$rootView = new View('/incomplete');
 
@@ -1576,9 +1585,11 @@ class ViewTest extends \Test\TestCase {
 	private function createTestMovableMountPoints($mountPoints) {
 		$mounts = [];
 		foreach ($mountPoints as $mountPoint) {
-			$storage = $this->getMockBuilder(Temporary::class)
+			$storage = $this->getMockBuilder(Storage::class)
 				->setMethods([])
+				->setConstructorArgs([[]])
 				->getMock();
+			$storage->method('getId')->willReturn('non-null-id');
 
 			$mounts[] = $this->getMockBuilder(TestMoveableMountPoint::class)
 				->setMethods(['moveMount'])
@@ -2632,44 +2643,31 @@ class ViewTest extends \Test\TestCase {
 			])
 			->getMock();
 
-		$view
-			->expects($this->at(0))
+		$view->expects($this->exactly(3))
 			->method('is_file')
-			->with('/new')
+			->withConsecutive(
+				['/new'],
+				['/new/folder'],
+				['/new/folder/structure'],
+			)
 			->willReturn(false);
-		$view
-			->expects($this->at(1))
+		$view->expects($this->exactly(3))
 			->method('file_exists')
-			->with('/new')
-			->willReturn(true);
-		$view
-			->expects($this->at(2))
-			->method('is_file')
-			->with('/new/folder')
-			->willReturn(false);
-		$view
-			->expects($this->at(3))
-			->method('file_exists')
-			->with('/new/folder')
-			->willReturn(false);
-		$view
-			->expects($this->at(4))
+			->withConsecutive(
+				['/new'],
+				['/new/folder'],
+				['/new/folder/structure'],
+			)->willReturnOnConsecutiveCalls(
+				true,
+				false,
+				false,
+			);
+		$view->expects($this->exactly(2))
 			->method('mkdir')
-			->with('/new/folder');
-		$view
-			->expects($this->at(5))
-			->method('is_file')
-			->with('/new/folder/structure')
-			->willReturn(false);
-		$view
-			->expects($this->at(6))
-			->method('file_exists')
-			->with('/new/folder/structure')
-			->willReturn(false);
-		$view
-			->expects($this->at(7))
-			->method('mkdir')
-			->with('/new/folder/structure');
+			->withConsecutive(
+				['/new/folder'],
+				['/new/folder/structure'],
+			);
 
 		$this->assertTrue(self::invokePrivate($view, 'createParentDirectories', ['/new/folder/structure']));
 	}
@@ -2710,5 +2708,24 @@ class ViewTest extends \Test\TestCase {
 		$info = $view->getFileInfo('/foo.txt');
 		$this->assertEquals(25, $info->getUploadTime());
 		$this->assertEquals(0, $info->getCreationTime());
+	}
+
+	public function testFopenGone() {
+		$storage = new Temporary([]);
+		$scanner = $storage->getScanner();
+		$storage->file_put_contents('foo.txt', 'bar');
+		$scanner->scan('');
+		$cache = $storage->getCache();
+
+		Filesystem::mount($storage, [], '/test/');
+		$view = new View('/test');
+
+		$storage->unlink('foo.txt');
+
+		$this->assertTrue($cache->inCache('foo.txt'));
+
+		$this->assertFalse($view->fopen('foo.txt', 'r'));
+
+		$this->assertFalse($cache->inCache('foo.txt'));
 	}
 }

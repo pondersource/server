@@ -33,8 +33,8 @@ use OCP\Files\NotPermittedException;
 use OCP\Files\SimpleFS\ISimpleFolder;
 use OCP\ICache;
 use OCP\ICacheFactory;
-use OCP\ILogger;
 use OCP\IURLGenerator;
+use Psr\Log\LoggerInterface;
 
 class JSCombiner {
 
@@ -50,24 +50,16 @@ class JSCombiner {
 	/** @var SystemConfig */
 	protected $config;
 
-	/** @var ILogger */
-	protected $logger;
+	protected LoggerInterface $logger;
 
 	/** @var ICacheFactory */
 	private $cacheFactory;
 
-	/**
-	 * @param IAppData $appData
-	 * @param IURLGenerator $urlGenerator
-	 * @param ICacheFactory $cacheFactory
-	 * @param SystemConfig $config
-	 * @param ILogger $logger
-	 */
 	public function __construct(IAppData $appData,
 								IURLGenerator $urlGenerator,
 								ICacheFactory $cacheFactory,
 								SystemConfig $config,
-								ILogger $logger) {
+								LoggerInterface $logger) {
 		$this->appData = $appData;
 		$this->urlGenerator = $urlGenerator;
 		$this->cacheFactory = $cacheFactory;
@@ -206,7 +198,7 @@ class JSCombiner {
 			$gzipFile->putContent(gzencode($res, 9));
 			$this->logger->debug('JSCombiner: successfully cached: ' . $fileName);
 			return true;
-		} catch (NotPermittedException $e) {
+		} catch (NotPermittedException|NotFoundException $e) {
 			$this->logger->error('JSCombiner: unable to cache: ' . $fileName);
 			return false;
 		}

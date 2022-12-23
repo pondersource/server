@@ -31,6 +31,7 @@ use OCA\Files_External\NotFoundException;
 use OCA\Files_External\Service\GlobalStoragesService;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IConfig;
 use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\ILogger;
@@ -51,6 +52,7 @@ class GlobalStoragesController extends StoragesController {
 	 * @param ILogger $logger
 	 * @param IUserSession $userSession
 	 * @param IGroupManager $groupManager
+	 * @param IConfig $config
 	 */
 	public function __construct(
 		$AppName,
@@ -59,7 +61,8 @@ class GlobalStoragesController extends StoragesController {
 		GlobalStoragesService $globalStoragesService,
 		ILogger $logger,
 		IUserSession $userSession,
-		IGroupManager $groupManager
+		IGroupManager $groupManager,
+		IConfig $config
 	) {
 		parent::__construct(
 			$AppName,
@@ -68,7 +71,8 @@ class GlobalStoragesController extends StoragesController {
 			$globalStoragesService,
 			$logger,
 			$userSession,
-			$groupManager
+			$groupManager,
+			$config
 		);
 	}
 
@@ -96,6 +100,16 @@ class GlobalStoragesController extends StoragesController {
 		$applicableGroups,
 		$priority
 	) {
+		$canCreateNewLocalStorage = $this->config->getSystemValue('files_external_allow_create_new_local', true);
+		if (!$canCreateNewLocalStorage && $backend === 'local') {
+			return new DataResponse(
+				[
+					'message' => $this->l10n->t('Forbidden to manage local mounts')
+				],
+				Http::STATUS_FORBIDDEN
+			);
+		}
+
 		$newStorage = $this->createStorage(
 			$mountPoint,
 			$backend,
@@ -131,7 +145,7 @@ class GlobalStoragesController extends StoragesController {
 	 * @param int $id storage id
 	 * @param string $mountPoint storage mount point
 	 * @param string $backend backend identifier
-	 * @param string $authMechanism authentication mechansim identifier
+	 * @param string $authMechanism authentication mechanism identifier
 	 * @param array $backendOptions backend-specific options
 	 * @param array $mountOptions mount-specific options
 	 * @param array $applicableUsers users for which to mount the storage

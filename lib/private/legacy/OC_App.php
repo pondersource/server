@@ -50,18 +50,19 @@ declare(strict_types=1);
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-use OC\App\DependencyAnalyzer;
-use OC\App\Platform;
-use OC\AppFramework\Bootstrap\Coordinator;
-use OC\DB\MigrationService;
-use OC\Installer;
-use OC\Repair;
-use OC\ServerNotAvailableException;
-use OCP\App\ManagerEvent;
 use OCP\AppFramework\QueryException;
+use OCP\App\ManagerEvent;
 use OCP\Authentication\IAlternativeLogin;
 use OCP\ILogger;
 use OCP\Settings\IManager as ISettingsManager;
+use OC\AppFramework\Bootstrap\Coordinator;
+use OC\App\DependencyAnalyzer;
+use OC\App\Platform;
+use OC\DB\MigrationService;
+use OC\Installer;
+use OC\Repair;
+use OC\Repair\Events\RepairErrorEvent;
+use OC\ServerNotAvailableException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -173,6 +174,7 @@ class OC_App {
 
 		$hasAppPhpFile = is_file($appPath . '/appinfo/app.php');
 
+		\OC::$server->getEventLogger()->start('bootstrap:load_app_' . $app, 'Load app: ' . $app);
 		if ($isBootable && $hasAppPhpFile) {
 			\OC::$server->getLogger()->error('/appinfo/app.php is not loaded when \OCP\AppFramework\Bootstrap\IBootstrap on the application class is used. Migrate everything from app.php to the Application class.', [
 				'app' => $app,
@@ -181,9 +183,8 @@ class OC_App {
 			\OC::$server->getLogger()->debug('/appinfo/app.php is deprecated, use \OCP\AppFramework\Bootstrap\IBootstrap on the application class instead.', [
 				'app' => $app,
 			]);
-			\OC::$server->getEventLogger()->start('load_app_' . $app, 'Load app: ' . $app);
 			try {
-				self::requireAppFile($app);
+				self::requireAppFile($appPath);
 			} catch (Throwable $ex) {
 				if ($ex instanceof ServerNotAvailableException) {
 					throw $ex;
@@ -201,8 +202,9 @@ class OC_App {
 					]);
 				}
 			}
-			\OC::$server->getEventLogger()->end('load_app_' . $app);
 		}
+		\OC::$server->getEventLogger()->end('bootstrap:load_app_' . $app);
+
 		$coordinator->bootApp($app);
 
 		$info = self::getAppInfo($app);
@@ -628,11 +630,21 @@ class OC_App {
 	 * @return string
 	 */
 	public static function getCurrentApp(): string {
+		if (\OC::$CLI) {
+			return '';
+		}
+
 		$request = \OC::$server->getRequest();
 		$script = substr($request->getScriptName(), strlen(OC::$WEBROOT) + 1);
 		$topFolder = substr($script, 0, strpos($script, '/') ?: 0);
 		if (empty($topFolder)) {
-			$path_info = $request->getPathInfo();
+			try {
+				$path_info = $request->getPathInfo();
+			} catch (Exception $e) {
+				// Can happen from unit tests because the script name is `./vendor/bin/phpunit` or something a like then.
+				\OC::$server->get(LoggerInterface::class)->error('Failed to detect current app from script path', ['exception' => $e]);
+				return '';
+			}
 			if ($path_info) {
 				$topFolder = substr($path_info, 1, strpos($path_info, '/', 1) - 1);
 			}
@@ -665,25 +677,6 @@ class OC_App {
 			$forms[] = include $form;
 		}
 		return $forms;
-	}
-
-	/**
-	 * register an admin form to be shown
-	 *
-	 * @param string $app
-	 * @param string $page
-	 */
-	public static function registerAdmin(string $app, string $page) {
-		self::$adminForms[] = $app . '/' . $page . '.php';
-	}
-
-	/**
-	 * register a personal form to be shown
-	 * @param string $app
-	 * @param string $page
-	 */
-	public static function registerPersonal(string $app, string $page) {
-		self::$personalForms[] = $app . '/' . $page . '.php';
 	}
 
 	/**
@@ -729,7 +722,7 @@ class OC_App {
 				self::$altLogin[] = [
 					'name' => $provider->getLabel(),
 					'href' => $provider->getLink(),
-					'style' => $provider->getClass(),
+					'class' => $provider->getClass(),
 				];
 			} catch (Throwable $e) {
 				\OC::$server->getLogger()->logException($e, [
@@ -1055,7 +1048,7 @@ class OC_App {
 		// load the app
 		self::loadApp($appId);
 
-		$dispatcher = OC::$server->getEventDispatcher();
+		$dispatcher = \OC::$server->get(\OCP\EventDispatcher\IEventDispatcher::class);
 
 		// load the steps
 		$r = new Repair([], $dispatcher, \OC::$server->get(LoggerInterface::class));
@@ -1063,7 +1056,7 @@ class OC_App {
 			try {
 				$r->addStep($step);
 			} catch (Exception $ex) {
-				$r->emit('\OC\Repair', 'error', [$ex->getMessage()]);
+				$dispatcher->dispatchTyped(new RepairErrorEvent($ex->getMessage()));
 				\OC::$server->getLogger()->logException($ex);
 			}
 		}

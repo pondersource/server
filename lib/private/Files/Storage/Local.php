@@ -15,6 +15,7 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Klaas Freitag <freitag@owncloud.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Martin Brugnara <martin@0x6d62.eu>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <robin@icewind.nl>
@@ -47,8 +48,10 @@ use OC\Files\Storage\Wrapper\Jail;
 use OCP\Constants;
 use OCP\Files\ForbiddenException;
 use OCP\Files\GenericFileException;
+use OCP\Files\IMimeTypeDetector;
 use OCP\Files\Storage\IStorage;
-use OCP\ILogger;
+use OCP\IConfig;
+use Psr\Log\LoggerInterface;
 
 /**
  * for local filestore, we only have to map the paths
@@ -59,6 +62,14 @@ class Local extends \OC\Files\Storage\Common {
 	protected $dataDirLength;
 
 	protected $realDataDir;
+
+	private IConfig $config;
+
+	private IMimeTypeDetector $mimeTypeDetector;
+
+	private $defUMask;
+
+	protected bool $unlinkOnTruncate;
 
 	public function __construct($arguments) {
 		if (!isset($arguments['datadir']) || !is_string($arguments['datadir'])) {
@@ -76,6 +87,12 @@ class Local extends \OC\Files\Storage\Common {
 			$this->datadir .= '/';
 		}
 		$this->dataDirLength = strlen($this->realDataDir);
+		$this->config = \OC::$server->get(IConfig::class);
+		$this->mimeTypeDetector = \OC::$server->get(IMimeTypeDetector::class);
+		$this->defUMask = $this->config->getSystemValue('localstorage.umask', 0022);
+
+		// support Write-Once-Read-Many file systems
+		$this->unlinkOnTruncate = $this->config->getSystemValue('localstorage.unlink_on_truncate', false);
 	}
 
 	public function __destruct() {
@@ -87,7 +104,7 @@ class Local extends \OC\Files\Storage\Common {
 
 	public function mkdir($path) {
 		$sourcePath = $this->getSourcePath($path);
-		$oldMask = umask(022);
+		$oldMask = umask($this->defUMask);
 		$result = @mkdir($sourcePath, 0777, true);
 		umask($oldMask);
 		return $result;
@@ -149,11 +166,12 @@ class Local extends \OC\Files\Storage\Common {
 	public function stat($path) {
 		$fullPath = $this->getSourcePath($path);
 		clearstatcache(true, $fullPath);
+		if (!file_exists($fullPath)) {
+			return false;
+		}
 		$statResult = @stat($fullPath);
-		if (PHP_INT_SIZE === 4 && $statResult && !$this->is_dir($path)) {
-			$filesize = $this->filesize($path);
-			$statResult['size'] = $filesize;
-			$statResult[7] = $filesize;
+		if (is_array($statResult)) {
+			$statResult['full_path'] = $fullPath;
 		}
 		return $statResult;
 	}
@@ -162,7 +180,11 @@ class Local extends \OC\Files\Storage\Common {
 	 * @inheritdoc
 	 */
 	public function getMetaData($path) {
-		$stat = $this->stat($path);
+		try {
+			$stat = $this->stat($path);
+		} catch (ForbiddenException $e) {
+			return null;
+		}
 		if (!$stat) {
 			return null;
 		}
@@ -181,15 +203,14 @@ class Local extends \OC\Files\Storage\Common {
 		}
 
 		if (!($path === '' || $path === '/')) { // deletable depends on the parents unix permissions
-			$fullPath = $this->getSourcePath($path);
-			$parent = dirname($fullPath);
+			$parent = dirname($stat['full_path']);
 			if (is_writable($parent)) {
 				$permissions += Constants::PERMISSION_DELETE;
 			}
 		}
 
 		$data = [];
-		$data['mimetype'] = $isDir ? 'httpd/unix-directory' : \OC::$server->getMimeTypeDetector()->detectPath($path);
+		$data['mimetype'] = $isDir ? 'httpd/unix-directory' : $this->mimeTypeDetector->detectPath($path);
 		$data['mtime'] = $stat['mtime'];
 		if ($data['mtime'] === false) {
 			$data['mtime'] = time();
@@ -220,10 +241,6 @@ class Local extends \OC\Files\Storage\Common {
 			return 0;
 		}
 		$fullPath = $this->getSourcePath($path);
-		if (PHP_INT_SIZE === 4) {
-			$helper = new \OC\LargeFileHelper;
-			return $helper->getFileSize($fullPath);
-		}
 		return filesize($fullPath);
 	}
 
@@ -245,10 +262,6 @@ class Local extends \OC\Files\Storage\Common {
 		if (!$this->file_exists($path)) {
 			return false;
 		}
-		if (PHP_INT_SIZE === 4) {
-			$helper = new \OC\LargeFileHelper();
-			return $helper->getFileMtime($fullPath);
-		}
 		return filemtime($fullPath);
 	}
 
@@ -259,7 +272,7 @@ class Local extends \OC\Files\Storage\Common {
 		if ($this->file_exists($path) and !$this->isUpdatable($path)) {
 			return false;
 		}
-		$oldMask = umask(022);
+		$oldMask = umask($this->defUMask);
 		if (!is_null($mtime)) {
 			$result = @touch($this->getSourcePath($path), $mtime);
 		} else {
@@ -278,7 +291,10 @@ class Local extends \OC\Files\Storage\Common {
 	}
 
 	public function file_put_contents($path, $data) {
-		$oldMask = umask(022);
+		$oldMask = umask($this->defUMask);
+		if ($this->unlinkOnTruncate) {
+			$this->unlink($path);
+		}
 		$result = file_put_contents($this->getSourcePath($path), $data);
 		umask($oldMask);
 		return $result;
@@ -304,63 +320,73 @@ class Local extends \OC\Files\Storage\Common {
 		}
 	}
 
-	public function rename($path1, $path2) {
-		$srcParent = dirname($path1);
-		$dstParent = dirname($path2);
+	public function rename($source, $target) {
+		$srcParent = dirname($source);
+		$dstParent = dirname($target);
 
 		if (!$this->isUpdatable($srcParent)) {
-			\OCP\Util::writeLog('core', 'unable to rename, source directory is not writable : ' . $srcParent, ILogger::ERROR);
+			\OC::$server->get(LoggerInterface::class)->error('unable to rename, source directory is not writable : ' . $srcParent, ['app' => 'core']);
 			return false;
 		}
 
 		if (!$this->isUpdatable($dstParent)) {
-			\OCP\Util::writeLog('core', 'unable to rename, destination directory is not writable : ' . $dstParent, ILogger::ERROR);
+			\OC::$server->get(LoggerInterface::class)->error('unable to rename, destination directory is not writable : ' . $dstParent, ['app' => 'core']);
 			return false;
 		}
 
-		if (!$this->file_exists($path1)) {
-			\OCP\Util::writeLog('core', 'unable to rename, file does not exists : ' . $path1, ILogger::ERROR);
+		if (!$this->file_exists($source)) {
+			\OC::$server->get(LoggerInterface::class)->error('unable to rename, file does not exists : ' . $source, ['app' => 'core']);
 			return false;
 		}
 
-		if ($this->is_dir($path2)) {
-			$this->rmdir($path2);
-		} elseif ($this->is_file($path2)) {
-			$this->unlink($path2);
+		if ($this->is_dir($target)) {
+			$this->rmdir($target);
+		} elseif ($this->is_file($target)) {
+			$this->unlink($target);
 		}
 
-		if ($this->is_dir($path1)) {
+		if ($this->is_dir($source)) {
 			// we can't move folders across devices, use copy instead
-			$stat1 = stat(dirname($this->getSourcePath($path1)));
-			$stat2 = stat(dirname($this->getSourcePath($path2)));
+			$stat1 = stat(dirname($this->getSourcePath($source)));
+			$stat2 = stat(dirname($this->getSourcePath($target)));
 			if ($stat1['dev'] !== $stat2['dev']) {
-				$result = $this->copy($path1, $path2);
+				$result = $this->copy($source, $target);
 				if ($result) {
-					$result &= $this->rmdir($path1);
+					$result &= $this->rmdir($source);
 				}
 				return $result;
 			}
 
-			$this->checkTreeForForbiddenItems($this->getSourcePath($path1));
+			$this->checkTreeForForbiddenItems($this->getSourcePath($source));
 		}
 
-		return rename($this->getSourcePath($path1), $this->getSourcePath($path2));
+		return rename($this->getSourcePath($source), $this->getSourcePath($target));
 	}
 
-	public function copy($path1, $path2) {
-		if ($this->is_dir($path1)) {
-			return parent::copy($path1, $path2);
+	public function copy($source, $target) {
+		if ($this->is_dir($source)) {
+			return parent::copy($source, $target);
 		} else {
-			$oldMask = umask(022);
-			$result = copy($this->getSourcePath($path1), $this->getSourcePath($path2));
+			$oldMask = umask($this->defUMask);
+			if ($this->unlinkOnTruncate) {
+				$this->unlink($target);
+			}
+			$result = copy($this->getSourcePath($source), $this->getSourcePath($target));
 			umask($oldMask);
 			return $result;
 		}
 	}
 
 	public function fopen($path, $mode) {
-		$oldMask = umask(022);
-		$result = fopen($this->getSourcePath($path), $mode);
+		$sourcePath = $this->getSourcePath($path);
+		if (!file_exists($sourcePath) && $mode === 'r') {
+			return false;
+		}
+		$oldMask = umask($this->defUMask);
+		if (($mode === 'w' || $mode === 'w+') && $this->unlinkOnTruncate) {
+			$this->unlink($path);
+		}
+		$result = @fopen($sourcePath, $mode);
 		umask($oldMask);
 		return $result;
 	}
@@ -382,7 +408,7 @@ class Local extends \OC\Files\Storage\Common {
 		if ($space === false || is_null($space)) {
 			return \OCP\Files\FileInfo::SPACE_UNKNOWN;
 		}
-		return $space;
+		return (int)$space;
 	}
 
 	public function search($query) {
@@ -450,7 +476,7 @@ class Local extends \OC\Files\Storage\Common {
 
 		$fullPath = $this->datadir . $path;
 		$currentPath = $path;
-		$allowSymlinks = \OC::$server->getConfig()->getSystemValue('localstorage.allowsymlinks', false);
+		$allowSymlinks = $this->config->getSystemValue('localstorage.allowsymlinks', false);
 		if ($allowSymlinks || $currentPath === '') {
 			return $fullPath;
 		}
@@ -470,7 +496,7 @@ class Local extends \OC\Files\Storage\Common {
 			return $fullPath;
 		}
 
-		\OCP\Util::writeLog('core', "Following symlinks is not allowed ('$fullPath' -> '$realPath' not inside '{$this->realDataDir}')", ILogger::ERROR);
+		\OC::$server->get(LoggerInterface::class)->error("Following symlinks is not allowed ('$fullPath' -> '$realPath' not inside '{$this->realDataDir}')", ['app' => 'core']);
 		throw new ForbiddenException('Following symlinks is not allowed', false);
 	}
 

@@ -21,10 +21,10 @@
   -->
 
 <template>
-	<Modal v-if="opened"
+	<NcModal v-if="opened"
 		:clear-view-delay="-1"
 		class="templates-picker"
-		size="large"
+		size="normal"
 		@close="close">
 		<form class="templates-picker__form"
 			:style="style"
@@ -33,13 +33,11 @@
 
 			<!-- Templates list -->
 			<ul class="templates-picker__list">
-				<TemplatePreview
-					v-bind="emptyTemplate"
+				<TemplatePreview v-bind="emptyTemplate"
 					:checked="checked === emptyTemplate.fileid"
 					@check="onCheck" />
 
-				<TemplatePreview
-					v-for="template in provider.templates"
+				<TemplatePreview v-for="template in provider.templates"
 					:key="template.fileid"
 					v-bind="template"
 					:checked="checked === template.fileid"
@@ -59,17 +57,17 @@
 			</div>
 		</form>
 
-		<EmptyContent v-if="loading" class="templates-picker__loading" icon="icon-loading">
+		<NcEmptyContent v-if="loading" class="templates-picker__loading" icon="icon-loading">
 			{{ t('files', 'Creating file') }}
-		</EmptyContent>
-	</Modal>
+		</NcEmptyContent>
+	</NcModal>
 </template>
 
 <script>
 import { normalize } from 'path'
 import { showError } from '@nextcloud/dialogs'
-import EmptyContent from '@nextcloud/vue/dist/Components/EmptyContent'
-import Modal from '@nextcloud/vue/dist/Components/Modal'
+import NcEmptyContent from '@nextcloud/vue/dist/Components/NcEmptyContent'
+import NcModal from '@nextcloud/vue/dist/Components/NcModal'
 
 import { getCurrentDirectory } from '../utils/davUtils'
 import { createFromTemplate, getTemplates } from '../services/Templates'
@@ -83,8 +81,8 @@ export default {
 	name: 'TemplatePicker',
 
 	components: {
-		EmptyContent,
-		Modal,
+		NcEmptyContent,
+		NcModal,
 		TemplatePreview,
 	},
 
@@ -109,7 +107,8 @@ export default {
 	computed: {
 		/**
 		 * Strip away extension from name
-		 * @returns {string}
+		 *
+		 * @return {string}
 		 */
 		nameWithoutExt() {
 			return this.name.indexOf('.') > -1
@@ -133,7 +132,8 @@ export default {
 
 		/**
 		 * Style css vars bin,d
-		 * @returns {Object}
+		 *
+		 * @return {object}
 		 */
 		style() {
 			return {
@@ -149,6 +149,7 @@ export default {
 	methods: {
 		/**
 		 * Open the picker
+		 *
 		 * @param {string} name the file name to create
 		 * @param {object} provider the template provider picked
 		 */
@@ -188,6 +189,7 @@ export default {
 
 		/**
 		 * Manages the radio template picker change
+		 *
 		 * @param {number} fileid the selected template file id
 		 */
 		onCheck(fileid) {
@@ -213,17 +215,23 @@ export default {
 				)
 				this.logger.debug('Created new file', fileInfo)
 
-				await fileList?.addAndFetchFileInfo(this.name)
+				// Fetch FileInfo and model
+				const data = await fileList?.addAndFetchFileInfo(this.name).then((status, data) => data)
+				const model = new OCA.Files.FileInfoModel(data, {
+					filesClient: fileList?.filesClient,
+				})
 
 				// Run default action
 				const fileAction = OCA.Files.fileActions.getDefaultFileAction(fileInfo.mime, 'file', OC.PERMISSION_ALL)
-				fileAction.action(fileInfo.basename, {
-					$file: fileList?.findFileEl(this.name),
-					dir: currentDirectory,
-					fileList,
-					fileActions: fileList?.fileActions,
-					fileInfoModel: fileList?.getModelForFile(this.name),
-				})
+				if (fileAction) {
+					fileAction.action(fileInfo.basename, {
+						$file: fileList?.findFileEl(this.name),
+						dir: currentDirectory,
+						fileList,
+						fileActions: fileList?.fileActions,
+						fileInfoModel: model,
+					})
+				}
 
 				this.close()
 			} catch (error) {
@@ -281,7 +289,6 @@ export default {
 	// Make sure we're relative for the loading emptycontent on top
 	::v-deep .modal-container {
 		position: relative;
-		overflow-y: auto !important;
 	}
 
 	&__loading {

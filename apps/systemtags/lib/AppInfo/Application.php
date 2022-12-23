@@ -25,6 +25,7 @@ declare(strict_types=1);
  */
 namespace OCA\SystemTags\AppInfo;
 
+use OCA\SystemTags\Search\TagSearchProvider;
 use OCA\SystemTags\Activity\Listener;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
@@ -42,6 +43,7 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function register(IRegistrationContext $context): void {
+		$context->registerSearchProvider(TagSearchProvider::class);
 	}
 
 	public function boot(IBootContext $context): void {
@@ -52,7 +54,7 @@ class Application extends App implements IBootstrap {
 			$dispatcher->addListener(
 				'OCA\Files::loadAdditionalScripts',
 				function () {
-					\OCP\Util::addScript('core', 'dist/systemtags');
+					\OCP\Util::addScript('core', 'systemtags');
 					\OCP\Util::addScript(self::APP_ID, 'systemtags');
 				}
 			);

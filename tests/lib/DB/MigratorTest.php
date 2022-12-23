@@ -62,7 +62,7 @@ class MigratorTest extends \Test\TestCase {
 	private function getMigrator(): Migrator {
 		$platform = $this->connection->getDatabasePlatform();
 		$random = \OC::$server->getSecureRandom();
-		$dispatcher = \OC::$server->getEventDispatcher();
+		$dispatcher = \OC::$server->get(\OCP\EventDispatcher\IEventDispatcher::class);
 		if ($platform instanceof SqlitePlatform) {
 			return new SQLiteMigrator($this->connection, $this->config, $dispatcher);
 		} elseif ($platform instanceof OraclePlatform) {
@@ -267,6 +267,8 @@ class MigratorTest extends \Test\TestCase {
 
 			[ParameterType::INTEGER, 1234, Types::INTEGER, false],
 			[ParameterType::INTEGER, 0, Types::INTEGER, false], // Integer 0 is not stored as Null and therefor works
+
+			[ParameterType::STRING, '{"a": 2}', Types::JSON, false],
 		];
 	}
 

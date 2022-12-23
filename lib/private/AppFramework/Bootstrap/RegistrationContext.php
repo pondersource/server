@@ -30,6 +30,11 @@ declare(strict_types=1);
 namespace OC\AppFramework\Bootstrap;
 
 use Closure;
+use OCP\Calendar\Resource\IBackend as IResourceBackend;
+use OCP\Calendar\Room\IBackend as IRoomBackend;
+use OCP\Collaboration\Reference\IReferenceProvider;
+use OCP\Talk\ITalkBackend;
+use RuntimeException;
 use function array_shift;
 use OC\Support\CrashReport\Registry;
 use OCP\AppFramework\App;
@@ -48,6 +53,7 @@ use OCP\Notification\INotifier;
 use OCP\Profile\ILinkAction;
 use OCP\Search\IProvider;
 use OCP\Support\CrashReport\IReporter;
+use OCP\UserMigration\IMigrator as IUserMigrator;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -64,6 +70,18 @@ class RegistrationContext {
 
 	/** @var ServiceRegistration<ILinkAction>[] */
 	private $profileLinkActions = [];
+
+	/** @var null|ServiceRegistration<ITalkBackend> */
+	private $talkBackendRegistration = null;
+
+	/** @var ServiceRegistration<IResourceBackend>[] */
+	private $calendarResourceBackendRegistrations = [];
+
+	/** @var ServiceRegistration<IRoomBackend>[] */
+	private $calendarRoomBackendRegistrations = [];
+
+	/** @var ServiceRegistration<IUserMigrator>[] */
+	private $userMigrators = [];
 
 	/** @var ServiceFactoryRegistration[] */
 	private $services = [];
@@ -103,6 +121,12 @@ class RegistrationContext {
 
 	/** @var ServiceRegistration<ICalendarProvider>[] */
 	private $calendarProviders = [];
+
+	/** @var ServiceRegistration<IReferenceProvider>[] */
+	private array $referenceProviders = [];
+
+	/** @var ParameterRegistration[] */
+	private $sensitiveMethods = [];
 
 	/** @var LoggerInterface */
 	private $logger;
@@ -253,10 +277,53 @@ class RegistrationContext {
 				);
 			}
 
+			public function registerReferenceProvider(string $class): void {
+				$this->context->registerReferenceProvider(
+					$this->appId,
+					$class
+				);
+			}
+
 			public function registerProfileLinkAction(string $actionClass): void {
 				$this->context->registerProfileLinkAction(
 					$this->appId,
 					$actionClass
+				);
+			}
+
+			public function registerTalkBackend(string $backend): void {
+				$this->context->registerTalkBackend(
+					$this->appId,
+					$backend
+				);
+			}
+
+			public function registerCalendarResourceBackend(string $class): void {
+				$this->context->registerCalendarResourceBackend(
+					$this->appId,
+					$class
+				);
+			}
+
+			public function registerCalendarRoomBackend(string $class): void {
+				$this->context->registerCalendarRoomBackend(
+					$this->appId,
+					$class
+				);
+			}
+
+			public function registerUserMigrator(string $migratorClass): void {
+				$this->context->registerUserMigrator(
+					$this->appId,
+					$migratorClass
+				);
+			}
+
+			public function registerSensitiveMethods(string $class, array $methods): void {
+				$this->context->registerSensitiveMethods(
+					$this->appId,
+					$class,
+					$methods
 				);
 			}
 		};
@@ -342,11 +409,56 @@ class RegistrationContext {
 		$this->calendarProviders[] = new ServiceRegistration($appId, $class);
 	}
 
+	public function registerReferenceProvider(string $appId, string $class): void {
+		$this->referenceProviders[] = new ServiceRegistration($appId, $class);
+	}
+
 	/**
 	 * @psalm-param class-string<ILinkAction> $actionClass
 	 */
 	public function registerProfileLinkAction(string $appId, string $actionClass): void {
 		$this->profileLinkActions[] = new ServiceRegistration($appId, $actionClass);
+	}
+
+	/**
+	 * @psalm-param class-string<ITalkBackend> $backend
+	 */
+	public function registerTalkBackend(string $appId, string $backend) {
+		// Some safeguards for invalid registrations
+		if ($appId !== 'spreed') {
+			throw new RuntimeException("Only the Talk app is allowed to register a Talk backend");
+		}
+		if ($this->talkBackendRegistration !== null) {
+			throw new RuntimeException("There can only be one Talk backend");
+		}
+
+		$this->talkBackendRegistration = new ServiceRegistration($appId, $backend);
+	}
+
+	public function registerCalendarResourceBackend(string $appId, string $class) {
+		$this->calendarResourceBackendRegistrations[] = new ServiceRegistration(
+			$appId,
+			$class,
+		);
+	}
+
+	public function registerCalendarRoomBackend(string $appId, string $class) {
+		$this->calendarRoomBackendRegistrations[] = new ServiceRegistration(
+			$appId,
+			$class,
+		);
+	}
+
+	/**
+	 * @psalm-param class-string<IUserMigrator> $migratorClass
+	 */
+	public function registerUserMigrator(string $appId, string $migratorClass): void {
+		$this->userMigrators[] = new ServiceRegistration($appId, $migratorClass);
+	}
+
+	public function registerSensitiveMethods(string $appId, string $class, array $methods): void {
+		$methods = array_filter($methods, 'is_string');
+		$this->sensitiveMethods[] = new ParameterRegistration($appId, $class, $methods);
 	}
 
 	/**
@@ -394,10 +506,10 @@ class RegistrationContext {
 	/**
 	 * @param App[] $apps
 	 */
-	public function delegateDashboardPanelRegistrations(array $apps, IManager $dashboardManager): void {
+	public function delegateDashboardPanelRegistrations(IManager $dashboardManager): void {
 		while (($panel = array_shift($this->dashboardPanels)) !== null) {
 			try {
-				$dashboardManager->lazyRegisterWidget($panel->getService());
+				$dashboardManager->lazyRegisterWidget($panel->getService(), $panel->getAppId());
 			} catch (Throwable $e) {
 				$appId = $panel->getAppId();
 				$this->logger->error("Error during dashboard registration of $appId: " . $e->getMessage(), [
@@ -595,9 +707,54 @@ class RegistrationContext {
 	}
 
 	/**
+	 * @return ServiceRegistration<IReferenceProvider>[]
+	 */
+	public function getReferenceProviders(): array {
+		return $this->referenceProviders;
+	}
+
+	/**
 	 * @return ServiceRegistration<ILinkAction>[]
 	 */
 	public function getProfileLinkActions(): array {
 		return $this->profileLinkActions;
+	}
+
+	/**
+	 * @return ServiceRegistration|null
+	 * @psalm-return ServiceRegistration<ITalkBackend>|null
+	 */
+	public function getTalkBackendRegistration(): ?ServiceRegistration {
+		return $this->talkBackendRegistration;
+	}
+
+	/**
+	 * @return ServiceRegistration[]
+	 * @psalm-return ServiceRegistration<IResourceBackend>[]
+	 */
+	public function getCalendarResourceBackendRegistrations(): array {
+		return $this->calendarResourceBackendRegistrations;
+	}
+
+	/**
+	 * @return ServiceRegistration[]
+	 * @psalm-return ServiceRegistration<IRoomBackend>[]
+	 */
+	public function getCalendarRoomBackendRegistrations(): array {
+		return $this->calendarRoomBackendRegistrations;
+	}
+
+	/**
+	 * @return ServiceRegistration<IUserMigrator>[]
+	 */
+	public function getUserMigrators(): array {
+		return $this->userMigrators;
+	}
+
+	/**
+	 * @return ParameterRegistration[]
+	 */
+	public function getSensitiveMethods(): array {
+		return $this->sensitiveMethods;
 	}
 }

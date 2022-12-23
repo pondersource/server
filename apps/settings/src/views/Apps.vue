@@ -21,57 +21,50 @@
   -->
 
 <template>
-	<Content app-name="settings"
+	<NcContent app-name="settings"
 		:class="{ 'with-app-sidebar': app}"
 		:content-class="{ 'icon-loading': loadingList }"
 		:navigation-class="{ 'icon-loading': loading }">
 		<!-- Categories & filters -->
-		<AppNavigation>
+		<NcAppNavigation>
 			<template #list>
-				<AppNavigationItem
-					id="app-category-your-apps"
+				<NcAppNavigationItem id="app-category-your-apps"
 					:to="{ name: 'apps' }"
 					:exact="true"
 					icon="icon-category-installed"
 					:title="t('settings', 'Your apps')" />
-				<AppNavigationItem
-					id="app-category-enabled"
+				<NcAppNavigationItem id="app-category-enabled"
 					:to="{ name: 'apps-category', params: { category: 'enabled' } }"
 					icon="icon-category-enabled"
-					:title="t('settings', 'Active apps')" />
-				<AppNavigationItem
-					id="app-category-disabled"
+					:title="$options.APPS_SECTION_ENUM.enabled" />
+				<NcAppNavigationItem id="app-category-disabled"
 					:to="{ name: 'apps-category', params: { category: 'disabled' } }"
 					icon="icon-category-disabled"
-					:title="t('settings', 'Disabled apps')" />
-				<AppNavigationItem
-					v-if="updateCount > 0"
+					:title="$options.APPS_SECTION_ENUM.disabled" />
+				<NcAppNavigationItem v-if="updateCount > 0"
 					id="app-category-updates"
 					:to="{ name: 'apps-category', params: { category: 'updates' } }"
 					icon="icon-download"
-					:title="t('settings', 'Updates')">
-					<AppNavigationCounter slot="counter">
+					:title="$options.APPS_SECTION_ENUM.updates">
+					<NcAppNavigationCounter slot="counter">
 						{{ updateCount }}
-					</AppNavigationCounter>
-				</AppNavigationItem>
-				<AppNavigationItem
-					id="app-category-your-bundles"
+					</NcAppNavigationCounter>
+				</NcAppNavigationItem>
+				<NcAppNavigationItem id="app-category-your-bundles"
 					:to="{ name: 'apps-category', params: { category: 'app-bundles' } }"
 					icon="icon-category-app-bundles"
-					:title="t('settings', 'App bundles')" />
+					:title="$options.APPS_SECTION_ENUM['app-bundles']" />
 
-				<AppNavigationSpacer />
+				<NcAppNavigationSpacer />
 
 				<!-- App store categories -->
 				<template v-if="settings.appstoreEnabled">
-					<AppNavigationItem
-						id="app-category-featured"
+					<NcAppNavigationItem id="app-category-featured"
 						:to="{ name: 'apps-category', params: { category: 'featured' } }"
 						icon="icon-favorite"
-						:title="t('settings', 'Featured apps')" />
+						:title="$options.APPS_SECTION_ENUM.featured" />
 
-					<AppNavigationItem
-						v-for="cat in categories"
+					<NcAppNavigationItem v-for="cat in categories"
 						:key="'icon-category-' + cat.ident"
 						:icon="'icon-category-' + cat.ident"
 						:to="{
@@ -81,21 +74,19 @@
 						:title="cat.displayName" />
 				</template>
 
-				<AppNavigationItem
-					id="app-developer-docs"
-					href="settings.developerDocumentation"
-					:title="t('settings', 'Developer documentation') + ' ↗'" />
+				<NcAppNavigationItem id="app-developer-docs"
+					:title="t('settings', 'Developer documentation') + ' ↗'"
+					@click="openDeveloperDocumentation" />
 			</template>
-		</AppNavigation>
+		</NcAppNavigation>
 
 		<!-- Apps list -->
-		<AppContent class="app-settings-content" :class="{ 'icon-loading': loadingList }">
+		<NcAppContent class="app-settings-content" :class="{ 'icon-loading': loadingList }">
 			<AppList :category="category" :app="app" :search="searchQuery" />
-		</AppContent>
+		</NcAppContent>
 
 		<!-- Selected app details -->
-		<AppSidebar
-			v-if="id && app"
+		<NcAppSidebar v-if="id && app"
 			v-bind="appSidebar"
 			:class="{'app-sidebar--without-background': !appSidebar.background}"
 			@close="hideAppDetails">
@@ -116,17 +107,20 @@
 						{{ t('settings', 'Featured') }}</span>
 					<AppScore v-if="hasRating" :score="app.appstoreData.ratingOverall" />
 				</div>
+				<div class="app-version">
+					<p>{{ app.version }}</p>
+				</div>
 			</template>
 
 			<!-- Tab content -->
 
-			<AppSidebarTab id="desc"
+			<NcAppSidebarTab id="desc"
 				icon="icon-category-office"
 				:name="t('settings', 'Details')"
 				:order="0">
 				<AppDetails :app="app" />
-			</AppSidebarTab>
-			<AppSidebarTab v-if="app.appstoreData && app.releases[0].translations.en.changelog"
+			</NcAppSidebarTab>
+			<NcAppSidebarTab v-if="app.appstoreData && app.releases[0].translations.en.changelog"
 				id="desca"
 				icon="icon-category-organization"
 				:name="t('settings', 'Changelog')"
@@ -135,9 +129,9 @@
 					<h2>{{ release.version }}</h2>
 					<Markdown v-if="changelog(release)" :text="changelog(release)" />
 				</div>
-			</AppSidebarTab>
-		</AppSidebar>
-	</Content>
+			</NcAppSidebarTab>
+		</NcAppSidebar>
+	</NcContent>
 </template>
 
 <script>
@@ -145,14 +139,14 @@ import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import Vue from 'vue'
 import VueLocalStorage from 'vue-localstorage'
 
-import AppContent from '@nextcloud/vue/dist/Components/AppContent'
-import AppNavigation from '@nextcloud/vue/dist/Components/AppNavigation'
-import AppNavigationCounter from '@nextcloud/vue/dist/Components/AppNavigationCounter'
-import AppNavigationItem from '@nextcloud/vue/dist/Components/AppNavigationItem'
-import AppNavigationSpacer from '@nextcloud/vue/dist/Components/AppNavigationSpacer'
-import AppSidebar from '@nextcloud/vue/dist/Components/AppSidebar'
-import AppSidebarTab from '@nextcloud/vue/dist/Components/AppSidebarTab'
-import Content from '@nextcloud/vue/dist/Components/Content'
+import NcAppContent from '@nextcloud/vue/dist/Components/NcAppContent'
+import NcAppNavigation from '@nextcloud/vue/dist/Components/NcAppNavigation'
+import NcAppNavigationCounter from '@nextcloud/vue/dist/Components/NcAppNavigationCounter'
+import NcAppNavigationItem from '@nextcloud/vue/dist/Components/NcAppNavigationItem'
+import NcAppNavigationSpacer from '@nextcloud/vue/dist/Components/NcAppNavigationSpacer'
+import NcAppSidebar from '@nextcloud/vue/dist/Components/NcAppSidebar'
+import NcAppSidebarTab from '@nextcloud/vue/dist/Components/NcAppSidebarTab'
+import NcContent from '@nextcloud/vue/dist/Components/NcContent'
 
 import AppList from '../components/AppList'
 import AppDetails from '../components/AppDetails'
@@ -160,23 +154,25 @@ import AppManagement from '../mixins/AppManagement'
 import AppScore from '../components/AppList/AppScore'
 import Markdown from '../components/Markdown'
 
+import { APPS_SECTION_ENUM } from './../constants/AppsConstants.js'
+
 Vue.use(VueLocalStorage)
 
 export default {
 	name: 'Apps',
-
+	APPS_SECTION_ENUM,
 	components: {
-		AppContent,
+		NcAppContent,
 		AppDetails,
 		AppList,
-		AppNavigation,
-		AppNavigationCounter,
-		AppNavigationItem,
-		AppNavigationSpacer,
+		NcAppNavigation,
+		NcAppNavigationCounter,
+		NcAppNavigationItem,
+		NcAppNavigationSpacer,
 		AppScore,
-		AppSidebar,
-		AppSidebarTab,
-		Content,
+		NcAppSidebar,
+		NcAppSidebarTab,
+		NcContent,
 		Markdown,
 	},
 
@@ -229,13 +225,19 @@ export default {
 
 		// sidebar app binding
 		appSidebar() {
+			const authorName = (xmlNode) => {
+				if (xmlNode['@value']) {
+					// Complex node (with email or homepage attribute)
+					return xmlNode['@value']
+				}
+
+				// Simple text node
+				return xmlNode
+			}
+
 			const author = Array.isArray(this.app.author)
-				? this.app.author[0]['@value']
-					? this.app.author.map(author => author['@value']).join(', ')
-					: this.app.author.join(', ')
-				: this.app.author['@value']
-					? this.app.author['@value']
-					: this.app.author
+				? this.app.author.map(authorName).join(', ')
+				: authorName(this.app.author)
 			const license = t('settings', '{license}-licensed', { license: ('' + this.app.licence).toUpperCase() })
 
 			const subtitle = t('settings', 'by {author}\n{license}', { author, license })
@@ -273,7 +275,7 @@ export default {
 	},
 
 	beforeMount() {
-		this.$store.dispatch('getCategories')
+		this.$store.dispatch('getCategories', { shouldRefetchCategories: true })
 		this.$store.dispatch('getAllApps')
 		this.$store.dispatch('getGroups', { offset: 0, limit: 5 })
 		this.$store.commit('setUpdateCount', this.$store.getters.getServerData.updateCount)
@@ -302,6 +304,9 @@ export default {
 				params: { category: this.category },
 			})
 		},
+		openDeveloperDocumentation() {
+			window.open(this.settings.developerDocumentation)
+		},
 	},
 }
 </script>
@@ -317,7 +322,13 @@ export default {
 		.app-sidebar-header--compact .app-sidebar-header__figure {
 			background-size: 32px;
 
-			filter: invert(1);
+			filter: var(--background-invert-if-bright);
+		}
+	}
+
+	.app-sidebar-header__description {
+		.app-version {
+			padding-left: 10px;
 		}
 	}
 
@@ -355,19 +366,25 @@ export default {
 	}
 }
 
-	.app-sidebar-tabs__release {
-		h2 {
-			border-bottom: 1px solid var(--color-border);
-		}
+// Align the appNavigation toggle with the apps header toolbar
+.app-navigation::v-deep button.app-navigation-toggle {
+	top: 8px;
+	right: -8px;
+}
 
-		// Overwrite changelog heading styles
-		::v-deep {
-			h3 {
-				font-size: 20px;
-			}
-			h4 {
-				font-size: 17px;
-			}
+.app-sidebar-tabs__release {
+	h2 {
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	// Overwrite changelog heading styles
+	::v-deep {
+		h3 {
+			font-size: 20px;
+		}
+		h4 {
+			font-size: 17px;
 		}
 	}
+}
 </style>

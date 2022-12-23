@@ -191,7 +191,7 @@
 		 *
 		 * @param {string} mime mime type
 		 * @param {string} type "dir" or "file"
-		 * @param {int} permissions permissions
+		 * @param {number} permissions permissions
 		 * @param {string} filename filename
 		 *
 		 * @return {Object.<string,OCA.Files.FileActions~actionHandler>} map of action name to action spec
@@ -210,7 +210,7 @@
 		 *
 		 * @param {string} mime mime type
 		 * @param {string} type "dir" or "file"
-		 * @param {int} permissions permissions
+		 * @param {number} permissions permissions
 		 * @param {string} filename filename
 		 *
 		 * @return {Array.<OCA.Files.FileAction>} array of action specs
@@ -262,7 +262,7 @@
 		 *
 		 * @param {string} mime mime type
 		 * @param {string} type "dir" or "file"
-		 * @param {int} permissions permissions
+		 * @param {number} permissions permissions
 		 *
 		 * @return {OCA.Files.FileActions~actionHandler} action handler
 		 *
@@ -294,7 +294,7 @@
 		 *
 		 * @param {string} mime mime type
 		 * @param {string} type "dir" or "file"
-		 * @param {int} permissions permissions
+		 * @param {number} permissions permissions
 		 *
 		 * @return {OCA.Files.FileActions~actionSpec} action spec
 		 * @since 8.2
@@ -370,6 +370,7 @@
 			var menu;
 			var $trigger = context.$file.closest('tr').find('.fileactions .action-menu');
 			$trigger.addClass('open');
+			$trigger.attr('aria-expanded', 'true');
 
 			menu = new OCA.Files.FileActionsMenu();
 
@@ -378,6 +379,7 @@
 			menu.$el.on('afterHide', function() {
 				context.$file.removeClass('mouseOver');
 				$trigger.removeClass('open');
+				$trigger.attr('aria-expanded', 'false');
 				menu.remove();
 			});
 
@@ -404,6 +406,7 @@
 			}, false, context);
 
 			$el.addClass('permanent');
+			$el.attr('aria-expanded', 'false');
 
 		},
 
@@ -557,7 +560,7 @@
 			// recreate fileactions container
 			nameLinks = parent.children('a.name');
 			nameLinks.find('.fileactions, .nametext .action').remove();
-			nameLinks.append('<span class="fileactions" />');
+			nameLinks.append('<span class="fileactions"></span>');
 			var defaultAction = this.getDefaultFileAction(
 				this.getCurrentMimeType(),
 				this.getCurrentType(),
@@ -670,6 +673,9 @@
 				displayName: function(context) {
 					var permissions = context.fileInfoModel.attributes.permissions;
 					if (permissions & OC.PERMISSION_UPDATE) {
+						if (!context.fileInfoModel.canDownload()) {
+							return t('files', 'Move');
+						}
 						return t('files', 'Move or copy');
 					}
 					return t('files', 'Copy');
@@ -682,7 +688,11 @@
 					var permissions = context.fileInfoModel.attributes.permissions;
 					var actions = OC.dialogs.FILEPICKER_TYPE_COPY;
 					if (permissions & OC.PERMISSION_UPDATE) {
-						actions = OC.dialogs.FILEPICKER_TYPE_COPY_MOVE;
+						if (!context.fileInfoModel.canDownload()) {
+							actions = OC.dialogs.FILEPICKER_TYPE_MOVE;
+						} else {
+							actions = OC.dialogs.FILEPICKER_TYPE_COPY_MOVE;
+						}
 					}
 					var dialogDir = context.dir;
 					if (typeof context.fileList.dirInfo.dirLastCopiedTo !== 'undefined') {
@@ -699,6 +709,32 @@
 						}, false, "httpd/unix-directory", true, actions, dialogDir);
 				}
 			});
+
+			if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+				this.registerAction({
+					name: 'EditLocally',
+					displayName: function(context) {
+						var locked = context.$file.data('locked');
+						if (!locked) {
+							return t('files', 'Edit locally');
+						}
+					},
+					mime: 'all',
+					order: -23,
+					icon: function(filename, context) {
+						var locked = context.$file.data('locked');
+						if (!locked) {
+							return OC.imagePath('files', 'computer.svg')
+						}
+					},
+					permissions: OC.PERMISSION_UPDATE,
+					actionHandler: function (filename, context) {
+						var dir = context.dir || context.fileList.getCurrentDirectory();
+						var path = dir === '/' ? dir + filename : dir + '/' + filename;
+						context.fileList.openLocalClient(path);
+					},
+				});
+			}
 
 			this.registerAction({
 				name: 'Open',
@@ -797,7 +833,7 @@
 	 * Defaults to the name given in name property
 	 * @property {String} mime mime type
 	 * @property {String} filename filename
-	 * @property {int} permissions permissions
+	 * @property {number} permissions permissions
 	 * @property {(Function|String)} icon icon path to the icon or function that returns it (deprecated, use iconClass instead)
 	 * @property {(String|OCA.Files.FileActions~iconClassFunction)} iconClass class name of the icon (recommended for theming)
 	 * @property {OCA.Files.FileActions~renderActionFunction} [render] optional rendering function

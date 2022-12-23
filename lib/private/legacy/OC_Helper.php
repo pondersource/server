@@ -44,9 +44,12 @@
  *
  */
 use bantu\IniGetWrapper\IniGetWrapper;
+use OC\Files\Filesystem;
 use OCP\Files\Mount\IMountPoint;
+use OCP\ICacheFactory;
+use OCP\IBinaryFinder;
 use OCP\IUser;
-use Symfony\Component\Process\ExecutableFinder;
+use Psr\Log\LoggerInterface;
 
 /**
  * Collection of useful functions
@@ -92,7 +95,7 @@ class OC_Helper {
 	/**
 	 * Make a computer file size
 	 * @param string $str file size in human readable format
-	 * @return float|bool a file size in bytes
+	 * @return int|false a file size in bytes
 	 *
 	 * Makes 2kB to 2048.
 	 *
@@ -101,7 +104,7 @@ class OC_Helper {
 	public static function computerFileSize($str) {
 		$str = strtolower($str);
 		if (is_numeric($str)) {
-			return (float)$str;
+			return (int)$str;
 		}
 
 		$bytes_array = [
@@ -128,7 +131,7 @@ class OC_Helper {
 
 		$bytes = round($bytes);
 
-		return $bytes;
+		return (int)$bytes;
 	}
 
 	/**
@@ -417,11 +420,11 @@ class OC_Helper {
 	 */
 	public static function uploadLimit() {
 		$ini = \OC::$server->get(IniGetWrapper::class);
-		$upload_max_filesize = OCP\Util::computerFileSize($ini->get('upload_max_filesize'));
-		$post_max_size = OCP\Util::computerFileSize($ini->get('post_max_size'));
-		if ((int)$upload_max_filesize === 0 and (int)$post_max_size === 0) {
+		$upload_max_filesize = (int)OCP\Util::computerFileSize($ini->get('upload_max_filesize'));
+		$post_max_size = (int)OCP\Util::computerFileSize($ini->get('post_max_size'));
+		if ($upload_max_filesize === 0 && $post_max_size === 0) {
 			return INF;
-		} elseif ((int)$upload_max_filesize === 0 or (int)$post_max_size === 0) {
+		} elseif ($upload_max_filesize === 0 || $post_max_size === 0) {
 			return max($upload_max_filesize, $post_max_size); //only the non 0 value counts
 		} else {
 			return min($upload_max_filesize, $post_max_size);
@@ -431,47 +434,19 @@ class OC_Helper {
 	/**
 	 * Checks if a function is available
 	 *
-	 * @param string $function_name
-	 * @return bool
+	 * @deprecated Since 25.0.0 use \OCP\Util::isFunctionEnabled instead
 	 */
-	public static function is_function_enabled($function_name) {
-		if (!function_exists($function_name)) {
-			return false;
-		}
-		$ini = \OC::$server->get(IniGetWrapper::class);
-		$disabled = explode(',', $ini->get('disable_functions') ?: '');
-		$disabled = array_map('trim', $disabled);
-		if (in_array($function_name, $disabled)) {
-			return false;
-		}
-		$disabled = explode(',', $ini->get('suhosin.executor.func.blacklist') ?: '');
-		$disabled = array_map('trim', $disabled);
-		if (in_array($function_name, $disabled)) {
-			return false;
-		}
-		return true;
+	public static function is_function_enabled(string $function_name): bool {
+		return \OCP\Util::isFunctionEnabled($function_name);
 	}
 
 	/**
 	 * Try to find a program
-	 *
-	 * @param string $program
-	 * @return null|string
+	 * @deprecated Since 25.0.0 Use \OC\BinaryFinder directly
 	 */
-	public static function findBinaryPath($program) {
-		$memcache = \OC::$server->getMemCacheFactory()->createDistributed('findBinaryPath');
-		if ($memcache->hasKey($program)) {
-			return $memcache->get($program);
-		}
-		$result = null;
-		if (self::is_function_enabled('exec')) {
-			$exeSniffer = new ExecutableFinder();
-			// Returns null if nothing is found
-			$result = $exeSniffer->find($program, null, ['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin', '/opt/bin']);
-		}
-		// store the value for 5 minutes
-		$memcache->set($program, $result, 300);
-		return $result;
+	public static function findBinaryPath(string $program): ?string {
+		$result = \OCP\Server::get(IBinaryFinder::class)->findBinaryPath($program);
+		return $result !== false ? $result : null;
 	}
 
 	/**
@@ -482,12 +457,27 @@ class OC_Helper {
 	 *
 	 * @param string $path
 	 * @param \OCP\Files\FileInfo $rootInfo (optional)
+	 * @param bool $includeMountPoints whether to include mount points in the size calculation
+	 * @param bool $useCache whether to use the cached quota values
 	 * @return array
 	 * @throws \OCP\Files\NotFoundException
 	 */
-	public static function getStorageInfo($path, $rootInfo = null) {
+	public static function getStorageInfo($path, $rootInfo = null, $includeMountPoints = true, $useCache = true) {
+		/** @var ICacheFactory $cacheFactory */
+		$cacheFactory = \OC::$server->get(ICacheFactory::class);
+		$memcache = $cacheFactory->createLocal('storage_info');
+
 		// return storage info without adding mount points
 		$includeExtStorage = \OC::$server->getSystemConfig()->getValue('quota_include_external_storage', false);
+
+		$fullPath = Filesystem::getView()->getAbsolutePath($path);
+		$cacheKey = $fullPath. '::' . ($includeMountPoints ? 'include' : 'exclude');
+		if ($useCache) {
+			$cached = $memcache->get($cacheKey);
+			if ($cached) {
+				return $cached;
+			}
+		}
 
 		if (!$rootInfo) {
 			$rootInfo = \OC\Files\Filesystem::getFileInfo($path, $includeExtStorage ? 'ext' : false);
@@ -495,7 +485,7 @@ class OC_Helper {
 		if (!$rootInfo instanceof \OCP\Files\FileInfo) {
 			throw new \OCP\Files\NotFoundException();
 		}
-		$used = $rootInfo->getSize();
+		$used = $rootInfo->getSize($includeMountPoints);
 		if ($used < 0) {
 			$used = 0;
 		}
@@ -505,7 +495,6 @@ class OC_Helper {
 		$sourceStorage = $storage;
 		if ($storage->instanceOfStorage('\OCA\Files_Sharing\SharedStorage')) {
 			$includeExtStorage = false;
-			$sourceStorage = $storage->getSourceStorage();
 		}
 		if ($includeExtStorage) {
 			if ($storage->instanceOfStorage('\OC\Files\Storage\Home')
@@ -528,7 +517,19 @@ class OC_Helper {
 			/** @var \OC\Files\Storage\Wrapper\Quota $storage */
 			$quota = $sourceStorage->getQuota();
 		}
-		$free = $sourceStorage->free_space($rootInfo->getInternalPath());
+		try {
+			$free = $sourceStorage->free_space($rootInfo->getInternalPath());
+		} catch (\Exception $e) {
+			if ($path === "") {
+				throw $e;
+			}
+			/** @var LoggerInterface $logger */
+			$logger = \OC::$server->get(LoggerInterface::class);
+			$logger->warning("Error while getting quota info, using root quota", ['exception' => $e]);
+			$rootInfo = self::getStorageInfo("");
+			$memcache->set($cacheKey, $rootInfo, 5 * 60);
+			return $rootInfo;
+		}
 		if ($free >= 0) {
 			$total = $free + $used;
 		} else {
@@ -546,17 +547,17 @@ class OC_Helper {
 
 		$ownerId = $storage->getOwner($path);
 		$ownerDisplayName = '';
-		$owner = \OC::$server->getUserManager()->get($ownerId);
-		if ($owner) {
-			$ownerDisplayName = $owner->getDisplayName();
+		if ($ownerId) {
+			$ownerDisplayName = \OC::$server->getUserManager()->getDisplayName($ownerId) ?? '';
 		}
+
 		if (substr_count($mount->getMountPoint(), '/') < 3) {
 			$mountPoint = '';
 		} else {
 			[,,,$mountPoint] = explode('/', $mount->getMountPoint(), 4);
 		}
 
-		return [
+		$info = [
 			'free' => $free,
 			'used' => $used,
 			'quota' => $quota,
@@ -567,6 +568,10 @@ class OC_Helper {
 			'mountType' => $mount->getMountType(),
 			'mountPoint' => trim($mountPoint, '/'),
 		];
+
+		$memcache->set($cacheKey, $info, 5 * 60);
+
+		return $info;
 	}
 
 	/**

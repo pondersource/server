@@ -25,6 +25,8 @@ declare(strict_types=1);
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  * @author Vincent Petry <vincent@nextcloud.com>
+ * @author Simon Leiner <simon@leiner.me>
+ * @author Stanimir Bozhilov <stanimir@audriga.com>
  *
  * @license AGPL-3.0
  *
@@ -48,8 +50,8 @@ use OC\Security\CSRF\CsrfTokenManager;
 use OC\Security\TrustedDomainHelper;
 use OCP\IConfig;
 use OCP\IRequest;
-use OCP\Security\ICrypto;
-use OCP\Security\ISecureRandom;
+use OCP\IRequestId;
+use Symfony\Component\HttpFoundation\IpUtils;
 
 /**
  * Class for accessing variables in the request.
@@ -77,10 +79,10 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 	public const USER_AGENT_FREEBOX = '#^Mozilla/5\.0$#';
 	public const REGEX_LOCALHOST = '/^(127\.0\.0\.1|localhost|\[::1\])$/';
 
-	protected $inputStream;
+	protected string $inputStream;
 	protected $content;
-	protected $items = [];
-	protected $allowedKeys = [
+	protected array $items = [];
+	protected array $allowedKeys = [
 		'get',
 		'post',
 		'files',
@@ -92,19 +94,11 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 		'method',
 		'requesttoken',
 	];
-	/** @var ISecureRandom */
-	protected $secureRandom;
-	/** @var IConfig */
-	protected $config;
-	/** @var string */
-	protected $requestId = '';
-	/** @var ICrypto */
-	protected $crypto;
-	/** @var CsrfTokenManager|null */
-	protected $csrfTokenManager;
+	protected IRequestId $requestId;
+	protected IConfig $config;
+	protected ?CsrfTokenManager $csrfTokenManager;
 
-	/** @var bool */
-	protected $contentDecoded = false;
+	protected bool $contentDecoded = false;
 
 	/**
 	 * @param array $vars An associative array with the following optional values:
@@ -117,20 +111,20 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 	 *        - array 'cookies' the $_COOKIE array
 	 *        - string 'method' the request method (GET, POST etc)
 	 *        - string|false 'requesttoken' the requesttoken or false when not available
-	 * @param ISecureRandom $secureRandom
+	 * @param IRequestId $requestId
 	 * @param IConfig $config
 	 * @param CsrfTokenManager|null $csrfTokenManager
 	 * @param string $stream
 	 * @see https://www.php.net/manual/en/reserved.variables.php
 	 */
 	public function __construct(array $vars,
-								ISecureRandom $secureRandom,
+								IRequestId $requestId,
 								IConfig $config,
 								CsrfTokenManager $csrfTokenManager = null,
 								string $stream = 'php://input') {
 		$this->inputStream = $stream;
 		$this->items['params'] = [];
-		$this->secureRandom = $secureRandom;
+		$this->requestId = $requestId;
 		$this->config = $config;
 		$this->csrfTokenManager = $csrfTokenManager;
 
@@ -139,9 +133,7 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 		}
 
 		foreach ($this->allowedKeys as $name) {
-			$this->items[$name] = isset($vars[$name])
-				? $vars[$name]
-				: [];
+			$this->items[$name] = $vars[$name] ?? [];
 		}
 
 		$this->items['parameters'] = array_merge(
@@ -303,7 +295,7 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 	 * @return string
 	 */
 	public function getHeader(string $name): string {
-		$name = strtoupper(str_replace('-', '_',$name));
+		$name = strtoupper(str_replace('-', '_', $name));
 		if (isset($this->server['HTTP_' . $name])) {
 			return $this->server['HTTP_' . $name];
 		}
@@ -344,7 +336,7 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 
 	/**
 	 * Returns all params that were received, be it from the request
-	 * (as GET or POST) or throuh the URL by the route
+	 * (as GET or POST) or through the URL by the route
 	 * @return array the array with all parameters
 	 */
 	public function getParams(): array {
@@ -428,16 +420,15 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 		}
 		$params = [];
 
-		// 'application/json' must be decoded manually.
-		if (strpos($this->getHeader('Content-Type'), 'application/json') !== false) {
+		// 'application/json' and other JSON-related content types must be decoded manually.
+		if (preg_match(self::JSON_CONTENT_TYPE_REGEX, $this->getHeader('Content-Type')) === 1) {
 			$params = json_decode(file_get_contents($this->inputStream), true);
-			if ($params !== null && \count($params) > 0) {
+			if (\is_array($params) && \count($params) > 0) {
 				$this->items['params'] = $params;
 				if ($this->method === 'POST') {
 					$this->items['post'] = $params;
 				}
 			}
-
 			// Handle application/x-www-form-urlencoded for methods other than GET
 		// or post correctly
 		} elseif ($this->method !== 'GET'
@@ -571,39 +562,7 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 	 * @return string
 	 */
 	public function getId(): string {
-		if (isset($this->server['UNIQUE_ID'])) {
-			return $this->server['UNIQUE_ID'];
-		}
-
-		if (empty($this->requestId)) {
-			$validChars = ISecureRandom::CHAR_ALPHANUMERIC;
-			$this->requestId = $this->secureRandom->generate(20, $validChars);
-		}
-
-		return $this->requestId;
-	}
-
-	/**
-	 * Checks if given $remoteAddress matches given $trustedProxy.
-	 * If $trustedProxy is an IPv4 IP range given in CIDR notation, true will be returned if
-	 * $remoteAddress is an IPv4 address within that IP range.
-	 * Otherwise $remoteAddress will be compared to $trustedProxy literally and the result
-	 * will be returned.
-	 * @return boolean true if $remoteAddress matches $trustedProxy, false otherwise
-	 */
-	protected function matchesTrustedProxy($trustedProxy, $remoteAddress) {
-		$cidrre = '/^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\/([0-9]{1,2})$/';
-
-		if (preg_match($cidrre, $trustedProxy, $match)) {
-			$net = $match[1];
-			$shiftbits = min(32, max(0, 32 - intval($match[2])));
-			$netnum = ip2long($net) >> $shiftbits;
-			$ipnum = ip2long($remoteAddress) >> $shiftbits;
-
-			return $ipnum === $netnum;
-		}
-
-		return $trustedProxy === $remoteAddress;
+		return $this->requestId->getId();
 	}
 
 	/**
@@ -612,13 +571,7 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 	 * @return boolean true if $remoteAddress matches any entry in $trustedProxies, false otherwise
 	 */
 	protected function isTrustedProxy($trustedProxies, $remoteAddress) {
-		foreach ($trustedProxies as $tp) {
-			if ($this->matchesTrustedProxy($tp, $remoteAddress)) {
-				return true;
-			}
-		}
-
-		return false;
+		return IpUtils::checkIp($remoteAddress, $trustedProxies);
 	}
 
 	/**
@@ -795,17 +748,7 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 	 */
 	public function getPathInfo() {
 		$pathInfo = $this->getRawPathInfo();
-		// following is taken from \Sabre\HTTP\URLUtil::decodePathSegment
-		$pathInfo = rawurldecode($pathInfo);
-		$encoding = mb_detect_encoding($pathInfo, ['UTF-8', 'ISO-8859-1']);
-
-		switch ($encoding) {
-			case 'ISO-8859-1':
-				$pathInfo = utf8_encode($pathInfo);
-		}
-		// end copy
-
-		return $pathInfo;
+		return \Sabre\HTTP\decodePath($pathInfo);
 	}
 
 	/**

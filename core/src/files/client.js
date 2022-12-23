@@ -13,7 +13,7 @@
  * @author Vincent Petry <vincent@nextcloud.com>
  * @author Vinicius Cubas Brand <vinicius@eita.org.br>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -42,7 +42,7 @@ import escapeHTML from 'escape-html'
 	 *
 	 * @param {Object} options
 	 * @param {String} options.host host name
-	 * @param {int} [options.port] port
+	 * @param {number} [options.port] port
 	 * @param {boolean} [options.useHTTPS] whether to use https
 	 * @param {String} [options.root] root path
 	 * @param {String} [options.userName] user name
@@ -104,6 +104,7 @@ import escapeHTML from 'escape-html'
 	Client.PROPERTY_GETCONTENTLENGTH	= '{' + Client.NS_DAV + '}getcontentlength'
 	Client.PROPERTY_ISENCRYPTED	= '{' + Client.NS_DAV + '}is-encrypted'
 	Client.PROPERTY_SHARE_PERMISSIONS	= '{' + Client.NS_OCS + '}share-permissions'
+	Client.PROPERTY_SHARE_ATTRIBUTES	= '{' + Client.NS_NEXTCLOUD + '}share-attributes'
 	Client.PROPERTY_QUOTA_AVAILABLE_BYTES	= '{' + Client.NS_DAV + '}quota-available-bytes'
 
 	Client.PROTOCOL_HTTP	= 'http'
@@ -160,6 +161,10 @@ import escapeHTML from 'escape-html'
 		 * Share permissions
 		 */
 		[Client.NS_OCS, 'share-permissions'],
+		/**
+		 * Share attributes
+		 */
+		[Client.NS_NEXTCLOUD, 'share-attributes'],
 	]
 
 	/**
@@ -416,6 +421,18 @@ import escapeHTML from 'escape-html'
 				data.sharePermissions = parseInt(sharePermissionsProp)
 			}
 
+			const shareAttributesProp = props[Client.PROPERTY_SHARE_ATTRIBUTES]
+			if (!_.isUndefined(shareAttributesProp)) {
+				try {
+					data.shareAttributes = JSON.parse(shareAttributesProp)
+				} catch (e) {
+					console.warn('Could not parse share attributes returned by server: "' + shareAttributesProp + '"')
+					data.shareAttributes = [];
+				}
+			} else {
+				data.shareAttributes = [];
+			}
+
 			const mounTypeProp = props['{' + Client.NS_NEXTCLOUD + '}mount-type']
 			if (!_.isUndefined(mounTypeProp)) {
 				data.mountType = mounTypeProp
@@ -449,7 +466,7 @@ import escapeHTML from 'escape-html'
 		/**
 		 * Returns whether the given status code means success
 		 *
-		 * @param {int} status status code
+		 * @param {number} status status code
 		 *
 		 * @returns true if status code is between 200 and 299 included
 		 */
@@ -546,7 +563,7 @@ import escapeHTML from 'escape-html'
 		 *
 		 * @param {Object} filter filter criteria
 		 * @param {Object} [filter.systemTagIds] list of system tag ids to filter by
-		 * @param {bool} [filter.favorite] set it to filter by favorites
+		 * @param {boolean} [filter.favorite] set it to filter by favorites
 		 * @param {Object} [options] options
 		 * @param {Array} [options.properties] list of Webdav properties to retrieve
 		 *
@@ -698,7 +715,7 @@ import escapeHTML from 'escape-html'
 		 * @param {String} body file body
 		 * @param {Object} [options]
 		 * @param {String} [options.contentType='text/plain'] content type
-		 * @param {bool} [options.overwrite=true] whether to overwrite an existing file
+		 * @param {boolean} [options.overwrite=true] whether to overwrite an existing file
 		 *
 		 * @returns {Promise}
 		 */

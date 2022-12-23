@@ -33,11 +33,13 @@ use OC\Files\Cache\Wrapper\CacheJail;
 use OC\Files\Search\SearchBinaryOperator;
 use OC\Files\Search\SearchComparison;
 use OC\Files\Storage\Wrapper\Jail;
+use OC\User\DisplayNameCache;
 use OCP\Files\Cache\ICacheEntry;
 use OCP\Files\Search\ISearchBinaryOperator;
 use OCP\Files\Search\ISearchComparison;
 use OCP\Files\Search\ISearchOperator;
 use OCP\Files\StorageNotAvailableException;
+use OCP\ICacheFactory;
 use OCP\IUserManager;
 
 /**
@@ -46,27 +48,22 @@ use OCP\IUserManager;
  * don't use this class directly if you need to get metadata, use \OC\Files\Filesystem::getFileInfo instead
  */
 class Cache extends CacheJail {
-	/** @var \OCA\Files_Sharing\SharedStorage */
+	/** @var SharedStorage */
 	private $storage;
-	/** @var ICacheEntry */
-	private $sourceRootInfo;
-	/** @var IUserManager */
-	private $userManager;
-
-	private $rootUnchanged = true;
-
-	private $ownerDisplayName;
-
+	private ICacheEntry $sourceRootInfo;
+	private bool $rootUnchanged = true;
+	private ?string $ownerDisplayName = null;
 	private $numericId;
+	private DisplayNameCache $displayNameCache;
 
 	/**
-	 * @param \OCA\Files_Sharing\SharedStorage $storage
+	 * @param SharedStorage $storage
 	 */
-	public function __construct($storage, ICacheEntry $sourceRootInfo, IUserManager $userManager) {
+	public function __construct($storage, ICacheEntry $sourceRootInfo, DisplayNameCache $displayNameCache) {
 		$this->storage = $storage;
 		$this->sourceRootInfo = $sourceRootInfo;
-		$this->userManager = $userManager;
 		$this->numericId = $sourceRootInfo->getStorageId();
+		$this->displayNameCache = $displayNameCache;
 
 		parent::__construct(
 			null,
@@ -80,7 +77,7 @@ class Cache extends CacheJail {
 
 			// the sourceRootInfo path is the absolute path of the folder in the "real" storage
 			// in the case where a folder is shared from a Jail we need to ensure that the share Jail
-			// has it's root set relative to the source Jail
+			// has its root set relative to the source Jail
 			$currentStorage = $this->storage->getSourceStorage();
 			if ($currentStorage->instanceOfStorage(Jail::class)) {
 				/** @var Jail $currentStorage */
@@ -112,7 +109,7 @@ class Cache extends CacheJail {
 		if (isset($this->numericId)) {
 			return $this->numericId;
 		} else {
-			return false;
+			return -1;
 		}
 	}
 
@@ -173,12 +170,7 @@ class Cache extends CacheJail {
 	private function getOwnerDisplayName() {
 		if (!$this->ownerDisplayName) {
 			$uid = $this->storage->getOwner('');
-			$user = $this->userManager->get($uid);
-			if ($user) {
-				$this->ownerDisplayName = $user->getDisplayName();
-			} else {
-				$this->ownerDisplayName = $uid;
-			}
+			$this->ownerDisplayName = $this->displayNameCache->getDisplayName($uid) ?? $uid;
 		}
 		return $this->ownerDisplayName;
 	}
@@ -191,18 +183,28 @@ class Cache extends CacheJail {
 	}
 
 	public function getQueryFilterForStorage(): ISearchOperator {
+		$storageFilter = \OC\Files\Cache\Cache::getQueryFilterForStorage();
+
 		// Do the normal jail behavior for non files
 		if ($this->storage->getItemType() !== 'file') {
-			return parent::getQueryFilterForStorage();
+			return $this->addJailFilterQuery($storageFilter);
 		}
 
 		// for single file shares we don't need to do the LIKE
 		return new SearchBinaryOperator(
 			ISearchBinaryOperator::OPERATOR_AND,
 			[
-				\OC\Files\Cache\Cache::getQueryFilterForStorage(),
+				$storageFilter,
 				new SearchComparison(ISearchComparison::COMPARE_EQUAL, 'path', $this->getGetUnjailedRoot()),
 			]
 		);
+	}
+
+	public function getCacheEntryFromSearchResult(ICacheEntry $rawEntry): ?ICacheEntry {
+		if ($rawEntry->getStorageId() === $this->getNumericStorageId()) {
+			return parent::getCacheEntryFromSearchResult($rawEntry);
+		} else {
+			return null;
+		}
 	}
 }

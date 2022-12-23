@@ -17,7 +17,7 @@ OC.L10N.register(
     "Never" : "Mitte kunagi",
     "Once every direct access" : "Kord iga otsese pöördumise korral",
     "Read only" : "kirjutuskaitstud",
-    "Delete" : "Kustuta",
+    "Disconnect" : "Ühenda lahti",
     "Admin defined" : "Admini poolt määratud",
     "Saved" : "Salvestatud",
     "Save" : "Salvesta",
@@ -83,10 +83,6 @@ OC.L10N.register(
     "Configuration" : "Seadistamine",
     "Available for" : "Saadaval",
     "Add storage" : "Lisa andmehoidla",
-    "Advanced settings" : "Lisavalikud",
-    "External storages" : "Välised andmehoidlad",
-    "(group)" : "(grupp)",
-    "SMB / CIFS" : "SMB / CIFS",
-    "SMB / CIFS using OC login" : "SMB / CIFS kasutades OC logimist"
+    "Advanced settings" : "Lisavalikud"
 },
 "nplurals=2; plural=(n != 1);");

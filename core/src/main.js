@@ -6,7 +6,7 @@
  * @author Julius Härtl <jus@bitgrid.net>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -26,16 +26,16 @@
 import $ from 'jquery'
 import 'core-js/stable'
 import 'regenerator-runtime/runtime'
-import './Polyfill/index'
+import './Polyfill/index.js'
 
 // If you remove the line below, tests won't pass
 // eslint-disable-next-line no-unused-vars
-import OC from './OC/index'
+import OC from './OC/index.js'
 
-import './globals'
-import './jquery/index'
-import { initCore } from './init'
-import { registerAppsSlideToggle } from './OC/apps'
+import './globals.js'
+import './jquery/index.js'
+import { initCore } from './init.js'
+import { registerAppsSlideToggle } from './OC/apps.js'
 
 window.addEventListener('DOMContentLoaded', function() {
 	initCore()

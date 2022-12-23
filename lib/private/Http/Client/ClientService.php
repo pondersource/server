@@ -33,7 +33,7 @@ use OCP\Http\Client\IClient;
 use OCP\Http\Client\IClientService;
 use OCP\ICertificateManager;
 use OCP\IConfig;
-use OCP\ILogger;
+use OCP\Security\IRemoteHostValidator;
 
 /**
  * Class ClientService
@@ -43,25 +43,20 @@ use OCP\ILogger;
 class ClientService implements IClientService {
 	/** @var IConfig */
 	private $config;
-	/** @var ILogger */
-	private $logger;
 	/** @var ICertificateManager */
 	private $certificateManager;
 	/** @var DnsPinMiddleware */
 	private $dnsPinMiddleware;
-	/** @var LocalAddressChecker */
-	private $localAddressChecker;
+	private IRemoteHostValidator $remoteHostValidator;
 
 	public function __construct(IConfig $config,
-								ILogger $logger,
 								ICertificateManager $certificateManager,
 								DnsPinMiddleware $dnsPinMiddleware,
-								LocalAddressChecker $localAddressChecker) {
+								IRemoteHostValidator $remoteHostValidator) {
 		$this->config = $config;
-		$this->logger = $logger;
 		$this->certificateManager = $certificateManager;
 		$this->dnsPinMiddleware = $dnsPinMiddleware;
-		$this->localAddressChecker = $localAddressChecker;
+		$this->remoteHostValidator = $remoteHostValidator;
 	}
 
 	/**
@@ -76,10 +71,9 @@ class ClientService implements IClientService {
 
 		return new Client(
 			$this->config,
-			$this->logger,
 			$this->certificateManager,
 			$client,
-			$this->localAddressChecker
+			$this->remoteHostValidator,
 		);
 	}
 }
