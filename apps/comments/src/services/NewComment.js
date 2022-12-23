@@ -3,7 +3,7 @@
  *
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -22,6 +22,7 @@
 
 import { getCurrentUser } from '@nextcloud/auth'
 import { getRootPath } from '../utils/davUtils'
+import { decodeHtmlEntities } from '../utils/decodeHtmlEntities'
 import axios from '@nextcloud/axios'
 import client from './DavClient'
 
@@ -31,7 +32,7 @@ import client from './DavClient'
  * @param {string} commentsType the ressource type
  * @param {number} ressourceId the ressource ID
  * @param {string} message the message
- * @returns {Object} the new comment
+ * @return {object} the new comment
  */
 export default async function(commentsType, ressourceId, message) {
 	const ressourcePath = ['', commentsType, ressourceId].join('/')
@@ -54,6 +55,13 @@ export default async function(commentsType, ressourceId, message) {
 	const comment = await client.stat(commentPath, {
 		details: true,
 	})
+
+	const props = comment.data.props
+	// Decode twice to handle potentially double-encoded entities
+	// FIXME Remove this once https://github.com/nextcloud/server/issues/29306
+	// is resolved
+	props.actorDisplayName = decodeHtmlEntities(props.actorDisplayName, 2)
+	props.message = decodeHtmlEntities(props.message, 2)
 
 	return comment.data
 }

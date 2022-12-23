@@ -230,11 +230,11 @@ interface IComment {
 	/**
 	 * sets the date of the most recent child
 	 *
-	 * @param \DateTime $dateTime
+	 * @param \DateTime|null $dateTime
 	 * @return IComment
 	 * @since 9.0.0
 	 */
-	public function setLatestChildDateTime(\DateTime $dateTime);
+	public function setLatestChildDateTime(?\DateTime $dateTime = null);
 
 	/**
 	 * returns the object type the comment is attached to
@@ -278,4 +278,42 @@ interface IComment {
 	 * @since 19.0.0
 	 */
 	public function setReferenceId(?string $referenceId): IComment;
+
+	/**
+	 * Returns the reactions array if exists
+	 *
+	 * The keys is the emoji of reaction and the value is the total.
+	 *
+	 * @return array<string, integer> e.g. ["👍":1]
+	 * @since 24.0.0
+	 */
+	public function getReactions(): array;
+
+	/**
+	 * Set summarized array of reactions by reaction type
+	 *
+	 * The keys is the emoji of reaction and the value is the total.
+	 *
+	 * @param array<string, integer>|null $reactions e.g. ["👍":1]
+	 * @return IComment
+	 * @since 24.0.0
+	 */
+	public function setReactions(?array $reactions): IComment;
+
+	/**
+	 * Set message expire date
+	 *
+	 * @param \DateTime|null $dateTime
+	 * @return IComment
+	 * @since 25.0.0
+	 */
+	public function setExpireDate(?\DateTime $dateTime): IComment;
+
+	/**
+	 * Get message expire date
+	 *
+	 * @return ?\DateTime
+	 * @since 25.0.0
+	 */
+	public function getExpireDate(): ?\DateTime;
 }

@@ -5,7 +5,7 @@
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Julius Härtl <jus@bitgrid.net>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -28,12 +28,14 @@ import * as AppConfig from './appconfig'
 import * as Comments from './comments'
 import * as WhatsNew from './whatsnew'
 
+import Accessibility from './accessibility'
 import Collaboration from './collaboration'
 import Loader from './loader'
 import Toast from './toast'
 
 /** @namespace OCP */
 export default {
+	Accessibility,
 	AppConfig,
 	Collaboration,
 	Comments,

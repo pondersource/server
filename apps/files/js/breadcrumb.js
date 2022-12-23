@@ -104,7 +104,7 @@
 		 * Returns the full URL to the given directory
 		 *
 		 * @param {Object.<String, String>} part crumb data as map
-		 * @param {int} index crumb index
+		 * @param {number} index crumb index
 		 * @return full URL
 		 */
 		getCrumbUrl: function(part, index) {
@@ -220,7 +220,7 @@
 			});
 			// root part
 			crumbs.push({
-				name: t('core', 'Home'),
+				name: t('files', 'Home'),
 				dir: '/',
 				class: 'crumbhome',
 				linkclass: rootIcon || 'icon-home'
@@ -320,7 +320,7 @@
 			// depending on whether the menu was previously being shown or not.
 			this.$el.find('.crumbmenu').addClass('hidden');
 
-			// Show the crumbs to compress the siblings before hidding again the
+			// Show the crumbs to compress the siblings before hiding again the
 			// crumbs. This is needed when the siblings expand to fill all the
 			// available width, as in that case their old width would limit the
 			// available width for the crumbs.

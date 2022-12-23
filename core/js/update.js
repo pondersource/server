@@ -92,7 +92,7 @@
 
 				if (hasWarnings) {
 					$el.find('.update-show-detailed').before(
-						$('<input type="button" class="update-continue" value="'+t('core', 'Continue to {productName}', OC.Update.options)+'">').on('click', function() {
+						$('<input type="button" class="primary" value="'+t('core', 'Continue to {productName}', OC.Update.options)+'">').on('click', function() {
 							window.location.reload();
 						})
 					);
@@ -160,6 +160,7 @@ window.addEventListener('DOMContentLoaded', function() {
 		});
 		return false;
 	});
+
 	$('.update-show-detailed').on('click', function() {
 		$('#update-progress-detailed').toggleClass('hidden');
 		return false;

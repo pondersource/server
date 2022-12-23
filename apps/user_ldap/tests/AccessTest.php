@@ -112,7 +112,7 @@ class AccessTest extends TestCase {
 	private function getConnectorAndLdapMock() {
 		$lw = $this->createMock(ILDAPWrapper::class);
 		$connector = $this->getMockBuilder(Connection::class)
-			->setConstructorArgs([$lw, null, null])
+			->setConstructorArgs([$lw, '', null])
 			->getMock();
 		$um = $this->getMockBuilder(Manager::class)
 			->setConstructorArgs([
@@ -494,7 +494,7 @@ class AccessTest extends TestCase {
 			->willReturn(true);
 		$connection = $this->createMock(LDAP::class);
 		$this->connection
-			->expects($this->once())
+			->expects($this->any())
 			->method('getConnectionResource')
 			->willReturn($connection);
 		$this->ldap
@@ -518,7 +518,7 @@ class AccessTest extends TestCase {
 			->willReturn(true);
 		$connection = $this->createMock(LDAP::class);
 		$this->connection
-			->expects($this->once())
+			->expects($this->any())
 			->method('getConnectionResource')
 			->willReturn($connection);
 		$this->ldap
@@ -559,7 +559,7 @@ class AccessTest extends TestCase {
 			->expects($this->any())
 			->method('isResource')
 			->willReturnCallback(function ($resource) {
-				return is_resource($resource);
+				return is_resource($resource) || is_object($resource);
 			});
 		$this->ldap
 			->expects($this->any())
@@ -678,7 +678,7 @@ class AccessTest extends TestCase {
 		$this->groupMapper->expects($this->never())
 			->method('getNameByDN');
 
-		$this->connection->expects($this->exactly(2))
+		$this->connection->expects($this->exactly(3))
 			->method('writeToCache');
 
 		$groups = $this->access->fetchListOfGroups($filter, $attributes);

@@ -11,6 +11,7 @@ namespace Test\L10N;
 use DateTime;
 use OC\L10N\Factory;
 use OC\L10N\L10N;
+use OCP\ICacheFactory;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IUserSession;
@@ -32,7 +33,15 @@ class L10nTest extends TestCase {
 		$request = $this->createMock(IRequest::class);
 		/** @var IUserSession $userSession */
 		$userSession = $this->createMock(IUserSession::class);
-		return new Factory($config, $request, $userSession, \OC::$SERVERROOT);
+		$cacheFactory = $this->createMock(ICacheFactory::class);
+		return new Factory($config, $request, $userSession, $cacheFactory, \OC::$SERVERROOT);
+	}
+
+	public function testSimpleTranslationWithTrailingColon(): void {
+		$transFile = \OC::$SERVERROOT.'/tests/data/l10n/de.json';
+		$l = new L10N($this->getFactory(), 'test', 'de', 'de_AT', [$transFile]);
+
+		$this->assertEquals('Files:', $l->t('Files:'));
 	}
 
 	public function testGermanPluralTranslations() {
@@ -45,7 +54,7 @@ class L10nTest extends TestCase {
 
 	public function testRussianPluralTranslations() {
 		$transFile = \OC::$SERVERROOT.'/tests/data/l10n/ru.json';
-		$l = new L10N($this->getFactory(), 'test', 'ru', 'ru_UA',[$transFile]);
+		$l = new L10N($this->getFactory(), 'test', 'ru', 'ru_UA', [$transFile]);
 
 		$this->assertEquals('1 файл', (string)$l->n('%n file', '%n files', 1));
 		$this->assertEquals('2 файла', (string)$l->n('%n file', '%n files', 2));

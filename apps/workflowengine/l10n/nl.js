@@ -55,10 +55,6 @@ OC.L10N.register(
     "Office documents" : "Office documenten",
     "PDF documents" : "PDF documenten",
     "Custom mimetype" : "Maatwerk mimetype",
-    "Select a tag" : "Selecteer een markering",
-    "No results" : "Geen resultaten",
-    "%s (invisible)" : "%s (onzichtbaar)",
-    "%s (restricted)" : "%s (beperkt)",
     "Please enter a valid time span" : "Geef een geldige tijdsinterval op",
     "Select a request URL" : "Selecteer een aanvraag URL",
     "Predefined URLs" : "Voorgedefinieerde URL's",
@@ -115,6 +111,9 @@ OC.L10N.register(
     "User group membership" : "Gebruikersgroep lidmaatschap",
     "is member of" : "is lid van",
     "is not member of" : "is geen lid van",
-    "Browse the app store" : "Blader door de app store"
+    "Select a tag" : "Selecteer een markering",
+    "No results" : "Geen resultaten",
+    "%s (invisible)" : "%s (onzichtbaar)",
+    "%s (restricted)" : "%s (beperkt)"
 },
 "nplurals=2; plural=(n != 1);");

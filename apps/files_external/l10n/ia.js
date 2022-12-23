@@ -17,7 +17,7 @@ OC.L10N.register(
     "Check for changes" : "Verificar nove modificationes",
     "Never" : "Nunquam",
     "Once every direct access" : "A cata accesso directe",
-    "Delete" : "Deler",
+    "Disconnect" : "Disconnecter",
     "Saved" : "Salveguardate",
     "Save" : "Salveguardar",
     "External mount error" : "Error del montage externe",
@@ -73,9 +73,6 @@ OC.L10N.register(
     "Available for" : "Disponibile a",
     "Add storage" : "Adder immagazinage",
     "Advanced settings" : "Configurationes avantiate",
-    "Allow users to mount external storage" : "Permitter usatores montar immagazinage externe",
-    "External storages" : "Immagazinages externe",
-    "(group)" : "(gruppo)",
-    "SMB / CIFS" : "SMB / CIFS"
+    "Allow users to mount external storage" : "Permitter usatores montar immagazinage externe"
 },
 "nplurals=2; plural=(n != 1);");

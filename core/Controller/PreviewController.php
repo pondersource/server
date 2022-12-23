@@ -27,11 +27,11 @@ declare(strict_types=1);
  */
 namespace OC\Core\Controller;
 
+use OCA\Files_Sharing\SharedStorage;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\FileDisplayResponse;
-use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Files\File;
 use OCP\Files\IRootFolder;
 use OCP\Files\Node;
@@ -40,26 +40,10 @@ use OCP\IPreview;
 use OCP\IRequest;
 
 class PreviewController extends Controller {
+	private ?string $userId;
+	private IRootFolder $root;
+	private IPreview $preview;
 
-	/** @var string */
-	private $userId;
-
-	/** @var IRootFolder */
-	private $root;
-
-	/** @var IPreview */
-	private $preview;
-
-	/**
-	 * PreviewController constructor.
-	 *
-	 * @param string $appName
-	 * @param IRequest $request
-	 * @param IPreview $preview
-	 * @param IRootFolder $root
-	 * @param string $userId
-	 * @param ITimeFactory $timeFactory
-	 */
 	public function __construct(string $appName,
 								IRequest $request,
 								IPreview $preview,
@@ -77,12 +61,6 @@ class PreviewController extends Controller {
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
 	 *
-	 * @param string $file
-	 * @param int $x
-	 * @param int $y
-	 * @param bool $a
-	 * @param bool $forceIcon
-	 * @param string $mode
 	 * @return DataResponse|FileDisplayResponse
 	 */
 	public function getPreview(
@@ -110,13 +88,6 @@ class PreviewController extends Controller {
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
 	 *
-	 * @param int $fileId
-	 * @param int $x
-	 * @param int $y
-	 * @param bool $a
-	 * @param bool $forceIcon
-	 * @param string $mode
-	 *
 	 * @return DataResponse|FileDisplayResponse
 	 */
 	public function getPreviewByFileId(
@@ -143,12 +114,6 @@ class PreviewController extends Controller {
 	}
 
 	/**
-	 * @param Node $node
-	 * @param int $x
-	 * @param int $y
-	 * @param bool $a
-	 * @param bool $forceIcon
-	 * @param string $mode
 	 * @return DataResponse|FileDisplayResponse
 	 */
 	private function fetchPreview(
@@ -165,10 +130,22 @@ class PreviewController extends Controller {
 			return new DataResponse([], Http::STATUS_FORBIDDEN);
 		}
 
+		$storage = $node->getStorage();
+		if ($storage->instanceOfStorage(SharedStorage::class)) {
+			/** @var SharedStorage $storage */
+			$share = $storage->getShare();
+			$attributes = $share->getAttributes();
+			if ($attributes !== null && $attributes->getAttribute('permissions', 'download') === false) {
+				return new DataResponse([], Http::STATUS_FORBIDDEN);
+			}
+		}
+
 		try {
 			$f = $this->preview->getPreview($node, $x, $y, !$a, $mode);
-			$response = new FileDisplayResponse($f, Http::STATUS_OK, ['Content-Type' => $f->getMimeType()]);
-			$response->cacheFor(3600 * 24);
+			$response = new FileDisplayResponse($f, Http::STATUS_OK, [
+				'Content-Type' => $f->getMimeType(),
+			]);
+			$response->cacheFor(3600 * 24, false, true);
 			return $response;
 		} catch (NotFoundException $e) {
 			return new DataResponse([], Http::STATUS_NOT_FOUND);

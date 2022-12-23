@@ -11,6 +11,7 @@ OC.L10N.register(
     "Generate keys" : "Генерирај клучеви",
     "Error generating key pair" : "Грешка при генерирање на клучеви",
     "All users. Type to select user or group." : "Сите корисници. Напишете за да изберете корисник или група.",
+    "(Group)" : "(Група)",
     "Compatibility with Mac NFD encoding (slow)" : "Компатибилно со Mac NFD енкрипција (бавно)",
     "Enable encryption" : "Овозможи енкрипција",
     "Enable previews" : "Овозможи прегледување",
@@ -19,9 +20,8 @@ OC.L10N.register(
     "Never" : "Никогаш",
     "Once every direct access" : "Еднаш секој пристап",
     "Read only" : "Само читај",
-    "Delete" : "Избриши",
+    "Disconnect" : "Исклучи",
     "Admin defined" : "Дефинирано од администраторот",
-    "Are you sure you want to delete this external storage?" : "Дали си сигурен дека сакаш да го избришеш ова надворешно складиште?",
     "Delete storage?" : "Избриши складиште?",
     "Saved" : "Снимено",
     "Saving …" : "Зачувува ...",
@@ -70,6 +70,7 @@ OC.L10N.register(
     "RSA private key" : "RSA приватен клуч",
     "Private key" : "Приватен клуч",
     "Amazon S3" : "Amazon S3",
+    "Bucket" : "Кофа",
     "Hostname" : "Име на серверот",
     "Port" : "Порта",
     "Region" : "Регион",
@@ -109,9 +110,6 @@ OC.L10N.register(
     "Add storage" : "Додади складиште",
     "Advanced settings" : "Напредни параметри",
     "Allow users to mount external storage" : "Дозволи на корисниците да монтираат надворешни складишта",
-    "Global credentials can be used to authenticate with multiple external storages that have the same credentials." : "Глобалните акредитиви можат да се искористат за пристапување во повеќе надворешни складишта кој користат исти акредитиви.",
-    "External storages" : "Надворешни складишта",
-    "(group)" : "(group)",
-    "SMB / CIFS" : "SMB / CIFS"
+    "Global credentials can be used to authenticate with multiple external storages that have the same credentials." : "Глобалните акредитиви можат да се искористат за пристапување во повеќе надворешни складишта кој користат исти акредитиви."
 },
 "nplurals=2; plural=(n % 10 == 1 && n % 100 != 11) ? 0 : 1;");

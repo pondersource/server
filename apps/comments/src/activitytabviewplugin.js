@@ -4,7 +4,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,8 @@
  *
  */
 
+/** @typedef {import('jquery')} jQuery */
+
 (function() {
 	OCA.Comments.ActivityTabViewPlugin = {
 
@@ -29,7 +31,7 @@
 		 *
 		 * @param {OCA.Activity.ActivityModel} model for this activity
 		 * @param {jQuery} $el jQuery handle for this activity
-		 * @param {string} view The view that displayes this activity
+		 * @param {string} view The view that displays this activity
 		 */
 		prepareModelForDisplay(model, $el, view) {
 			if (model.get('app') !== 'comments' || model.get('type') !== 'comments') {

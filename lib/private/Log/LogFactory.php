@@ -49,7 +49,7 @@ class LogFactory implements ILogFactory {
 	public function get(string $type):IWriter {
 		switch (strtolower($type)) {
 			case 'errorlog':
-				return new Errorlog();
+				return new Errorlog($this->systemConfig);
 			case 'syslog':
 				return $this->c->resolve(Syslog::class);
 			case 'systemd':
@@ -70,8 +70,24 @@ class LogFactory implements ILogFactory {
 		return new Log($log, $this->systemConfig);
 	}
 
-	public function getCustomPsrLogger(string $path): LoggerInterface {
-		$log = $this->buildLogFile($path);
+	protected function createNewLogger(string $type, string $tag, string $path): IWriter {
+		switch (strtolower($type)) {
+			case 'errorlog':
+				return new Errorlog($this->systemConfig, $tag);
+			case 'syslog':
+				return new Syslog($this->systemConfig, $tag);
+			case 'systemd':
+				return new Systemdlog($this->systemConfig, $tag);
+			case 'file':
+			case 'owncloud':
+			case 'nextcloud':
+			default:
+				return $this->buildLogFile($path);
+		}
+	}
+
+	public function getCustomPsrLogger(string $path, string $type = 'file', string $tag = 'Nextcloud'): LoggerInterface {
+		$log = $this->createNewLogger($type, $tag, $path);
 		return new PsrLoggerAdapter(
 			new Log($log, $this->systemConfig)
 		);

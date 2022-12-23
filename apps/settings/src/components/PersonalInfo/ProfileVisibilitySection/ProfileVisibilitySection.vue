@@ -22,18 +22,15 @@
 
 <template>
 	<!-- TODO remove this inline margin placeholder once the settings layout is updated -->
-	<section
-		id="profile-visibility"
+	<section id="profile-visibility"
 		:style="{ marginLeft }">
-		<HeaderBar
-			:account-property="heading" />
+		<HeaderBar :readable="heading" />
 
 		<em :class="{ disabled }">
 			{{ t('settings', 'The more restrictive setting of either visibility or scope is respected on your Profile. For example, if visibility is set to "Show to everyone" and scope is set to "Private", "Private" is respected.') }}
 		</em>
 
-		<div
-			class="visibility-dropdowns"
+		<div class="visibility-dropdowns"
 			:style="{
 				gridTemplateRows: `repeat(${rows}, 44px)`,
 			}">
@@ -50,9 +47,9 @@
 import { loadState } from '@nextcloud/initial-state'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 
-import HeaderBar from '../shared/HeaderBar'
-import VisibilityDropdown from './VisibilityDropdown'
-import { PROFILE_READABLE_ENUM } from '../../../constants/AccountPropertyConstants'
+import HeaderBar from '../shared/HeaderBar.vue'
+import VisibilityDropdown from './VisibilityDropdown.vue'
+import { PROFILE_READABLE_ENUM } from '../../../constants/AccountPropertyConstants.js'
 
 const { profileConfig } = loadState('settings', 'profileParameters', {})
 const { profileEnabled } = loadState('settings', 'personalInfoParameters', false)
@@ -84,8 +81,8 @@ export default {
 				.sort(compareParams),
 			// TODO remove this when not used once the settings layout is updated
 			marginLeft: window.matchMedia('(min-width: 1600px)').matches
-				? window.getComputedStyle(document.getElementById('personal-settings-avatar-container')).getPropertyValue('width').trim()
-				: '0px'
+				? window.getComputedStyle(document.getElementById('vue-avatar-section')).getPropertyValue('width').trim()
+				: '0px',
 		}
 	},
 
@@ -104,7 +101,7 @@ export default {
 		// TODO remove this when not used once the settings layout is updated
 		window.onresize = () => {
 			this.marginLeft = window.matchMedia('(min-width: 1600px)').matches
-				? window.getComputedStyle(document.getElementById('personal-settings-avatar-container')).getPropertyValue('width').trim()
+				? window.getComputedStyle(document.getElementById('vue-avatar-section')).getPropertyValue('width').trim()
 				: '0px'
 		}
 	},
@@ -124,6 +121,8 @@ export default {
 <style lang="scss" scoped>
 section {
 	padding: 30px;
+	max-width: 900px;
+	width: 100%;
 
 	em {
 		display: block;

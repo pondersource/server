@@ -271,23 +271,23 @@ class Wrapper implements \OC\Files\Storage\Storage, ILockingStorage, IWriteStrea
 	/**
 	 * see https://www.php.net/manual/en/function.rename.php
 	 *
-	 * @param string $path1
-	 * @param string $path2
+	 * @param string $source
+	 * @param string $target
 	 * @return bool
 	 */
-	public function rename($path1, $path2) {
-		return $this->getWrapperStorage()->rename($path1, $path2);
+	public function rename($source, $target) {
+		return $this->getWrapperStorage()->rename($source, $target);
 	}
 
 	/**
 	 * see https://www.php.net/manual/en/function.copy.php
 	 *
-	 * @param string $path1
-	 * @param string $path2
+	 * @param string $source
+	 * @param string $target
 	 * @return bool
 	 */
-	public function copy($path1, $path2) {
-		return $this->getWrapperStorage()->copy($path1, $path2);
+	public function copy($source, $target) {
+		return $this->getWrapperStorage()->copy($source, $target);
 	}
 
 	/**
@@ -486,7 +486,7 @@ class Wrapper implements \OC\Files\Storage\Storage, ILockingStorage, IWriteStrea
 	/**
 	 * Check if the storage is an instance of $class or is a wrapper for a storage that is an instance of $class
 	 *
-	 * @param string $class
+	 * @param class-string<IStorage> $class
 	 * @return bool
 	 */
 	public function instanceOfStorage($class) {
@@ -495,6 +495,25 @@ class Wrapper implements \OC\Files\Storage\Storage, ILockingStorage, IWriteStrea
 			$class = '\OCA\Files_Sharing\SharedStorage';
 		}
 		return is_a($this, $class) or $this->getWrapperStorage()->instanceOfStorage($class);
+	}
+
+	/**
+	 * @psalm-template T of IStorage
+	 * @psalm-param class-string<T> $class
+	 * @psalm-return T|null
+	 */
+	public function getInstanceOfStorage(string $class) {
+		$storage = $this;
+		while ($storage instanceof Wrapper) {
+			if ($storage instanceof $class) {
+				break;
+			}
+			$storage = $storage->getWrapperStorage();
+		}
+		if (!($storage instanceof $class)) {
+			return null;
+		}
+		return $storage;
 	}
 
 	/**

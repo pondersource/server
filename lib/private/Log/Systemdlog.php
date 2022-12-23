@@ -56,20 +56,23 @@ class Systemdlog extends LogDetails implements IWriter {
 
 	protected $syslogId;
 
-	public function __construct(SystemConfig $config) {
+	public function __construct(SystemConfig $config, ?string $tag = null) {
 		parent::__construct($config);
 		if (!function_exists('sd_journal_send')) {
 			throw new HintException(
 				'PHP extension php-systemd is not available.',
 				'Please install and enable PHP extension systemd if you wish to log to the Systemd journal.');
 		}
-		$this->syslogId = $config->getValue('syslog_tag', 'Nextcloud');
+		if ($tag === null) {
+			$tag = $config->getValue('syslog_tag', 'Nextcloud');
+		}
+		$this->syslogId = $tag;
 	}
 
 	/**
 	 * Write a message to the log.
 	 * @param string $app
-	 * @param string $message
+	 * @param string|array $message
 	 * @param int $level
 	 */
 	public function write(string $app, $message, int $level) {

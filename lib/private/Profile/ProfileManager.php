@@ -35,14 +35,17 @@ use OC\KnownUser\KnownUserService;
 use OC\Profile\Actions\EmailAction;
 use OC\Profile\Actions\PhoneAction;
 use OC\Profile\Actions\TwitterAction;
+use OC\Profile\Actions\FediverseAction;
 use OC\Profile\Actions\WebsiteAction;
 use OCP\Accounts\IAccountManager;
 use OCP\Accounts\PropertyDoesNotExistException;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IConfig;
 use OCP\IUser;
 use OCP\L10N\IFactory;
 use OCP\Profile\ILinkAction;
+use OCP\Cache\CappedMemoryCache;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -53,6 +56,9 @@ class ProfileManager {
 
 	/** @var IAppManager */
 	private $appManager;
+
+	/** @var IConfig */
+	private $config;
 
 	/** @var ProfileConfigMapper */
 	private $configMapper;
@@ -77,6 +83,8 @@ class ProfileManager {
 
 	/** @var null|ILinkAction[] */
 	private $sortedActions = null;
+	/** @var CappedMemoryCache<ProfileConfig> */
+	private CappedMemoryCache $configCache;
 
 	private const CORE_APP_ID = 'core';
 
@@ -88,6 +96,7 @@ class ProfileManager {
 		PhoneAction::class,
 		WebsiteAction::class,
 		TwitterAction::class,
+		FediverseAction::class,
 	];
 
 	/**
@@ -106,6 +115,7 @@ class ProfileManager {
 	public function __construct(
 		IAccountManager $accountManager,
 		IAppManager $appManager,
+		IConfig $config,
 		ProfileConfigMapper $configMapper,
 		ContainerInterface $container,
 		KnownUserService $knownUserService,
@@ -115,12 +125,32 @@ class ProfileManager {
 	) {
 		$this->accountManager = $accountManager;
 		$this->appManager = $appManager;
+		$this->config = $config;
 		$this->configMapper = $configMapper;
 		$this->container = $container;
 		$this->knownUserService = $knownUserService;
 		$this->l10nFactory = $l10nFactory;
 		$this->logger = $logger;
 		$this->coordinator = $coordinator;
+		$this->configCache = new CappedMemoryCache();
+	}
+
+	/**
+	 * If no user is passed as an argument return whether profile is enabled globally in `config.php`
+	 */
+	public function isProfileEnabled(?IUser $user = null): ?bool {
+		$profileEnabledGlobally = $this->config->getSystemValueBool('profile.enabled', true);
+
+		if (empty($user) || !$profileEnabledGlobally) {
+			return $profileEnabledGlobally;
+		}
+
+		$account = $this->accountManager->getAccount($user);
+		return filter_var(
+			$account->getProperty(IAccountManager::PROPERTY_PROFILE_ENABLED)->getValue(),
+			FILTER_VALIDATE_BOOLEAN,
+			FILTER_NULL_ON_FAILURE,
+		);
 	}
 
 	/**
@@ -324,13 +354,13 @@ class ProfileManager {
 	 * Return the default profile config
 	 */
 	private function getDefaultProfileConfig(IUser $targetUser, ?IUser $visitingUser): array {
-		// Contruct the default config for actions
+		// Construct the default config for actions
 		$actionsConfig = [];
 		foreach ($this->getActions($targetUser, $visitingUser) as $action) {
 			$actionsConfig[$action->getId()] = ['visibility' => ProfileConfig::DEFAULT_VISIBILITY];
 		}
 
-		// Contruct the default config for account properties
+		// Construct the default config for account properties
 		$propertiesConfig = [];
 		foreach (ProfileConfig::DEFAULT_PROPERTY_VISIBILITY as $property => $visibility) {
 			$propertiesConfig[$property] = ['visibility' => $visibility];
@@ -346,7 +376,10 @@ class ProfileManager {
 	public function getProfileConfig(IUser $targetUser, ?IUser $visitingUser): array {
 		$defaultProfileConfig = $this->getDefaultProfileConfig($targetUser, $visitingUser);
 		try {
-			$config = $this->configMapper->get($targetUser->getUID());
+			if (($config = $this->configCache[$targetUser->getUID()]) === null) {
+				$config = $this->configMapper->get($targetUser->getUID());
+				$this->configCache[$targetUser->getUID()] = $config;
+			}
 			// Merge defaults with the existing config in case the defaults are missing
 			$config->setConfigArray(array_merge(
 				$defaultProfileConfig,

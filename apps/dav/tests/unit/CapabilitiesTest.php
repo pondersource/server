@@ -24,6 +24,7 @@
 namespace OCA\DAV\Tests\unit;
 
 use OCA\DAV\Capabilities;
+use OCP\IConfig;
 use Test\TestCase;
 
 /**
@@ -31,7 +32,27 @@ use Test\TestCase;
  */
 class CapabilitiesTest extends TestCase {
 	public function testGetCapabilities() {
-		$capabilities = new Capabilities();
+		$config = $this->createMock(IConfig::class);
+		$config->expects($this->once())
+			->method('getSystemValueBool')
+			->with('bulkupload.enabled', $this->isType('bool'))
+			->willReturn(false);
+		$capabilities = new Capabilities($config);
+		$expected = [
+			'dav' => [
+				'chunking' => '1.0',
+			],
+		];
+		$this->assertSame($expected, $capabilities->getCapabilities());
+	}
+
+	public function testGetCapabilitiesWithBulkUpload() {
+		$config = $this->createMock(IConfig::class);
+		$config->expects($this->once())
+			->method('getSystemValueBool')
+			->with('bulkupload.enabled', $this->isType('bool'))
+			->willReturn(true);
+		$capabilities = new Capabilities($config);
 		$expected = [
 			'dav' => [
 				'chunking' => '1.0',

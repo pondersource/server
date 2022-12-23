@@ -55,8 +55,6 @@ OC.L10N.register(
     "Your password will expire tomorrow." : "Jūsų slaptažodžio galiojimo laikas pasibaigs rytoj.",
     "Your password will expire today." : "Jūsų slaptažodžio galiojimo laikas baigiasi šiandien.",
     "_Your password will expire within %n day._::_Your password will expire within %n days._" : ["Jūsų slaptažodis nustos galioti po %n dienos.","Jūsų slaptažodis nustos galioti po %n dienų.","Jūsų slaptažodis nustos galioti po %n dienų.","Jūsų slaptažodis nustos galioti po %n dienos."],
-    "_%s group found_::_%s groups found_" : ["Rasta %s grupė","Rastos %s grupės","Rasta %s grupių","Rasta %s grupė"],
-    "_%s user found_::_%s users found_" : ["Rastas %s naudotojas","Rasti %s naudotojai","Rasta %s naudotojų","Rastas %s naudotojas"],
     "Could not detect user display name attribute. Please specify it yourself in advanced LDAP settings." : "Nepavyko aptikti naudotojo rodomo vardo požymio. Nurodykite jį patys išplėstiniuose LDAP nustatymuose.",
     "Could not find the desired feature" : "Nepavyko rasti pageidaujamos ypatybės",
     "Invalid Host" : "Neteisingas serveris",
@@ -168,12 +166,6 @@ OC.L10N.register(
     "UUID Attribute for Users:" : "UUID požymis naudotojams:",
     "UUID Attribute for Groups:" : "UUID požymis grupėms:",
     "Username-LDAP User Mapping" : "Naudotojo vardo - LDAP naudotojo sąsaja",
-    "Clear Username-LDAP User Mapping" : "Išvalyti naudotojo vardo - LDAP naudotojo sąsają",
-    "A connection error to LDAP / AD occurred, please check host, port and credentials." : "Įvyko sujungimo su LDAP/ AD klaida, patikrinkite serverį, prievadus ir prisijungimo duomenis.",
-    "The \"%uid\" placeholder is missing. It will be replaced with the login name when querying LDAP / AD." : "Trūksta \"%u\" vietaženklio. Jis bus pakeistas prisijungimo vardu, siunčiant užklausas LDAP / AD. ",
-    "LDAP / AD integration" : "LDAP / AD integracija",
-    "LDAP / AD Username:" : "LDAP / AD naudotojo vardas:",
-    "LDAP / AD Email Address:" : "LDAP / AD el. pašto adresas:",
-    "By default the internal username will be created from the UUID attribute. It makes sure that the username is unique and characters do not need to be converted. The internal username has the restriction that only these characters are allowed: [ a-zA-Z0-9_.@- ].  Other characters are replaced with their ASCII correspondence or simply omitted. On collisions a number will be added/increased. The internal username is used to identify a user internally. It is also the default name for the user home folder. It is also a part of remote URLs, for instance for all *DAV services. With this setting, the default behavior can be overridden. Leave it empty for default behavior. Changes will have effect only on newly mapped (added) LDAP users." : "Pagal numatymą vidinis naudotojo vardas bus sukurtas iš UUID požymio. Tai užtikrina naudotojo vardo unikalumą ir tuo pačiu nereikia konvertuoti simbolių. Vidinis naudotojo vardas turi apribojimą, leidžiantį tik šiuos simbolius: [ a-zA-Z0-9 _. @ - ]. Kiti simboliai pakeičiami ASCII atitikmenimis arba tiesiog praleidžiami. Sutapimų konflikto atveju yra pridedamas/padidinamas skaičius. Vidinis naudotojo vardas yra naudojamas identifikuoti naudotoją viduje. Tai kartu yra numatytasis naudotojo aplanko pavadinimas. Taip pat jis yra nuotolinių URL dalimi, pavyzdžiui, visoms *DAV paslaugoms. Naudojant šį nustatymą, numatytoji elgsena gali būti nustelbta. Palikite tuščią, jei norite kad galiotų numatytoji elgsena. Pakeitimai įsigalios tik naujai priskirtiems (pridėtiems) LDAP naudotojams."
+    "Clear Username-LDAP User Mapping" : "Išvalyti naudotojo vardo - LDAP naudotojo sąsają"
 },
 "nplurals=4; plural=(n % 10 == 1 && (n % 100 > 19 || n % 100 < 11) ? 0 : (n % 10 >= 2 && n % 10 <=9) && (n % 100 > 19 || n % 100 < 11) ? 1 : n % 1 != 0 ? 2: 3);");

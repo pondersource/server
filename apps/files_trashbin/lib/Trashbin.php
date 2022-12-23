@@ -54,12 +54,14 @@ use OC\Files\View;
 use OCA\Files_Trashbin\AppInfo\Application;
 use OCA\Files_Trashbin\Command\Expire;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\App\IAppManager;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
+use Psr\Log\LoggerInterface;
 
 class Trashbin {
 
@@ -227,7 +229,7 @@ class Trashbin {
 				->setValue('user', $query->createNamedParameter($user));
 			$result = $query->executeStatement();
 			if (!$result) {
-				\OC::$server->getLogger()->error('trash bin database couldn\'t be updated for the files owner', ['app' => 'files_trashbin']);
+				\OC::$server->get(LoggerInterface::class)->error('trash bin database couldn\'t be updated for the files owner', ['app' => 'files_trashbin']);
 			}
 		}
 	}
@@ -254,8 +256,15 @@ class Trashbin {
 		}
 
 		$ownerView = new View('/' . $owner);
+
 		// file has been deleted in between
-		if (is_null($ownerPath) || $ownerPath === '' || !$ownerView->file_exists('/files/' . $ownerPath)) {
+		if (is_null($ownerPath) || $ownerPath === '') {
+			return true;
+		}
+
+		$sourceInfo = $ownerView->getFileInfo('/files/' . $ownerPath);
+
+		if ($sourceInfo === false) {
 			return true;
 		}
 
@@ -296,9 +305,8 @@ class Trashbin {
 			}
 		}
 
-		/** @var \OC\Files\Storage\Storage $sourceStorage */
-		[$sourceStorage, $sourceInternalPath] = $ownerView->resolvePath('/files/' . $ownerPath);
-
+		$sourceStorage = $sourceInfo->getStorage();
+		$sourceInternalPath = $sourceInfo->getInternalPath();
 
 		if ($trashStorage->file_exists($trashInternalPath)) {
 			$trashStorage->unlink($trashInternalPath);
@@ -308,7 +316,7 @@ class Trashbin {
 		$systemTrashbinSize = (int)$config->getAppValue('files_trashbin', 'trashbin_size', '-1');
 		$userTrashbinSize = (int)$config->getUserValue($owner, 'files_trashbin', 'trashbin_size', '-1');
 		$configuredTrashbinSize = ($userTrashbinSize < 0) ? $systemTrashbinSize : $userTrashbinSize;
-		if ($configuredTrashbinSize >= 0 && $sourceStorage->filesize($sourceInternalPath) >= $configuredTrashbinSize) {
+		if ($configuredTrashbinSize >= 0 && $sourceInfo->getSize() >= $configuredTrashbinSize) {
 			return false;
 		}
 
@@ -326,7 +334,7 @@ class Trashbin {
 			if ($trashStorage->file_exists($trashInternalPath)) {
 				$trashStorage->unlink($trashInternalPath);
 			}
-			\OC::$server->getLogger()->error('Couldn\'t move ' . $file_path . ' to the trash bin', ['app' => 'files_trashbin']);
+			\OC::$server->get(LoggerInterface::class)->error('Couldn\'t move ' . $file_path . ' to the trash bin', ['app' => 'files_trashbin']);
 		}
 
 		if ($sourceStorage->file_exists($sourceInternalPath)) { // failed to delete the original file, abort
@@ -354,7 +362,7 @@ class Trashbin {
 				->setValue('user', $query->createNamedParameter($owner));
 			$result = $query->executeStatement();
 			if (!$result) {
-				\OC::$server->getLogger()->error('trash bin database couldn\'t be updated', ['app' => 'files_trashbin']);
+				\OC::$server->get(LoggerInterface::class)->error('trash bin database couldn\'t be updated', ['app' => 'files_trashbin']);
 			}
 			\OCP\Util::emitHook('\OCA\Files_Trashbin\Trashbin', 'post_moveToTrash', ['filePath' => Filesystem::normalizePath($file_path),
 				'trashPath' => Filesystem::normalizePath($filename . '.d' . $timestamp)]);
@@ -388,7 +396,7 @@ class Trashbin {
 	 * @param integer $timestamp when the file was deleted
 	 */
 	private static function retainVersions($filename, $owner, $ownerPath, $timestamp) {
-		if (\OCP\App::isEnabled('files_versions') && !empty($ownerPath)) {
+		if (\OCP\Server::get(IAppManager::class)->isEnabledForUser('files_versions') && !empty($ownerPath)) {
 			$user = OC_User::getUser();
 			$rootView = new View('/');
 
@@ -470,7 +478,7 @@ class Trashbin {
 		if ($timestamp) {
 			$location = self::getLocation($user, $filename, $timestamp);
 			if ($location === false) {
-				\OC::$server->getLogger()->error('trash bin database inconsistent! ($user: ' . $user . ' $filename: ' . $filename . ', $timestamp: ' . $timestamp . ')', ['app' => 'files_trashbin']);
+				\OC::$server->get(LoggerInterface::class)->error('trash bin database inconsistent! ($user: ' . $user . ' $filename: ' . $filename . ', $timestamp: ' . $timestamp . ')', ['app' => 'files_trashbin']);
 			} else {
 				// if location no longer exists, restore file in the root directory
 				if ($location !== '/' &&
@@ -536,7 +544,7 @@ class Trashbin {
 	 * @return false|null
 	 */
 	private static function restoreVersions(View $view, $file, $filename, $uniqueFilename, $location, $timestamp) {
-		if (\OCP\App::isEnabled('files_versions')) {
+		if (\OCP\Server::get(IAppManager::class)->isEnabledForUser('files_versions')) {
 			$user = OC_User::getUser();
 			$rootView = new View('/');
 
@@ -697,7 +705,7 @@ class Trashbin {
 	 */
 	private static function deleteVersions(View $view, $file, $filename, $timestamp, $user) {
 		$size = 0;
-		if (\OCP\App::isEnabled('files_versions')) {
+		if (\OCP\Server::get(IAppManager::class)->isEnabledForUser('files_versions')) {
 			if ($view->is_dir('files_trashbin/versions/' . $file)) {
 				$size += self::calculateSize(new View('/' . $user . '/files_trashbin/versions/' . $file));
 				$view->unlink('files_trashbin/versions/' . $file);
@@ -800,7 +808,7 @@ class Trashbin {
 			$availableSpace = $quota;
 		}
 
-		return $availableSpace;
+		return (int)$availableSpace;
 	}
 
 	/**
@@ -870,7 +878,7 @@ class Trashbin {
 			foreach ($files as $file) {
 				if ($availableSpace < 0 && $expiration->isExpired($file['mtime'], true)) {
 					$tmp = self::delete($file['name'], $user, $file['mtime']);
-					\OC::$server->getLogger()->info('remove "' . $file['name'] . '" (' . $tmp . 'B) to meet the limit of trash bin size (50% of available quota)', ['app' => 'files_trashbin']);
+					\OC::$server->get(LoggerInterface::class)->info('remove "' . $file['name'] . '" (' . $tmp . 'B) to meet the limit of trash bin size (50% of available quota)', ['app' => 'files_trashbin']);
 					$availableSpace += $tmp;
 					$size += $tmp;
 				} else {
@@ -901,9 +909,14 @@ class Trashbin {
 					$size += self::delete($filename, $user, $timestamp);
 					$count++;
 				} catch (\OCP\Files\NotPermittedException $e) {
-					\OC::$server->getLogger()->logException($e, ['app' => 'files_trashbin', 'level' => \OCP\ILogger::WARN, 'message' => 'Removing "' . $filename . '" from trashbin failed.']);
+					\OC::$server->get(LoggerInterface::class)->warning('Removing "' . $filename . '" from trashbin failed.',
+						[
+							'exception' => $e,
+							'app' => 'files_trashbin',
+						]
+					);
 				}
-				\OC::$server->getLogger()->info(
+				\OC::$server->get(LoggerInterface::class)->info(
 					'Remove "' . $filename . '" from trashbin because it exceeds max retention obligation term.',
 					['app' => 'files_trashbin']
 				);
@@ -919,7 +932,7 @@ class Trashbin {
 	 * recursive copy to copy a whole directory
 	 *
 	 * @param string $source source path, relative to the users files directory
-	 * @param string $destination destination path relative to the users root directoy
+	 * @param string $destination destination path relative to the users root directory
 	 * @param View $view file view for the users root directory
 	 * @return int
 	 * @throws Exceptions\CopyRecursiveException
@@ -968,9 +981,20 @@ class Trashbin {
 		[$storage,] = $view->resolvePath('/');
 
 		//force rescan of versions, local storage may not have updated the cache
-		if (!self::$scannedVersions) {
-			$storage->getScanner()->scan('files_trashbin/versions');
-			self::$scannedVersions = true;
+		$waitstart = time();
+		while (!self::$scannedVersions) {
+			try {
+				$storage->getScanner()->scan('files_trashbin/versions');
+				self::$scannedVersions = true;
+			} catch (LockedException $e) {
+				/* a concurrent remove/restore from trash occurred,
+				 * retry with a maximum wait time of approx. 15 seconds
+				 */
+				if (time() - $waitstart > 15) {
+					throw $e;
+				}
+				usleep(50000 + rand(0, 10000));
+			}
 		}
 
 		$pattern = \OC::$server->getDatabaseConnection()->escapeLikeParameter(basename($filename));
@@ -988,7 +1012,7 @@ class Trashbin {
 		$query = new CacheQueryBuilder(
 			\OC::$server->getDatabaseConnection(),
 			\OC::$server->getSystemConfig(),
-			\OC::$server->getLogger()
+			\OC::$server->get(LoggerInterface::class)
 		);
 		$normalizedParentPath = ltrim(Filesystem::normalizePath(dirname('files_trashbin/versions/'. $filename)), '/');
 		$parentId = $cache->getId($normalizedParentPath);

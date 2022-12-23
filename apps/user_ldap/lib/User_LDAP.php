@@ -45,11 +45,15 @@ use OCA\User_LDAP\Exceptions\NotOnLDAP;
 use OCA\User_LDAP\User\OfflineUser;
 use OCA\User_LDAP\User\User;
 use OCP\IConfig;
+use OCP\IUserBackend;
 use OCP\IUserSession;
 use OCP\Notification\IManager as INotificationManager;
+use OCP\User\Backend\ICountMappedUsersBackend;
+use OCP\User\Backend\ICountUsersBackend;
+use OCP\UserInterface;
 use Psr\Log\LoggerInterface;
 
-class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserInterface, IUserLDAP {
+class User_LDAP extends BackendUtility implements IUserBackend, UserInterface, IUserLDAP, ICountUsersBackend, ICountMappedUsersBackend {
 	/** @var \OCP\IConfig */
 	protected $ocConfig;
 
@@ -578,7 +582,7 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	/**
 	 * counts the users in LDAP
 	 *
-	 * @return int|bool
+	 * @return int|false
 	 */
 	public function countUsers() {
 		if ($this->userPluginManager->implementsActions(Backend::COUNT_USERS)) {
@@ -593,6 +597,10 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		$entries = $this->access->countUsers($filter);
 		$this->access->connection->writeToCache($cacheKey, $entries);
 		return $entries;
+	}
+
+	public function countMappedUsers(): int {
+		return $this->access->getUserMapper()->count();
 	}
 
 	/**
@@ -617,7 +625,7 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 * The cloned connection needs to be closed manually.
 	 * of the current access.
 	 * @param string $uid
-	 * @return resource of the LDAP connection
+	 * @return resource|\LDAP\Connection The LDAP connection
 	 */
 	public function getNewLDAPConnection($uid) {
 		$connection = clone $this->access->getConnection();

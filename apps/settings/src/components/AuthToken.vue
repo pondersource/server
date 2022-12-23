@@ -31,7 +31,7 @@
 				v-model="newName"
 				type="text"
 				@keyup.enter="rename"
-				@blur="cancelRename"
+				@change="rename"
 				@keyup.esc="cancelRename">
 			<span v-else>{{ iconName.name }}</span>
 			<span v-if="wiping" class="wiping-warning">({{ t('settings', 'Marked for remote wipe') }})</span>
@@ -40,55 +40,55 @@
 			<span v-tooltip="lastActivity" class="last-activity">{{ lastActivityRelative }}</span>
 		</td>
 		<td class="more">
-			<Actions v-if="!token.current"
+			<NcActions v-if="!token.current"
 				v-tooltip.auto="{
 					content: t('settings', 'Device settings'),
 					container: 'body'
 				}"
 				:open.sync="actionOpen">
-				<ActionCheckbox v-if="token.type === 1"
+				<NcActionCheckbox v-if="token.type === 1"
 					:checked="token.scope.filesystem"
-					@change.stop.prevent="$emit('toggleScope', token, 'filesystem', !token.scope.filesystem)">
+					@change.stop.prevent="$emit('toggle-scope', token, 'filesystem', !token.scope.filesystem)">
 					<!-- TODO: add text/longtext with some description -->
 					{{ t('settings', 'Allow filesystem access') }}
-				</ActionCheckbox>
-				<ActionButton v-if="token.canRename"
+				</NcActionCheckbox>
+				<NcActionButton v-if="token.canRename"
 					icon="icon-rename"
 					@click.stop.prevent="startRename">
 					<!-- TODO: add text/longtext with some description -->
 					{{ t('settings', 'Rename') }}
-				</ActionButton>
+				</NcActionButton>
 
 				<!-- revoke & wipe -->
 				<template v-if="token.canDelete">
 					<template v-if="token.type !== 2">
-						<ActionButton icon="icon-delete"
+						<NcActionButton icon="icon-delete"
 							@click.stop.prevent="revoke">
 							<!-- TODO: add text/longtext with some description -->
 							{{ t('settings', 'Revoke') }}
-						</ActionButton>
-						<ActionButton icon="icon-delete"
+						</NcActionButton>
+						<NcActionButton icon="icon-delete"
 							@click.stop.prevent="wipe">
 							{{ t('settings', 'Wipe device') }}
-						</ActionButton>
+						</NcActionButton>
 					</template>
-					<ActionButton v-else-if="token.type === 2"
+					<NcActionButton v-else-if="token.type === 2"
 						icon="icon-delete"
 						:title="t('settings', 'Revoke')"
 						@click.stop.prevent="revoke">
-						{{ t('settings', 'Revoking this token might prevent the wiping of your device if it hasn\'t started the wipe yet.') }}
-					</ActionButton>
+						{{ t('settings', 'Revoking this token might prevent the wiping of your device if it has not started the wipe yet.') }}
+					</NcActionButton>
 				</template>
-			</Actions>
+			</NcActions>
 		</td>
 	</tr>
 </template>
 
 <script>
 import {
-	Actions,
-	ActionButton,
-	ActionCheckbox,
+	NcActions,
+	NcActionButton,
+	NcActionCheckbox,
 } from '@nextcloud/vue'
 
 // When using capture groups the following parts are extracted the first is used as the version number, the second as the OS
@@ -107,7 +107,7 @@ const userAgentMap = {
 	iphone: / *CPU +iPhone +OS +([0-9]+)_(?:[0-9_])+ +like +Mac +OS +X */,
 	ipad: /\(iPad; *CPU +OS +([0-9]+)_(?:[0-9_])+ +like +Mac +OS +X */,
 	iosClient: /^Mozilla\/5\.0 \(iOS\) (?:ownCloud|Nextcloud)-iOS.*$/,
-	androidClient: /^Mozilla\/5\.0 \(Android\) ownCloud-android.*$/,
+	androidClient: /^Mozilla\/5\.0 \(Android\) (?:ownCloud|Nextcloud)-android.*$/,
 	iosTalkClient: /^Mozilla\/5\.0 \(iOS\) Nextcloud-Talk.*$/,
 	androidTalkClient: /^Mozilla\/5\.0 \(Android\) Nextcloud-Talk.*$/,
 	// DAVx5/3.3.8-beta2-gplay (2021/01/02; dav4jvm; okhttp/4.9.0) Android/10
@@ -116,6 +116,8 @@ const userAgentMap = {
 	webPirate: /(Sailfish).*WebPirate\/(\d+)/,
 	// Mozilla/5.0 (Maemo; Linux; U; Jolla; Sailfish; Mobile; rv:31.0) Gecko/31.0 Firefox/31.0 SailfishBrowser/1.0
 	sailfishBrowser: /(Sailfish).*SailfishBrowser\/(\d+)/,
+	// Neon 1.0.0+1
+	neon: /Neon \d+\.\d+\.\d+\+\d+/,
 }
 const nameMap = {
 	ie: t('setting', 'Internet Explorer'),
@@ -133,6 +135,7 @@ const nameMap = {
 	davx5: 'DAVx5',
 	webPirate: 'WebPirate',
 	sailfishBrowser: 'SailfishBrowser',
+	neon: 'Neon',
 }
 const iconMap = {
 	ie: 'icon-desktop',
@@ -155,9 +158,9 @@ const iconMap = {
 export default {
 	name: 'AuthToken',
 	components: {
-		Actions,
-		ActionButton,
-		ActionCheckbox,
+		NcActions,
+		NcActionButton,
+		NcActionCheckbox,
 	},
 	props: {
 		token: {
@@ -170,6 +173,7 @@ export default {
 			showMore: this.token.canScope || this.token.canDelete,
 			renaming: false,
 			newName: '',
+			oldName: '',
 			actionOpen: false,
 		}
 	},
@@ -229,6 +233,7 @@ export default {
 			// Close action (popover menu)
 			this.actionOpen = false
 
+			this.oldName = this.token.name
 			this.newName = this.token.name
 			this.renaming = true
 			this.$nextTick(() => {
@@ -237,6 +242,7 @@ export default {
 		},
 		cancelRename() {
 			this.renaming = false
+			this.$emit('rename', this.token, this.oldName)
 		},
 		revoke() {
 			this.actionOpen = false

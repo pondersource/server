@@ -25,11 +25,13 @@
 namespace OCA\Files\BackgroundJob;
 
 use OC\Files\Utils\Scanner;
+use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\BackgroundJob\TimedJob;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
 use OCP\IDBConnection;
-use OCP\ILogger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class ScanFiles is a background job used to run the file scanner over the user
@@ -37,30 +39,23 @@ use OCP\ILogger;
  *
  * @package OCA\Files\BackgroundJob
  */
-class ScanFiles extends \OC\BackgroundJob\TimedJob {
-	/** @var IConfig */
-	private $config;
-	/** @var IEventDispatcher */
-	private $dispatcher;
-	/** @var ILogger */
-	private $logger;
-	private $connection;
+class ScanFiles extends TimedJob {
+	private IConfig $config;
+	private IEventDispatcher $dispatcher;
+	private LoggerInterface $logger;
+	private IDBConnection $connection;
 
 	/** Amount of users that should get scanned per execution */
 	public const USERS_PER_SESSION = 500;
 
-	/**
-	 * @param IConfig $config
-	 * @param IEventDispatcher $dispatcher
-	 * @param ILogger $logger
-	 * @param IDBConnection $connection
-	 */
 	public function __construct(
 		IConfig $config,
 		IEventDispatcher $dispatcher,
-		ILogger $logger,
-		IDBConnection $connection
+		LoggerInterface $logger,
+		IDBConnection $connection,
+		ITimeFactory $time
 	) {
+		parent::__construct($time);
 		// Run once per 10 minutes
 		$this->setInterval(60 * 10);
 
@@ -70,10 +65,7 @@ class ScanFiles extends \OC\BackgroundJob\TimedJob {
 		$this->connection = $connection;
 	}
 
-	/**
-	 * @param string $user
-	 */
-	protected function runScanner(string $user) {
+	protected function runScanner(string $user): void {
 		try {
 			$scanner = new Scanner(
 				$user,
@@ -83,7 +75,7 @@ class ScanFiles extends \OC\BackgroundJob\TimedJob {
 			);
 			$scanner->backgroundScan('');
 		} catch (\Exception $e) {
-			$this->logger->logException($e, ['app' => 'files']);
+			$this->logger->error($e->getMessage(), ['exception' => $e, 'app' => 'files']);
 		}
 		\OC_Util::tearDownFS();
 	}
@@ -102,7 +94,7 @@ class ScanFiles extends \OC\BackgroundJob\TimedJob {
 			->andWhere($query->expr()->gt('parent', $query->createNamedParameter(-1, IQueryBuilder::PARAM_INT)))
 			->setMaxResults(1);
 
-		return $query->execute()->fetchOne();
+		return $query->executeQuery()->fetchOne();
 	}
 
 	/**

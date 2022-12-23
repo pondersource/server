@@ -33,6 +33,8 @@
  */
 namespace OCA\Theming;
 
+use OCA\Theming\AppInfo\Application;
+use OCA\Theming\Service\BackgroundService;
 use OCP\Files\IAppData;
 use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
@@ -45,6 +47,7 @@ use OCP\ITempManager;
 use OCP\IURLGenerator;
 
 class ImageManager {
+	public const SUPPORTED_IMAGE_KEYS = ['background', 'logo', 'logoheader', 'favicon'];
 
 	/** @var IConfig */
 	private $config;
@@ -52,8 +55,6 @@ class ImageManager {
 	private $appData;
 	/** @var IURLGenerator */
 	private $urlGenerator;
-	/** @var array */
-	private $supportedImageKeys = ['background', 'logo', 'logoheader', 'favicon'];
 	/** @var ICacheFactory */
 	private $cacheFactory;
 	/** @var ILogger */
@@ -66,22 +67,25 @@ class ImageManager {
 								IURLGenerator $urlGenerator,
 								ICacheFactory $cacheFactory,
 								ILogger $logger,
-								ITempManager $tempManager
-	) {
+								ITempManager $tempManager) {
 		$this->config = $config;
-		$this->appData = $appData;
 		$this->urlGenerator = $urlGenerator;
 		$this->cacheFactory = $cacheFactory;
 		$this->logger = $logger;
 		$this->tempManager = $tempManager;
+		$this->appData = $appData;
 	}
 
-	public function getImageUrl(string $key, bool $useSvg = true): string {
-		$cacheBusterCounter = $this->config->getAppValue('theming', 'cachebuster', '0');
-		try {
-			$image = $this->getImage($key, $useSvg);
+	/**
+	 * Get a globally defined image (admin theming settings)
+	 *
+	 * @param string $key the image key
+	 * @return string the image url
+	 */
+	public function getImageUrl(string $key): string {
+		$cacheBusterCounter = $this->config->getAppValue(Application::APP_ID, 'cachebuster', '0');
+		if ($this->hasImage($key)) {
 			return $this->urlGenerator->linkToRoute('theming.Theming.getImage', [ 'key' => $key ]) . '?v=' . $cacheBusterCounter;
-		} catch (NotFoundException $e) {
 		}
 
 		switch ($key) {
@@ -90,12 +94,16 @@ class ImageManager {
 			case 'favicon':
 				return $this->urlGenerator->imagePath('core', 'logo/logo.png') . '?v=' . $cacheBusterCounter;
 			case 'background':
-				return $this->urlGenerator->imagePath('core', 'background.png') . '?v=' . $cacheBusterCounter;
+				return $this->urlGenerator->linkTo(Application::APP_ID, 'img/background/' . BackgroundService::DEFAULT_BACKGROUND_IMAGE);
 		}
+		return '';
 	}
 
-	public function getImageUrlAbsolute(string $key, bool $useSvg = true): string {
-		return $this->urlGenerator->getAbsoluteURL($this->getImageUrl($key, $useSvg));
+	/**
+	 * Get the absolute url. See getImageUrl
+	 */
+	public function getImageUrlAbsolute(string $key): string {
+		return $this->urlGenerator->getAbsoluteURL($this->getImageUrl($key));
 	}
 
 	/**
@@ -107,10 +115,12 @@ class ImageManager {
 	 */
 	public function getImage(string $key, bool $useSvg = true): ISimpleFile {
 		$logo = $this->config->getAppValue('theming', $key . 'Mime', '');
-		$folder = $this->appData->getFolder('images');
+		$folder = $this->getRootFolder()->getFolder('images');
+
 		if ($logo === '' || !$folder->fileExists($key)) {
 			throw new NotFoundException();
 		}
+
 		if (!$useSvg && $this->shouldReplaceIcons()) {
 			if (!$folder->fileExists($key . '.png')) {
 				try {
@@ -128,12 +138,21 @@ class ImageManager {
 				return $folder->getFile($key . '.png');
 			}
 		}
+
 		return $folder->getFile($key);
 	}
 
+	public function hasImage(string $key): bool {
+		$mimeSetting = $this->config->getAppValue('theming', $key . 'Mime', '');
+		return $mimeSetting !== '';
+	}
+
+	/**
+	 * @return array<string, array{mime: string, url: string}>
+	 */
 	public function getCustomImages(): array {
 		$images = [];
-		foreach ($this->supportedImageKeys as $key) {
+		foreach (self::SUPPORTED_IMAGE_KEYS as $key) {
 			$images[$key] = [
 				'mime' => $this->config->getAppValue('theming', $key . 'Mime', ''),
 				'url' => $this->getImageUrl($key),
@@ -151,9 +170,9 @@ class ImageManager {
 	public function getCacheFolder(): ISimpleFolder {
 		$cacheBusterValue = $this->config->getAppValue('theming', 'cachebuster', '0');
 		try {
-			$folder = $this->appData->getFolder($cacheBusterValue);
+			$folder = $this->getRootFolder()->getFolder($cacheBusterValue);
 		} catch (NotFoundException $e) {
-			$folder = $this->appData->newFolder($cacheBusterValue);
+			$folder = $this->getRootFolder()->newFolder($cacheBusterValue);
 			$this->cleanup();
 		}
 		return $folder;
@@ -192,29 +211,29 @@ class ImageManager {
 		return $file;
 	}
 
-	public function delete(string $key) {
+	public function delete(string $key): void {
 		/* ignore exceptions, since we don't want to fail hard if something goes wrong during cleanup */
 		try {
-			$file = $this->appData->getFolder('images')->getFile($key);
+			$file = $this->getRootFolder()->getFolder('images')->getFile($key);
 			$file->delete();
 		} catch (NotFoundException $e) {
 		} catch (NotPermittedException $e) {
 		}
 		try {
-			$file = $this->appData->getFolder('images')->getFile($key . '.png');
+			$file = $this->getRootFolder()->getFolder('images')->getFile($key . '.png');
 			$file->delete();
 		} catch (NotFoundException $e) {
 		} catch (NotPermittedException $e) {
 		}
 	}
 
-	public function updateImage(string $key, string $tmpFile) {
+	public function updateImage(string $key, string $tmpFile): string {
 		$this->delete($key);
 
 		try {
-			$folder = $this->appData->getFolder('images');
+			$folder = $this->getRootFolder()->getFolder('images');
 		} catch (NotFoundException $e) {
-			$folder = $this->appData->newFolder('images');
+			$folder = $this->getRootFolder()->newFolder('images');
 		}
 
 		$target = $folder->newFile($key);
@@ -255,7 +274,7 @@ class ImageManager {
 	 * "favicon" images are only allowed to be SVG when imagemagick with SVG support is available.
 	 *
 	 * @param string $key The image key, e.g. "favicon"
-	 * @return array
+	 * @return string[]
 	 */
 	private function getSupportedUploadImageFormats(string $key): array {
 		$supportedFormats = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -281,7 +300,7 @@ class ImageManager {
 	 */
 	public function cleanup() {
 		$currentFolder = $this->getCacheFolder();
-		$folders = $this->appData->getDirectoryListing();
+		$folders = $this->getRootFolder()->getDirectoryListing();
 		foreach ($folders as $folder) {
 			if ($folder->getName() !== 'images' && $folder->getName() !== $currentFolder->getName()) {
 				$folder->delete();
@@ -308,5 +327,13 @@ class ImageManager {
 		}
 		$cache->set('shouldReplaceIcons', $value);
 		return $value;
+	}
+
+	private function getRootFolder(): ISimpleFolder {
+		try {
+			return $this->appData->getFolder('global');
+		} catch (NotFoundException $e) {
+			return $this->appData->newFolder('global');
+		}
 	}
 }

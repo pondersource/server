@@ -307,7 +307,7 @@ function execute_tests {
 	if [ "$DB" == "pgsql" ] ; then
 		if [ ! -z "$USEDOCKER" ] ; then
 			echo "Fire up the postgres docker"
-			DOCKER_CONTAINER_ID=$(docker run -e POSTGRES_USER="$DATABASEUSER" -e POSTGRES_PASSWORD=owncloud -d postgres)
+			DOCKER_CONTAINER_ID=$(docker run -e POSTGRES_DB="$DATABASENAME" -e POSTGRES_USER="$DATABASEUSER" -e POSTGRES_PASSWORD=owncloud -d postgres)
 			DATABASEHOST=$(docker inspect --format="{{.NetworkSettings.IPAddress}}" "$DOCKER_CONTAINER_ID")
 
 			echo "Waiting for Postgres initialisation ..."
@@ -395,8 +395,8 @@ function execute_tests {
 		echo "No coverage"
 	fi
 
-	echo "${PHPUNIT[@]}" --configuration phpunit-autotest.xml $GROUP $COVER --log-junit "autotest-results-$DB.xml" "$2" "$3"
-	"${PHPUNIT[@]}" --configuration phpunit-autotest.xml $GROUP $COVER --log-junit "autotest-results-$DB.xml" "$2" "$3"
+	echo "$PHP" "${PHPUNIT[@]}" --configuration phpunit-autotest.xml $GROUP $COVER --log-junit "autotest-results-$DB.xml" "$2" "$3"
+	"$PHP" "${PHPUNIT[@]}" --configuration phpunit-autotest.xml $GROUP $COVER --log-junit "autotest-results-$DB.xml" "$2" "$3"
 	RESULT=$?
 
 	if [ "$PRIMARY_STORAGE_CONFIG" == "swift" ] ; then

@@ -44,10 +44,13 @@ use OCP\IGroup;
 use OCP\IUser;
 use OCP\IUserBackend;
 use OCP\IUserManager;
-use OCP\Notification\IManager;
-use OCP\Support\Subscription\IRegistry;
+use OCP\L10N\IFactory;
+use OCP\Server;
+use OCP\Support\Subscription\IAssertion;
 use OCP\User\Backend\IGetRealUIDBackend;
 use OCP\User\Backend\ISearchKnownUsersBackend;
+use OCP\User\Backend\ICheckPasswordBackend;
+use OCP\User\Backend\ICountUsersBackend;
 use OCP\User\Events\BeforeUserCreatedEvent;
 use OCP\User\Events\UserCreatedEvent;
 use OCP\UserInterface;
@@ -93,6 +96,8 @@ class Manager extends PublicEmitter implements IUserManager {
 	/** @var IEventDispatcher */
 	private $eventDispatcher;
 
+	private DisplayNameCache $displayNameCache;
+
 	public function __construct(IConfig $config,
 								EventDispatcherInterface $oldDispatcher,
 								ICacheFactory $cacheFactory,
@@ -106,6 +111,7 @@ class Manager extends PublicEmitter implements IUserManager {
 			unset($cachedUsers[$user->getUID()]);
 		});
 		$this->eventDispatcher = $eventDispatcher;
+		$this->displayNameCache = new DisplayNameCache($cacheFactory, $this);
 	}
 
 	/**
@@ -183,6 +189,10 @@ class Manager extends PublicEmitter implements IUserManager {
 		return null;
 	}
 
+	public function getDisplayName(string $uid): ?string {
+		return $this->displayNameCache->getDisplayName($uid);
+	}
+
 	/**
 	 * get or construct the user object
 	 *
@@ -223,7 +233,7 @@ class Manager extends PublicEmitter implements IUserManager {
 	 *
 	 * @param string $loginName
 	 * @param string $password
-	 * @return mixed the User object on success, false otherwise
+	 * @return IUser|false the User object on success, false otherwise
 	 */
 	public function checkPassword($loginName, $password) {
 		$result = $this->checkPasswordNoLogging($loginName, $password);
@@ -254,7 +264,8 @@ class Manager extends PublicEmitter implements IUserManager {
 			$backends = $this->backends;
 		}
 		foreach ($backends as $backend) {
-			if ($backend->implementsActions(Backend::CHECK_PASSWORD)) {
+			if ($backend instanceof ICheckPasswordBackend || $backend->implementsActions(Backend::CHECK_PASSWORD)) {
+				/** @var ICheckPasswordBackend $backend */
 				$uid = $backend->checkPassword($loginName, $password);
 				if ($uid !== false) {
 					return $this->getUserObject($uid, $backend);
@@ -268,7 +279,8 @@ class Manager extends PublicEmitter implements IUserManager {
 		$password = urldecode($password);
 
 		foreach ($backends as $backend) {
-			if ($backend->implementsActions(Backend::CHECK_PASSWORD)) {
+			if ($backend instanceof ICheckPasswordBackend || $backend->implementsActions(Backend::CHECK_PASSWORD)) {
+				/** @var ICheckPasswordBackend|UserInterface $backend */
 				$uid = $backend->checkPassword($loginName, $password);
 				if ($uid !== false) {
 					return $this->getUserObject($uid, $backend);
@@ -375,19 +387,15 @@ class Manager extends PublicEmitter implements IUserManager {
 	/**
 	 * @param string $uid
 	 * @param string $password
+	 * @return false|IUser the created user or false
 	 * @throws \InvalidArgumentException
-	 * @return bool|IUser the created user or false
+	 * @throws HintException
 	 */
 	public function createUser($uid, $password) {
 		// DI injection is not used here as IRegistry needs the user manager itself for user count and thus it would create a cyclic dependency
-		/** @var IRegistry $registry */
-		$registry = \OC::$server->get(IRegistry::class);
-		/** @var IManager $notificationManager */
-		$notificationManager = \OC::$server->get(IManager::class);
-		if ($registry->delegateIsHardUserLimitReached($notificationManager)) {
-			$l = \OC::$server->getL10N('lib');
-			throw new HintException($l->t('The user limit has been reached and the user was not created.'));
-		}
+		/** @var IAssertion $assertion */
+		$assertion = \OC::$server->get(IAssertion::class);
+		$assertion->createUserIsLegit();
 
 		$localBackends = [];
 		foreach ($this->backends as $backend) {
@@ -415,37 +423,13 @@ class Manager extends PublicEmitter implements IUserManager {
 	 * @param string $uid
 	 * @param string $password
 	 * @param UserInterface $backend
-	 * @return IUser|null
+	 * @return IUser|false
 	 * @throws \InvalidArgumentException
 	 */
 	public function createUserFromBackend($uid, $password, UserInterface $backend) {
 		$l = \OC::$server->getL10N('lib');
 
-		// Check the name for bad characters
-		// Allowed are: "a-z", "A-Z", "0-9" and "_.@-'"
-		if (preg_match('/[^a-zA-Z0-9 _.@\-\']/', $uid)) {
-			throw new \InvalidArgumentException($l->t('Only the following characters are allowed in a username:'
-				. ' "a-z", "A-Z", "0-9", and "_.@-\'"'));
-		}
-
-		// No empty username
-		if (trim($uid) === '') {
-			throw new \InvalidArgumentException($l->t('A valid username must be provided'));
-		}
-
-		// No whitespace at the beginning or at the end
-		if (trim($uid) !== $uid) {
-			throw new \InvalidArgumentException($l->t('Username contains whitespace at the beginning or at the end'));
-		}
-
-		// Username only consists of 1 or 2 dots (directory traversal)
-		if ($uid === '.' || $uid === '..') {
-			throw new \InvalidArgumentException($l->t('Username must not consist of dots only'));
-		}
-
-		if (!$this->verifyUid($uid)) {
-			throw new \InvalidArgumentException($l->t('Username is invalid because files already exist for this user'));
-		}
+		$this->validateUserId($uid, true);
 
 		// No empty password
 		if (trim($password) === '') {
@@ -469,8 +453,9 @@ class Manager extends PublicEmitter implements IUserManager {
 			/** @deprecated 21.0.0 use UserCreatedEvent event with the IEventDispatcher instead */
 			$this->emit('\OC\User', 'postCreateUser', [$user, $password]);
 			$this->eventDispatcher->dispatchTyped(new UserCreatedEvent($user, $password));
+			return $user;
 		}
-		return $user;
+		return false;
 	}
 
 	/**
@@ -478,16 +463,13 @@ class Manager extends PublicEmitter implements IUserManager {
 	 *
 	 * @param boolean $hasLoggedIn when true only users that have a lastLogin
 	 *                entry in the preferences table will be affected
-	 * @return array|int an array of backend class as key and count number as value
-	 *                if $hasLoggedIn is true only an int is returned
+	 * @return array<string, int> an array of backend class as key and count number as value
 	 */
-	public function countUsers($hasLoggedIn = false) {
-		if ($hasLoggedIn) {
-			return $this->countSeenUsers();
-		}
+	public function countUsers() {
 		$userCountStatistics = [];
 		foreach ($this->backends as $backend) {
-			if ($backend->implementsActions(Backend::COUNT_USERS)) {
+			if ($backend instanceof ICountUsersBackend || $backend->implementsActions(Backend::COUNT_USERS)) {
+				/** @var ICountUsersBackend|IUserBackend $backend */
 				$backendUsers = $backend->countUsers();
 				if ($backendUsers !== false) {
 					if ($backend instanceof IUserBackend) {
@@ -528,7 +510,7 @@ class Manager extends PublicEmitter implements IUserManager {
 	 * The callback is executed for each user on each backend.
 	 * If the callback returns false no further users will be retrieved.
 	 *
-	 * @param \Closure $callback
+	 * @psalm-param \Closure(\OCP\IUser):?bool $callback
 	 * @param string $search
 	 * @param boolean $onlySeen when true only users that have a lastLogin entry
 	 *                in the preferences table will be affected
@@ -628,8 +610,7 @@ class Manager extends PublicEmitter implements IUserManager {
 		$queryBuilder->select($queryBuilder->func()->count('*'))
 			->from('preferences')
 			->where($queryBuilder->expr()->eq('appid', $queryBuilder->createNamedParameter('login')))
-			->andWhere($queryBuilder->expr()->eq('configkey', $queryBuilder->createNamedParameter('lastLogin')))
-			->andWhere($queryBuilder->expr()->isNotNull('configvalue'));
+			->andWhere($queryBuilder->expr()->eq('configkey', $queryBuilder->createNamedParameter('lastLogin')));
 
 		$query = $queryBuilder->execute();
 
@@ -723,7 +704,43 @@ class Manager extends PublicEmitter implements IUserManager {
 		}));
 	}
 
-	private function verifyUid(string $uid): bool {
+	/**
+	 * @param string $uid
+	 * @param bool $checkDataDirectory
+	 * @throws \InvalidArgumentException Message is an already translated string with a reason why the id is not valid
+	 * @since 26.0.0
+	 */
+	public function validateUserId(string $uid, bool $checkDataDirectory = false): void {
+		$l = Server::get(IFactory::class)->get('lib');
+
+		// Check the name for bad characters
+		// Allowed are: "a-z", "A-Z", "0-9" and "_.@-'"
+		if (preg_match('/[^a-zA-Z0-9 _.@\-\']/', $uid)) {
+			throw new \InvalidArgumentException($l->t('Only the following characters are allowed in a username:'
+				. ' "a-z", "A-Z", "0-9", and "_.@-\'"'));
+		}
+
+		// No empty username
+		if (trim($uid) === '') {
+			throw new \InvalidArgumentException($l->t('A valid username must be provided'));
+		}
+
+		// No whitespace at the beginning or at the end
+		if (trim($uid) !== $uid) {
+			throw new \InvalidArgumentException($l->t('Username contains whitespace at the beginning or at the end'));
+		}
+
+		// Username only consists of 1 or 2 dots (directory traversal)
+		if ($uid === '.' || $uid === '..') {
+			throw new \InvalidArgumentException($l->t('Username must not consist of dots only'));
+		}
+
+		if (!$this->verifyUid($uid, $checkDataDirectory)) {
+			throw new \InvalidArgumentException($l->t('Username is invalid because files already exist for this user'));
+		}
+	}
+
+	private function verifyUid(string $uid, bool $checkDataDirectory = false): bool {
 		$appdata = 'appdata_' . $this->config->getSystemValueString('instanceid');
 
 		if (\in_array($uid, [
@@ -737,8 +754,16 @@ class Manager extends PublicEmitter implements IUserManager {
 			return false;
 		}
 
+		if (!$checkDataDirectory) {
+			return true;
+		}
+
 		$dataDirectory = $this->config->getSystemValueString('datadirectory', \OC::$SERVERROOT . '/data');
 
 		return !file_exists(rtrim($dataDirectory, '/') . '/' . $uid);
+	}
+
+	public function getDisplayNameCache(): DisplayNameCache {
+		return $this->displayNameCache;
 	}
 }

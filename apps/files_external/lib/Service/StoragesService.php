@@ -40,7 +40,9 @@ use OCA\Files_External\Lib\Backend\InvalidBackend;
 use OCA\Files_External\Lib\DefinitionParameter;
 use OCA\Files_External\Lib\StorageConfig;
 use OCA\Files_External\NotFoundException;
+use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\Config\IUserMountCache;
+use OCP\Files\Events\InvalidateMountCacheEvent;
 use OCP\Files\StorageNotAvailableException;
 use OCP\ILogger;
 
@@ -62,15 +64,24 @@ abstract class StoragesService {
 	 */
 	protected $userMountCache;
 
+	protected IEventDispatcher $eventDispatcher;
+
 	/**
 	 * @param BackendService $backendService
 	 * @param DBConfigService $dbConfigService
 	 * @param IUserMountCache $userMountCache
+	 * @param IEventDispatcher $eventDispatcher
 	 */
-	public function __construct(BackendService $backendService, DBConfigService $dbConfigService, IUserMountCache $userMountCache) {
+	public function __construct(
+		BackendService $backendService,
+		DBConfigService $dbConfigService,
+		IUserMountCache $userMountCache,
+		IEventDispatcher $eventDispatcher
+	) {
 		$this->backendService = $backendService;
 		$this->dbConfig = $dbConfigService;
 		$this->userMountCache = $userMountCache;
+		$this->eventDispatcher = $eventDispatcher;
 	}
 
 	protected function readDBConfig() {
@@ -220,7 +231,7 @@ abstract class StoragesService {
 	/**
 	 * Get the visibility type for this controller, used in validation
 	 *
-	 * @return string BackendService::VISIBILITY_* constants
+	 * @return int BackendService::VISIBILITY_* constants
 	 */
 	abstract public function getVisibilityType();
 
@@ -334,11 +345,12 @@ abstract class StoragesService {
 	 * Triggers the given hook signal for all the applicables given
 	 *
 	 * @param string $signal signal
-	 * @param string $mountPoint hook mount pount param
+	 * @param string $mountPoint hook mount point param
 	 * @param string $mountType hook mount type param
 	 * @param array $applicableArray array of applicable users/groups for which to trigger the hook
 	 */
-	protected function triggerApplicableHooks($signal, $mountPoint, $mountType, $applicableArray) {
+	protected function triggerApplicableHooks($signal, $mountPoint, $mountType, $applicableArray): void {
+		$this->eventDispatcher->dispatchTyped(new InvalidateMountCacheEvent(null));
 		foreach ($applicableArray as $applicable) {
 			\OCP\Util::emitHook(
 				Filesystem::CLASSNAME,
@@ -498,6 +510,7 @@ abstract class StoragesService {
 			$storage = $storageConfig->getBackend()->wrapStorage($storage);
 			$storage = $storageConfig->getAuthMechanism()->wrapStorage($storage);
 
+			/** @var \OC\Files\Storage\Storage $storage */
 			return $storage->getStorageCache()->getNumericId();
 		} catch (\Exception $e) {
 			return -1;

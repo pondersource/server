@@ -45,14 +45,27 @@ OCA.Sharing.PublicApp = {
 		OCA.Files.fileActions = fileActions;
 
 		this._initialized = true;
-		this.initialDir = $('#dir').val();
+		var urlParams = OC.Util.History.parseUrlQuery();
+		this.initialDir = urlParams.path || '/';
 
 		var token = $('#sharingToken').val();
 		var hideDownload = $('#hideDownload').val();
 
+		// Prevent all right-click options if hideDownload is enabled
+		if (hideDownload === 'true') {
+			window.oncontextmenu = function(event) {
+				event.preventDefault();
+				event.stopPropagation();
+				return false;
+		   };
+		}
 
 		// file list mode ?
-		if ($el.find('#filestable').length) {
+		if ($el.find('.files-filestable').length) {
+			// Toggle for grid view
+			this.$showGridView = $('input#showgridview');
+			this.$showGridView.on('change', _.bind(this._onGridviewChange, this));
+
 			var filesClient = new OC.Files.Client({
 				host: OC.getHost(),
 				port: OC.getPort(),
@@ -120,7 +133,6 @@ OCA.Sharing.PublicApp = {
 			}
 		}
 
-
 		// dynamically load image previews
 		var bottomMargin = 350;
 		var previewWidth = $(window).width();
@@ -144,13 +156,10 @@ OCA.Sharing.PublicApp = {
 			'max-height': previewHeight
 		});
 
-		var fileSize = parseInt($('#filesize').val(), 10);
-		var maxGifSize = parseInt($('#maxSizeAnimateGif').val(), 10);
-
-		if (mimetype === 'image/gif' &&
-			(maxGifSize === -1 || fileSize <= (maxGifSize * 1024 * 1024))) {
-			img.attr('src', $('#downloadURL').val());
-			imgcontainer.appendTo('#imgframe');
+		if (OCA.Viewer && OCA.Viewer.mimetypes.includes(mimetype)
+			&& (mimetype.startsWith('image/') || mimetype.startsWith('video/') || mimetype.startsWith('audio'))) {
+			OCA.Viewer.setRootElement('#imgframe')
+			OCA.Viewer.open({ path: '/' })
 		} else if (mimetype.substr(0, mimetype.indexOf('/')) === 'text' && window.btoa) {
 			if (OC.appswebroots['files_texteditor'] !== undefined ||
 				OC.appswebroots['text'] !== undefined) {
@@ -180,8 +189,7 @@ OCA.Sharing.PublicApp = {
 			// the icon should appear before, so the container should be
 			// prepended to the frame.
 			imgcontainer.prependTo('#imgframe');
-		}
-		else if (previewSupported === 'true') {
+		} else if (previewSupported === 'true') {
 			$('#imgframe > video').attr('poster', OC.generateUrl('/apps/files_sharing/publicpreview/' + token + '?' + OC.buildQueryString(params)));
 		}
 
@@ -269,7 +277,7 @@ OCA.Sharing.PublicApp = {
 			};
 
 			this.fileList.updateEmptyContent = function() {
-				this.$el.find('#emptycontent .uploadmessage').text(
+				this.$el.find('.emptycontent .uploadmessage').text(
 					t('files_sharing', 'You can upload into this folder')
 				);
 				OCA.Files.FileList.prototype.updateEmptyContent.apply(this, arguments);
@@ -298,7 +306,6 @@ OCA.Sharing.PublicApp = {
 			});
 
 			if (hideDownload === 'true') {
-				this.fileList.$el.find('#headerSelection').remove();
 				this.fileList.$el.find('.summary').find('td:first-child').remove();
 			}
 		}
@@ -347,17 +354,37 @@ OCA.Sharing.PublicApp = {
 	},
 
 	_showTextPreview: function (data, previewHeight) {
-		var textDiv = $('<div/>').addClass('text-preview');
+		var textDiv = $('<div></div>').addClass('text-preview');
 		textDiv.text(data);
 		textDiv.appendTo('#imgframe');
 		var divHeight = textDiv.height();
 		if (data.length > 999) {
-			var ellipsis = $('<div/>').addClass('ellipsis');
+			var ellipsis = $('<div></div>').addClass('ellipsis');
 			ellipsis.html('(&#133;)');
 			ellipsis.appendTo('#imgframe');
 		}
 		if (divHeight > previewHeight) {
 			textDiv.height(previewHeight);
+		}
+	},
+
+	/**
+	 * Toggle showing gridview by default or not
+	 *
+	 * @returns {undefined}
+	 */
+	_onGridviewChange: function() {
+		const isGridView = this.$showGridView.is(':checked');
+		this.$showGridView.next('#view-toggle')
+			.removeClass('icon-toggle-filelist icon-toggle-pictures')
+			.addClass(isGridView ? 'icon-toggle-filelist' : 'icon-toggle-pictures')
+		this.$showGridView.next('#view-toggle').attr(
+			'title',
+			isGridView ? t('files', 'Show list view') : t('files', 'Show grid view'),
+		)
+
+		if (this.fileList) {
+			this.fileList.setGridView(isGridView);
 		}
 	},
 
@@ -377,12 +404,12 @@ OCA.Sharing.PublicApp = {
 	 * fall back to old behaviour where we redirect the user to his server to mount
 	 * the public link instead of creating a dedicated federated share
 	 *
-	 * @param remote
-	 * @param token
-	 * @param owner
-	 * @param ownerDisplayName
-	 * @param name
-	 * @param isProtected
+	 * @param {any} remote -
+	 * @param {any} token -
+	 * @param {any} owner -
+	 * @param {any} ownerDisplayName -
+	 * @param {any} name -
+	 * @param {any} isProtected -
 	 * @private
 	 */
 	_legacyCreateFederatedShare: function (remote, token, owner, ownerDisplayName, name, isProtected) {

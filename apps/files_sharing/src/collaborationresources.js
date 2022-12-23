@@ -4,7 +4,7 @@
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Julius Härtl <jus@bitgrid.net>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -23,7 +23,7 @@
 
 import Vue from 'vue'
 import Vuex from 'vuex'
-import PopoverMenu from '@nextcloud/vue/dist/Components/PopoverMenu'
+import NcPopoverMenu from '@nextcloud/vue/dist/Components/NcPopoverMenu'
 import Tooltip from '@nextcloud/vue/dist/Directives/Tooltip'
 import ClickOutside from 'vue-click-outside'
 
@@ -33,7 +33,7 @@ Vue.prototype.t = t
 Tooltip.options.defaultHtml = false
 
 // eslint-disable-next-line vue/match-component-file-name
-Vue.component('PopoverMenu', PopoverMenu)
+Vue.component('NcPopoverMenu', NcPopoverMenu)
 Vue.directive('ClickOutside', ClickOutside)
 Vue.directive('Tooltip', Tooltip)
 Vue.use(Vuex)

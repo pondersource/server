@@ -5,7 +5,7 @@
  * @author Julius Härtl <jus@bitgrid.net>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -25,6 +25,8 @@
 import api from './api'
 import Vue from 'vue'
 import { generateUrl } from '@nextcloud/router'
+import { showError, showInfo } from '@nextcloud/dialogs'
+import '@nextcloud/dialogs/dist/index.css'
 
 const state = {
 	apps: [],
@@ -32,18 +34,23 @@ const state = {
 	updateCount: 0,
 	loading: {},
 	loadingList: false,
+	gettingCategoriesPromise: null,
 }
 
 const mutations = {
 
 	APPS_API_FAILURE(state, error) {
-		OC.Notification.showHtml(t('settings', 'An error occured during the request. Unable to proceed.') + '<br>' + error.error.response.data.data.message, { timeout: 7 })
+		showError(t('settings', 'An error occurred during the request. Unable to proceed.') + '<br>' + error.error.response.data.data.message, { isHTML: true })
 		console.error(state, error)
 	},
 
 	initCategories(state, { categories, updateCount }) {
 		state.categories = categories
 		state.updateCount = updateCount
+	},
+
+	updateCategories(state, categoriesPromise) {
+		state.gettingCategoriesPromise = categoriesPromise
 	},
 
 	setUpdateCount(state, updateCount) {
@@ -154,6 +161,9 @@ const getters = {
 	getUpdateCount(state) {
 		return state.updateCount
 	},
+	getCategoryById: (state) => (selectedCategoryId) => {
+		return state.categories.find((category) => category.id === selectedCategoryId)
+	},
 }
 
 const actions = {
@@ -180,16 +190,16 @@ const actions = {
 					return api.get(generateUrl('apps/files'))
 						.then(() => {
 							if (response.data.update_required) {
-								OC.dialogs.info(
+								showInfo(
 									t(
 										'settings',
 										'The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds.'
 									),
-									t('settings', 'App update'),
-									function() {
-										window.location.reload()
-									},
-									true
+									{
+										onClick: () => window.location.reload(),
+										close: false,
+
+									}
 								)
 								setTimeout(function() {
 									location.reload()
@@ -311,18 +321,25 @@ const actions = {
 			.catch((error) => context.commit('API_FAILURE', error))
 	},
 
-	getCategories(context) {
-		context.commit('startLoading', 'categories')
-		return api.get(generateUrl('settings/apps/categories'))
-			.then((response) => {
-				if (response.data.length > 0) {
-					context.commit('appendCategories', response.data)
+	async getCategories(context, { shouldRefetchCategories = false } = {}) {
+		if (shouldRefetchCategories || !context.state.gettingCategoriesPromise) {
+			context.commit('startLoading', 'categories')
+			try {
+				const categoriesPromise = api.get(generateUrl('settings/apps/categories'))
+				context.commit('updateCategories', categoriesPromise)
+				const categoriesPromiseResponse = await categoriesPromise
+				if (categoriesPromiseResponse.data.length > 0) {
+					context.commit('appendCategories', categoriesPromiseResponse.data)
 					context.commit('stopLoading', 'categories')
 					return true
 				}
+				context.commit('stopLoading', 'categories')
 				return false
-			})
-			.catch((error) => context.commit('API_FAILURE', error))
+			} catch (error) {
+				context.commit('API_FAILURE', error)
+			}
+		}
+		return context.state.gettingCategoriesPromise
 	},
 
 }

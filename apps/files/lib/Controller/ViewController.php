@@ -46,6 +46,7 @@ use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Http\Response;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
+use OCP\Collaboration\Resources\LoadAdditionalScriptsEvent as ResourcesLoadAdditionalScriptsEvent;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -162,10 +163,10 @@ class ViewController extends Controller {
 	 * @return TemplateResponse|RedirectResponse
 	 * @throws NotFoundException
 	 */
-	public function showFile(string $fileid = null): Response {
+	public function showFile(string $fileid = null, int $openfile = 1): Response {
 		// This is the entry point from the `/f/{fileid}` URL which is hardcoded in the server.
 		try {
-			return $this->redirectToFile($fileid, true);
+			return $this->redirectToFile($fileid, $openfile !== 0);
 		} catch (NotFoundException $e) {
 			return new RedirectResponse($this->urlGenerator->linkToRoute('files.view.index', ['fileNotFound' => true]));
 		}
@@ -174,6 +175,7 @@ class ViewController extends Controller {
 	/**
 	 * @NoCSRFRequired
 	 * @NoAdminRequired
+	 * @UseSession
 	 *
 	 * @param string $dir
 	 * @param string $view
@@ -184,7 +186,7 @@ class ViewController extends Controller {
 	 * @throws NotFoundException
 	 */
 	public function index($dir = '', $view = '', $fileid = null, $fileNotFound = false, $openfile = null) {
-		if ($fileid !== null) {
+		if ($fileid !== null && $dir === '') {
 			try {
 				return $this->redirectToFile($fileid);
 			} catch (NotFoundException $e) {
@@ -196,8 +198,8 @@ class ViewController extends Controller {
 
 		// Load the files we need
 		\OCP\Util::addStyle('files', 'merged');
-		\OCP\Util::addScript('files', 'merged-index');
-		\OCP\Util::addScript('files', 'dist/main');
+		\OCP\Util::addScript('files', 'merged-index', 'files');
+		\OCP\Util::addScript('files', 'main');
 
 		// mostly for the home storage's free space
 		// FIXME: Make non static
@@ -265,7 +267,7 @@ class ViewController extends Controller {
 		$nav->assign('quota', $storageInfo['quota']);
 		$nav->assign('usage_relative', $storageInfo['relative']);
 
-		$nav->assign('webdav_url', \OCP\Util::linkToRemote('dav/files/' . $user));
+		$nav->assign('webdav_url', \OCP\Util::linkToRemote('dav/files/' . rawurlencode($user)));
 
 		$contentItems = [];
 
@@ -294,6 +296,7 @@ class ViewController extends Controller {
 			];
 		}
 
+		$this->eventDispatcher->dispatchTyped(new ResourcesLoadAdditionalScriptsEvent());
 		$event = new LoadAdditionalScriptsEvent();
 		$this->eventDispatcher->dispatchTyped($event);
 		$this->eventDispatcher->dispatchTyped(new LoadSidebar());
@@ -301,6 +304,7 @@ class ViewController extends Controller {
 		if (class_exists(LoadViewer::class)) {
 			$this->eventDispatcher->dispatchTyped(new LoadViewer());
 		}
+
 		$this->initialState->provideInitialState('templates_path', $this->templateManager->hasTemplateDirectory() ? $this->templateManager->getTemplatePath() : false);
 		$this->initialState->provideInitialState('templates', $this->templateManager->listCreators());
 

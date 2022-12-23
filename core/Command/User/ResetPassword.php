@@ -27,8 +27,11 @@
  */
 namespace OC\Core\Command\User;
 
+use OC\Core\Command\Base;
+use OCP\App\IAppManager;
+use OCP\IUser;
 use OCP\IUserManager;
-use Symfony\Component\Console\Command\Command;
+use Stecman\Component\Symfony\Console\BashCompletion\CompletionContext;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -37,14 +40,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
 
-class ResetPassword extends Command {
+class ResetPassword extends Base {
+	protected IUserManager $userManager;
+	private IAppManager $appManager;
 
-	/** @var IUserManager */
-	protected $userManager;
-
-	public function __construct(IUserManager $userManager) {
-		$this->userManager = $userManager;
+	public function __construct(IUserManager $userManager, IAppManager $appManager) {
 		parent::__construct();
+		$this->userManager = $userManager;
+		$this->appManager = $appManager;
 	}
 
 	protected function configure() {
@@ -84,7 +87,7 @@ class ResetPassword extends Command {
 			/** @var QuestionHelper $helper */
 			$helper = $this->getHelper('question');
 
-			if (\OCP\App::isEnabled('encryption')) {
+			if ($this->appManager->isEnabledForUser('encryption', $user)) {
 				$output->writeln(
 					'<error>Warning: Resetting the password when using encryption will result in data loss!</error>'
 				);
@@ -132,5 +135,17 @@ class ResetPassword extends Command {
 			return 1;
 		}
 		return 0;
+	}
+
+	/**
+	 * @param string $argumentName
+	 * @param CompletionContext $context
+	 * @return string[]
+	 */
+	public function completeArgumentValues($argumentName, CompletionContext $context) {
+		if ($argumentName === 'user') {
+			return array_map(static fn (IUser $user) => $user->getUID(), $this->userManager->search($context->getCurrentWord()));
+		}
+		return [];
 	}
 }

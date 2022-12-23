@@ -28,8 +28,7 @@
 		<div :class="{'icon-loading-small': loading.delete || loading.disable || loading.wipe}"
 			class="avatar">
 			<img v-if="!loading.delete && !loading.disable && !loading.wipe"
-				:src="generateAvatar(user.id, 32)"
-				:srcset="generateAvatar(user.id, 64)+' 2x, '+generateAvatar(user.id, 128)+' 4x'"
+				:src="generateAvatar(user.id, isDarkTheme)"
 				alt=""
 				height="32"
 				width="32">
@@ -43,22 +42,20 @@
 	</div>
 
 	<!-- User full data -->
-	<UserRowSimple
-		v-else-if="!editing"
+	<UserRowSimple v-else-if="!editing"
 		:editing.sync="editing"
 		:feedback-message="feedbackMessage"
 		:groups="groups"
 		:languages="languages"
 		:loading="loading"
-		:opened-menu="openedMenu"
+		:opened-menu.sync="openedMenu"
 		:settings="settings"
 		:show-config="showConfig"
 		:sub-admins-groups="subAdminsGroups"
 		:user-actions="userActions"
 		:user="user"
-		:class="{'row--menu-opened': openedMenu}"
-		@hideMenu="hideMenu"
-		@toggleMenu="toggleMenu" />
+		:is-dark-theme="isDarkTheme"
+		:class="{'row--menu-opened': openedMenu}" />
 	<div v-else
 		:class="{
 			'disabled': loading.delete || loading.disable,
@@ -69,20 +66,17 @@
 		<div :class="{'icon-loading-small': loading.delete || loading.disable || loading.wipe}"
 			class="avatar">
 			<img v-if="!loading.delete && !loading.disable && !loading.wipe"
-				:src="generateAvatar(user.id, 32)"
-				:srcset="generateAvatar(user.id, 64)+' 2x, '+generateAvatar(user.id, 128)+' 4x'"
+				:src="generateAvatar(user.id, isDarkTheme)"
 				alt=""
 				height="32"
 				width="32">
 		</div>
 		<!-- dirty hack to ellipsis on two lines -->
 		<div v-if="user.backendCapabilities.setDisplayName" class="displayName">
-			<form
-				:class="{'icon-loading-small': loading.displayName}"
+			<form :class="{'icon-loading-small': loading.displayName}"
 				class="displayName"
 				@submit.prevent="updateDisplayName">
-				<input
-					:id="'displayName'+user.id+rand"
+				<input :id="'displayName'+user.id+rand"
 					ref="displayName"
 					:disabled="loading.displayName||loading.all"
 					:value="user.displayname"
@@ -91,8 +85,7 @@
 					autocorrect="off"
 					spellcheck="false"
 					type="text">
-				<input
-					class="icon-confirm"
+				<input class="icon-confirm"
 					type="submit"
 					value="">
 			</form>
@@ -113,6 +106,7 @@
 				ref="password"
 				:disabled="loading.password || loading.all"
 				:minlength="minPasswordLength"
+				maxlength="469"
 				:placeholder="t('settings', 'Add new password')"
 				autocapitalize="off"
 				autocomplete="new-password"
@@ -140,7 +134,7 @@
 			<input class="icon-confirm" type="submit" value="">
 		</form>
 		<div :class="{'icon-loading-small': loading.groups}" class="groups">
-			<Multiselect :close-on-select="false"
+			<NcMultiselect :close-on-select="false"
 				:disabled="loading.groups||loading.all"
 				:limit="2"
 				:multiple="true"
@@ -157,12 +151,12 @@
 				@select="addUserGroup"
 				@tag="createGroup">
 				<span slot="noResult">{{ t('settings', 'No results') }}</span>
-			</Multiselect>
+			</NcMultiselect>
 		</div>
 		<div v-if="subAdminsGroups.length>0 && settings.isAdmin"
 			:class="{'icon-loading-small': loading.subadmins}"
 			class="subadmins">
-			<Multiselect :close-on-select="false"
+			<NcMultiselect :close-on-select="false"
 				:disabled="loading.subadmins||loading.all"
 				:limit="2"
 				:multiple="true"
@@ -176,12 +170,12 @@
 				@remove="removeUserSubAdmin"
 				@select="addUserSubAdmin">
 				<span slot="noResult">{{ t('settings', 'No results') }}</span>
-			</Multiselect>
+			</NcMultiselect>
 		</div>
 		<div v-tooltip.auto="usedSpace"
 			:class="{'icon-loading-small': loading.quota}"
 			class="quota">
-			<Multiselect :allow-empty="false"
+			<NcMultiselect :allow-empty="false"
 				:disabled="loading.quota||loading.all"
 				:options="quotaOptions"
 				:placeholder="t('settings', 'Select user quota')"
@@ -197,7 +191,7 @@
 		<div v-if="showConfig.showLanguages"
 			:class="{'icon-loading-small': loading.languages}"
 			class="languages">
-			<Multiselect :allow-empty="false"
+			<NcMultiselect :allow-empty="false"
 				:disabled="loading.languages||loading.all"
 				:options="languages"
 				:placeholder="t('settings', 'No language set')"
@@ -218,17 +212,17 @@
 		<div class="userActions">
 			<div v-if="!loading.all"
 				class="toggleUserActions">
-				<Actions>
-					<ActionButton icon="icon-checkmark"
+				<NcActions>
+					<NcActionButton icon="icon-checkmark"
 						@click="editing = false">
 						{{ t('settings', 'Done') }}
-					</ActionButton>
-				</Actions>
+					</NcActionButton>
+				</NcActions>
 				<div v-click-outside="hideMenu" class="userPopoverMenuWrapper">
-					<div class="icon-more"
-						@click="toggleMenu" />
+					<button class="icon-more"
+						@click.prevent="toggleMenu" />
 					<div :class="{ 'open': openedMenu }" class="popovermenu">
-						<PopoverMenu :menu="userActions" />
+						<NcPopoverMenu :menu="userActions" />
 					</div>
 				</div>
 			</div>
@@ -246,10 +240,10 @@ import ClickOutside from 'vue-click-outside'
 import Vue from 'vue'
 import VTooltip from 'v-tooltip'
 import {
-	PopoverMenu,
-	Multiselect,
-	Actions,
-	ActionButton,
+	NcPopoverMenu,
+	NcMultiselect,
+	NcActions,
+	NcActionButton,
 } from '@nextcloud/vue'
 import UserRowSimple from './UserRowSimple'
 import UserRowMixin from '../../mixins/UserRowMixin'
@@ -260,10 +254,10 @@ export default {
 	name: 'UserRow',
 	components: {
 		UserRowSimple,
-		PopoverMenu,
-		Actions,
-		ActionButton,
-		Multiselect,
+		NcPopoverMenu,
+		NcActions,
+		NcActionButton,
+		NcMultiselect,
 	},
 	directives: {
 		ClickOutside,
@@ -301,6 +295,10 @@ export default {
 		externalActions: {
 			type: Array,
 			default: () => [],
+		},
+		isDarkTheme: {
+			type: Boolean,
+			required: true,
 		},
 	},
 	data() {
@@ -432,10 +430,10 @@ export default {
 		},
 
 		/**
-			 * Set user displayName
-			 *
-			 * @param {string} displayName The display name
-			 */
+		 * Set user displayName
+		 *
+		 * @param {string} displayName The display name
+		 */
 		updateDisplayName() {
 			const displayName = this.$refs.displayName.value
 			this.loading.displayName = true
@@ -450,10 +448,10 @@ export default {
 		},
 
 		/**
-			 * Set user password
-			 *
-			 * @param {string} password The email adress
-			 */
+		 * Set user password
+		 *
+		 * @param {string} password The email address
+		 */
 		updatePassword() {
 			const password = this.$refs.password.value
 			this.loading.password = true
@@ -468,10 +466,10 @@ export default {
 		},
 
 		/**
-			 * Set user mailAddress
-			 *
-			 * @param {string} mailAddress The email adress
-			 */
+		 * Set user mailAddress
+		 *
+		 * @param {string} mailAddress The email address
+		 */
 		updateEmail() {
 			const mailAddress = this.$refs.mailAddress.value
 			this.loading.mailAddress = true
@@ -486,10 +484,10 @@ export default {
 		},
 
 		/**
-			 * Create a new group and add user to it
-			 *
-			 * @param {string} gid Group id
-			 */
+		 * Create a new group and add user to it
+		 *
+		 * @param {string} gid Group id
+		 */
 		async createGroup(gid) {
 			this.loading = { groups: true, subadmins: true }
 			try {
@@ -505,10 +503,10 @@ export default {
 		},
 
 		/**
-			 * Add user to group
-			 *
-			 * @param {object} group Group object
-			 */
+		 * Add user to group
+		 *
+		 * @param {object} group Group object
+		 */
 		async addUserGroup(group) {
 			if (group.canAdd === false) {
 				return false
@@ -526,10 +524,10 @@ export default {
 		},
 
 		/**
-			 * Remove user from group
-			 *
-			 * @param {object} group Group object
-			 */
+		 * Remove user from group
+		 *
+		 * @param {object} group Group object
+		 */
 		async removeUserGroup(group) {
 			if (group.canRemove === false) {
 				return false
@@ -555,10 +553,10 @@ export default {
 		},
 
 		/**
-			 * Add user to group
-			 *
-			 * @param {object} group Group object
-			 */
+		 * Add user to group
+		 *
+		 * @param {object} group Group object
+		 */
 		async addUserSubAdmin(group) {
 			this.loading.subadmins = true
 			const userid = this.user.id
@@ -576,10 +574,10 @@ export default {
 		},
 
 		/**
-			 * Remove user from group
-			 *
-			 * @param {object} group Group object
-			 */
+		 * Remove user from group
+		 *
+		 * @param {object} group Group object
+		 */
 		async removeUserSubAdmin(group) {
 			this.loading.subadmins = true
 			const userid = this.user.id
@@ -598,11 +596,11 @@ export default {
 		},
 
 		/**
-			 * Dispatch quota set request
-			 *
-			 * @param {string|Object} quota Quota in readable format '5 GB' or Object {id: '5 GB', label: '5GB'}
-			 * @returns {string}
-			 */
+		 * Dispatch quota set request
+		 *
+		 * @param {string | object} quota Quota in readable format '5 GB' or Object {id: '5 GB', label: '5GB'}
+		 * @return {string}
+		 */
 		async setUserQuota(quota = 'none') {
 			this.loading.quota = true
 			// ensure we only send the preset id
@@ -623,11 +621,11 @@ export default {
 		},
 
 		/**
-			 * Validate quota string to make sure it's a valid human file size
-			 *
-			 * @param {string} quota Quota in readable format '5 GB'
-			 * @returns {Promise|boolean}
-			 */
+		 * Validate quota string to make sure it's a valid human file size
+		 *
+		 * @param {string} quota Quota in readable format '5 GB'
+		 * @return {Promise|boolean}
+		 */
 		validateQuota(quota) {
 			// only used for new presets sent through @Tag
 			const validQuota = OC.Util.computerFileSize(quota)
@@ -640,11 +638,11 @@ export default {
 		},
 
 		/**
-			 * Dispatch language set request
-			 *
-			 * @param {Object} lang language object {code:'en', name:'English'}
-			 * @returns {Object}
-			 */
+		 * Dispatch language set request
+		 *
+		 * @param {object} lang language object {code:'en', name:'English'}
+		 * @return {object}
+		 */
 		async setUserLanguage(lang) {
 			this.loading.languages = true
 			// ensure we only send the preset id
@@ -663,8 +661,8 @@ export default {
 		},
 
 		/**
-			 * Dispatch new welcome mail request
-			 */
+		 * Dispatch new welcome mail request
+		 */
 		sendWelcomeMail() {
 			this.loading.all = true
 			this.$store.dispatch('sendWelcomeMail', this.user.id)

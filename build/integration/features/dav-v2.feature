@@ -25,7 +25,6 @@ Feature: dav-v2
 			|Content-Disposition|attachment; filename*=UTF-8''welcome.txt; filename="welcome.txt"|
 			|Content-Security-Policy|default-src 'none';|
 			|X-Content-Type-Options |nosniff|
-			|X-Download-Options|noopen|
 			|X-Frame-Options|SAMEORIGIN|
 			|X-Permitted-Cross-Domain-Policies|none|
 			|X-Robots-Tag|none|
@@ -81,3 +80,9 @@ Feature: dav-v2
 		And As an "user0"
 		When User "user0" uploads file "data/textfile.txt" to "/testquota/asdf.txt"
 		Then the HTTP status code should be "201"
+
+	Scenario: Create a search query
+		Given using new dav path
+		And As an "admin"
+		When User "user0" uploads file "data/green-square-256.png" to "/image.png"
+		When Image search should work

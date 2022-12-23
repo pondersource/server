@@ -38,35 +38,23 @@ class LoginPageContext implements Context, ActorAwareInterface {
 	 */
 	private $filesAppContext;
 
-	/**
-	 * @return Locator
-	 */
-	public static function userNameField() {
+	public static function userNameField(): Locator {
 		return Locator::forThe()->field("user")->
 				describedAs("User name field in Login page");
 	}
 
-	/**
-	 * @return Locator
-	 */
-	public static function passwordField() {
+	public static function passwordField(): Locator {
 		return Locator::forThe()->field("password")->
 				describedAs("Password field in Login page");
 	}
 
-	/**
-	 * @return Locator
-	 */
-	public static function loginButton() {
-		return Locator::forThe()->id("submit-form")->
+	public static function loginButton(): Locator {
+		return Locator::forThe()->css(".button-vue[type='submit']")->
 				describedAs("Login button in Login page");
 	}
 
-	/**
-	 * @return Locator
-	 */
-	public static function wrongPasswordMessage() {
-		return Locator::forThe()->xpath("//*[@class = 'warning wrongPasswordMsg' and normalize-space() = 'Wrong username or password.']")->
+	public static function wrongPasswordMessage(): Locator {
+		return Locator::forThe()->xpath("//*[@class = 'input-field__helper-text-message input-field__helper-text-message--error' and normalize-space() = 'Wrong username or password.']")->
 				describedAs("Wrong password message in Login page");
 	}
 
@@ -74,14 +62,14 @@ class LoginPageContext implements Context, ActorAwareInterface {
 	 * @return Locator
 	 */
 	public static function userDisabledMessage() {
-		return Locator::forThe()->xpath("//*[@class = 'warning userDisabledMsg' and normalize-space() = 'User disabled']")->
+		return Locator::forThe()->xpath("//*[@class = 'input-field__helper-text-message input-field__helper-text-message--error' and normalize-space() = 'User disabled']")->
 				describedAs('User disabled message on login page');
 	}
 
 	/**
 	 * @When I log in with user :user and password :password
 	 */
-	public function iLogInWithUserAndPassword($user, $password) {
+	public function iLogInWithUserAndPassword(string $user, string $password): void {
 		$this->actor->find(self::userNameField(), 10)->setValue($user);
 		$this->actor->find(self::passwordField())->setValue($password);
 		$this->actor->find(self::loginButton())->click();

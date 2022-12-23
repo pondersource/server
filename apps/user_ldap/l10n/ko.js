@@ -60,8 +60,6 @@ OC.L10N.register(
     "Your password will expire today." : "내 암호가 오늘 만료됩니다.",
     "_Your password will expire within %n day._::_Your password will expire within %n days._" : ["내 암호가 %n일 후 만료됩니다."],
     "LDAP/AD integration" : "LDAP/AD 통합",
-    "_%s group found_::_%s groups found_" : ["그룹 %s개 찾음"],
-    "_%s user found_::_%s users found_" : ["사용자 %s명 찾음"],
     "Could not detect user display name attribute. Please specify it yourself in advanced LDAP settings." : "사용자 표시 이름 속성을 찾을 수 없습니다. 고급 LDAP 설정에서 직접 지정하십시오.",
     "Could not find the desired feature" : "필요한 기능을 찾을 수 없음",
     "Invalid Host" : "잘못된 호스트",
@@ -184,15 +182,8 @@ OC.L10N.register(
     "UUID Attribute for Users:" : "사용자 UUID 속성:",
     "UUID Attribute for Groups:" : "그룹 UUID 속성:",
     "Username-LDAP User Mapping" : "사용자 이름-LDAP 사용자 매핑",
+    "Usernames are used to store and assign metadata. In order to precisely identify and recognize users, each LDAP user will have an internal username. This requires a mapping from username to LDAP user. The created username is mapped to the UUID of the LDAP user. Additionally the DN is cached as well to reduce LDAP interaction, but it is not used for identification. If the DN changes, the changes will be found. The internal username is used all over. Clearing the mappings will have leftovers everywhere. Clearing the mappings is not configuration sensitive, it affects all LDAP configurations! Never clear the mappings in a production environment, only in a testing or experimental stage." : "사용자 이름은 메타데이터를 저장하고 할당하는 데 사용됩니다. 사용자를 정확히 식별하기 위해서 모든 LDAP 사용자는 내부 사용자 이름을 갖고 있습니다. 이 정보에 접근하려면 사용자 이름과 LDAP 사용자 사이의 연결을 알아야 합니다. 생성된 사용자 이름은 LDAP 사용자의 UUID에 연결됩니다. LDAP에 연결하는 횟수를 줄이기 위하여 DN을 캐시에 저장하지만, 식별에는 사용하지 않습니다. DN이 변경되었을 때 변경 사항이 적용됩니다. 내부 사용자 이름은 항상 사용됩니다. 매핑을 비우면 과거 매핑의 흔적이 남습니다. 매핑을 비우는 것은 설정에 관계 없이 적용되므로 모든 LDAP 설정에 영향을 줍니다! 테스트 및 실험 단계에서만 매핑을 비우고, 상용 환경에서는 매핑을 비우지 마십시오.",
     "Clear Username-LDAP User Mapping" : "사용자 이름-LDAP 사용자 매핑 비우기",
-    "Clear Groupname-LDAP Group Mapping" : "그룹 이름-LDAP 그룹 매핑 비우기",
-    "A connection error to LDAP / AD occurred, please check host, port and credentials." : "LDAP/AD 연결 오류가 발생했습니다. 호스트, 포트, 인증 정보를 확인하십시오.",
-    "The \"%uid\" placeholder is missing. It will be replaced with the login name when querying LDAP / AD." : "\"%uid\" 자리 비움자가 없습니다. LDAP/AD에 조회할 때 로그인 이름으로 대체됩니다.",
-    "The group box was disabled, because the LDAP / AD server does not support memberOf." : "LDAP/AD 서버에서 memberOf를 지원하지 않아서 그룹 상자를 비활성화합니다.",
-    "LDAP / AD integration" : "LDAP/AD 통합",
-    "LDAP / AD Username:" : "LDAP/AD 사용자 이름:",
-    "Allows login against the LDAP / AD username, which is either \"uid\" or \"sAMAccountName\" and will be detected." : "LDAP/AD 사용자 이름으로 로그인하는 것을 허용합니다. \"uid\" 및 \"sAMAccountName\" 중 하나이며 자동으로 감지합니다.",
-    "LDAP / AD Email Address:" : "LDAP/AD 이메일 주소:",
-    "By default the internal username will be created from the UUID attribute. It makes sure that the username is unique and characters do not need to be converted. The internal username has the restriction that only these characters are allowed: [ a-zA-Z0-9_.@- ].  Other characters are replaced with their ASCII correspondence or simply omitted. On collisions a number will be added/increased. The internal username is used to identify a user internally. It is also the default name for the user home folder. It is also a part of remote URLs, for instance for all *DAV services. With this setting, the default behavior can be overridden. Leave it empty for default behavior. Changes will have effect only on newly mapped (added) LDAP users." : "기본적으로 내부 사용자 이름은 UUID 속성에서 생성됩니다. 이를 통해서 사용자 이름이 유일하며 문자를 변환할 필요가 없도록 합니다. 내부 사용자 이름에는 다음 글자만 사용할 수 있습니다: [a-zA-Z0-9_.@-] 다른 모든 글자는 ASCII에 해당하는 글자로 대체되거나 생략됩니다. 충돌이 발생할 경우 숫자가 추가로 붙거나 증가합니다. 내부 사용자 이름은 사용자를 내부에서 식별하는 데에도 사용되며, 사용자 홈 폴더의 기본 이름입니다. 모든 *DAV 서비스 등에 사용되는 URL의 일부이기도 합니다. 이 설정을 사용하면 기본 행동을 사용자 정의할 수 있으며, 비워 두면 기본값을 사용합니다. 변경 사항은 새로 매핑 및 추가된 LDAP 사용자에게만 적용됩니다."
+    "Clear Groupname-LDAP Group Mapping" : "그룹 이름-LDAP 그룹 매핑 비우기"
 },
 "nplurals=1; plural=0;");

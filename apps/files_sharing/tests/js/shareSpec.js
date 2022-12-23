@@ -9,7 +9,7 @@
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Vincent Petry <vincent@nextcloud.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -41,17 +41,17 @@ describe('OCA.Sharing.Util tests', function() {
 	}
 
 	beforeEach(function() {
-		var $content = $('<div id="content"></div>');
+		var $content = $('<div id="app-content"></div>');
 		$('#testArea').append($content);
 		// dummy file list
 		var $div = $(
 			'<div id="listContainer">' +
-			'<table id="filestable" class="list-container view-grid">' +
+			'<table class="files-filestable list-container view-grid">' +
 			'<thead></thead>' +
-			'<tbody id="fileList"></tbody>' +
+			'<tbody class="files-fileList"></tbody>' +
 			'</table>' +
 			'</div>');
-		$('#content').append($div);
+		$('#app-content').append($div);
 
 		var fileActions = new OCA.Files.FileActions();
 		fileList = new OCA.Files.FileList(

@@ -44,10 +44,9 @@ namespace OC;
 
 use bantu\IniGetWrapper\IniGetWrapper;
 use OC\Search\SearchQuery;
-use OC\Template\JSCombiner;
+use OC\Template\CSSResourceLocator;
 use OC\Template\JSConfigHelper;
-use OC\Template\SCSSCacher;
-use OCP\App\IAppManager;
+use OC\Template\JSResourceLocator;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\Defaults;
 use OCP\IConfig;
@@ -55,11 +54,16 @@ use OCP\IInitialStateService;
 use OCP\INavigationManager;
 use OCP\IUserSession;
 use OCP\Support\Subscription\IRegistry;
-use OCP\UserStatus\IManager as IUserStatusManager;
 use OCP\Util;
 
 class TemplateLayout extends \OC_Template {
 	private static $versionHash = '';
+
+	/** @var CSSResourceLocator|null */
+	public static $cssLocator = null;
+
+	/** @var JSResourceLocator|null */
+	public static $jsLocator = null;
 
 	/** @var IConfig */
 	private $config;
@@ -82,6 +86,13 @@ class TemplateLayout extends \OC_Template {
 		/** @var IInitialStateService */
 		$this->initialState = \OC::$server->get(IInitialStateService::class);
 
+		// Add fallback theming variables if theming is disabled
+		if ($renderAs !== TemplateResponse::RENDER_AS_USER
+			|| !\OC::$server->getAppManager()->isEnabledForUser('theming')) {
+			// TODO cache generated default theme if enabled for fallback if server is erroring ?
+			Util::addStyle('theming', 'default');
+		}
+
 		// Decide which page we show
 		if ($renderAs === TemplateResponse::RENDER_AS_USER) {
 			/** @var INavigationManager */
@@ -95,8 +106,19 @@ class TemplateLayout extends \OC_Template {
 			}
 
 			$this->initialState->provideInitialState('core', 'active-app', $this->navigationManager->getActiveEntry());
-			$this->initialState->provideInitialState('unified-search', 'limit-default', SearchQuery::LIMIT_DEFAULT);
-			Util::addScript('core', 'dist/unified-search', 'core');
+			$this->initialState->provideInitialState('core', 'apps', $this->navigationManager->getAll());
+			$this->initialState->provideInitialState('unified-search', 'limit-default', (int)$this->config->getAppValue('core', 'unified-search.limit-default', (string)SearchQuery::LIMIT_DEFAULT));
+			$this->initialState->provideInitialState('unified-search', 'min-search-length', (int)$this->config->getAppValue('core', 'unified-search.min-search-length', (string)1));
+			$this->initialState->provideInitialState('unified-search', 'live-search', $this->config->getAppValue('core', 'unified-search.live-search', 'yes') === 'yes');
+			Util::addScript('core', 'unified-search', 'core');
+
+			// Set body data-theme
+			$this->assign('enabledThemes', []);
+			if (\OC::$server->getAppManager()->isEnabledForUser('theming') && class_exists('\OCA\Theming\Service\ThemesService')) {
+				/** @var \OCA\Theming\Service\ThemesService */
+				$themesService = \OC::$server->get(\OCA\Theming\Service\ThemesService::class);
+				$this->assign('enabledThemes', $themesService->getEnabledThemes());
+			}
 
 			// Add navigation entry
 			$this->assign('application', '');
@@ -135,28 +157,6 @@ class TemplateLayout extends \OC_Template {
 			} else {
 				$this->assign('userAvatarSet', true);
 				$this->assign('userAvatarVersion', $this->config->getUserValue(\OC_User::getUser(), 'avatar', 'version', 0));
-				if (\OC::$server->get(IAppManager::class)->isEnabledForUser('user_status')) {
-					$userStatusManager = \OC::$server->get(IUserStatusManager::class);
-					$userStatuses = $userStatusManager->getUserStatuses([$user->getUID()]);
-					if (array_key_exists($user->getUID(), $userStatuses)) {
-						$this->assign('userStatus', $userStatuses[$user->getUID()]);
-					} else {
-						$this->assign('userStatus', false);
-					}
-				} else {
-					$this->assign('userStatus', false);
-				}
-			}
-
-			// check if app menu icons should be inverted
-			try {
-				/** @var \OCA\Theming\Util $util */
-				$util = \OC::$server->query(\OCA\Theming\Util::class);
-				$this->assign('themingInvertMenu', $util->invertTextColor(\OC::$server->getThemingDefaults()->getColorPrimary()));
-			} catch (\OCP\AppFramework\QueryException $e) {
-				$this->assign('themingInvertMenu', false);
-			} catch (\OCP\AutoloadNotAllowedException $e) {
-				$this->assign('themingInvertMenu', false);
 			}
 		} elseif ($renderAs === TemplateResponse::RENDER_AS_ERROR) {
 			parent::__construct('core', 'layout.guest', '', false);
@@ -190,6 +190,11 @@ class TemplateLayout extends \OC_Template {
 		} else {
 			parent::__construct('core', 'layout.base');
 		}
+
+		// set logo link target
+		$logoUrl = $this->config->getSystemValueString('logo_url', '');
+		$this->assign('logoUrl', $logoUrl);
+
 		// Send the language and the locale to our layouts
 		$lang = \OC::$server->getL10NFactory()->findLanguage();
 		$locale = \OC::$server->getL10NFactory()->findLocale($lang);
@@ -209,6 +214,7 @@ class TemplateLayout extends \OC_Template {
 		}
 
 		// Add the js files
+		// TODO: remove deprecated OC_Util injection
 		$jsFiles = self::findJavascriptFiles(array_merge(\OC_Util::$scripts, Util::getScripts()));
 		$this->assign('jsfiles', []);
 		if ($this->config->getSystemValue('installed', false) && $renderAs != TemplateResponse::RENDER_AS_ERROR) {
@@ -283,6 +289,9 @@ class TemplateLayout extends \OC_Template {
 		}
 
 		$this->assign('initialStates', $this->initialState->getInitialStates());
+
+		$this->assign('id-app-content', $renderAs === TemplateResponse::RENDER_AS_USER ? '#app-content' : '#content');
+		$this->assign('id-app-navigation', $renderAs === TemplateResponse::RENDER_AS_USER ? '#app-navigation' : null);
 	}
 
 	/**
@@ -330,24 +339,11 @@ class TemplateLayout extends \OC_Template {
 	 * @return array
 	 */
 	public static function findStylesheetFiles($styles, $compileScss = true) {
-		// Read the selected theme from the config file
-		$theme = \OC_Util::getTheme();
-
-		if ($compileScss) {
-			$SCSSCacher = \OC::$server->query(SCSSCacher::class);
-		} else {
-			$SCSSCacher = null;
+		if (!self::$cssLocator) {
+			self::$cssLocator = \OCP\Server::get(CSSResourceLocator::class);
 		}
-
-		$locator = new \OC\Template\CSSResourceLocator(
-			\OC::$server->getLogger(),
-			$theme,
-			[ \OC::$SERVERROOT => \OC::$WEBROOT ],
-			[ \OC::$SERVERROOT => \OC::$WEBROOT ],
-			$SCSSCacher
-		);
-		$locator->find($styles);
-		return $locator->getResources();
+		self::$cssLocator->find($styles);
+		return self::$cssLocator->getResources();
 	}
 
 	/**
@@ -371,18 +367,11 @@ class TemplateLayout extends \OC_Template {
 	 * @return array
 	 */
 	public static function findJavascriptFiles($scripts) {
-		// Read the selected theme from the config file
-		$theme = \OC_Util::getTheme();
-
-		$locator = new \OC\Template\JSResourceLocator(
-			\OC::$server->getLogger(),
-			$theme,
-			[ \OC::$SERVERROOT => \OC::$WEBROOT ],
-			[ \OC::$SERVERROOT => \OC::$WEBROOT ],
-			\OC::$server->query(JSCombiner::class)
-			);
-		$locator->find($scripts);
-		return $locator->getResources();
+		if (!self::$jsLocator) {
+			self::$jsLocator = \OCP\Server::get(JSResourceLocator::class);
+		}
+		self::$jsLocator->find($scripts);
+		return self::$jsLocator->getResources();
 	}
 
 	/**

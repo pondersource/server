@@ -1,22 +1,14 @@
 OC.L10N.register(
     "sharebymail",
     {
-    "Shared with %1$s" : "Delt med %1$s",
     "Shared with {email}" : "Delt med {email}",
-    "Shared with %1$s by %2$s" : "Delt med %1$s via %2$s",
     "Shared with {email} by {actor}" : "Delt med {email} av {actor}",
-    "Password for mail share sent to %1$s" : "Passord for e-postlager sendt til %1$s",
     "Password for mail share sent to {email}" : "Passord for e-postlager sendt til {email}",
     "Password for mail share sent to you" : "Passord for e-postlager sendt til deg",
-    "You shared %1$s with %2$s by mail" : "Du delte %1$s med %2$s via e-post",
     "You shared {file} with {email} by mail" : "Du delte {file} med {email} via e-post",
-    "%3$s shared %1$s with %2$s by mail" : "%3$s delte %1$s med %2$s via e-post",
     "{actor} shared {file} with {email} by mail" : "{actor} delte {file} med {email} via e-post",
-    "You unshared %1$s from %2$s by mail" : "Du opphevde delingen %1$s med %2$s via e-post",
     "You unshared {file} from {email} by mail" : "Du opphevde delingen {file} med {email} via e-post",
-    "Password to access %1$s was sent to %2s" : "Passord for tilgang til %1$s sendt til %2s",
     "Password to access {file} was sent to {email}" : "Passord for tilgang til {file} ble sendt til {email}",
-    "Password to access %1$s was sent to you" : "Passord for tilgang til %1$s ble sendt til deg",
     "Password to access {file} was sent to you" : "Du ble tildelt passord for å benytte {file}",
     "Share by mail" : "Del via e-post",
     "Failed to send share by email" : "Delingen kunne ikke sendes med e-post",
@@ -36,7 +28,13 @@ OC.L10N.register(
     "Could not find share" : "Delingen ble ikke funnet",
     "Allows users to share a personalized link to a file or folder by putting in an email address." : "Tillater brukere å dele en personalisert lenke til ei fil eller mappe ved å skrive inn en e-postadresse.",
     "Send password by mail" : "Send passord via e-post",
-    "We can't send you the auto-generated password. Please set a valid email address in your personal settings and try again." : "Vi kan ikke sende det auto-genererte passordet. Angi en gyldig e-postadresse i dine personlige innstillinger og prøv igjen.",
-    "Enforce password protection" : "Krev passordbeskyttelse"
+    "Shared with %1$s" : "Delt med %1$s",
+    "Shared with %1$s by %2$s" : "Delt med %1$s via %2$s",
+    "Password for mail share sent to %1$s" : "Passord for e-postlager sendt til %1$s",
+    "You shared %1$s with %2$s by mail" : "Du delte %1$s med %2$s via e-post",
+    "%3$s shared %1$s with %2$s by mail" : "%3$s delte %1$s med %2$s via e-post",
+    "You unshared %1$s from %2$s by mail" : "Du opphevde delingen %1$s med %2$s via e-post",
+    "Password to access %1$s was sent to %2s" : "Passord for tilgang til %1$s sendt til %2s",
+    "Password to access %1$s was sent to you" : "Passord for tilgang til %1$s ble sendt til deg"
 },
 "nplurals=2; plural=(n != 1);");

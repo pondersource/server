@@ -4,7 +4,7 @@
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Vincent Petry <vincent@nextcloud.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -61,7 +61,7 @@
 		 * Lazy fetch.
 		 * Only fetches once, subsequent calls will directly call the success handler.
 		 *
-		 * @param options
+		 * @param {any} options -
 		 * @param [options.force] true to force fetch even if cached entries exist
 		 *
 		 * @see Backbone.Collection#fetch
@@ -69,7 +69,7 @@
 			fetch: function(options) {
 				var self = this
 				options = options || {}
-				if (this.fetched || options.force) {
+				if (this.fetched || this.working || options.force) {
 				// directly call handler
 					if (options.success) {
 						options.success(this, null, options)
@@ -79,10 +79,13 @@
 					return Promise.resolve()
 				}
 
+				this.working = true
+
 				var success = options.success
 				options = _.extend({}, options)
 				options.success = function() {
 					self.fetched = true
+					self.working = false
 					if (success) {
 						return success.apply(this, arguments)
 					}

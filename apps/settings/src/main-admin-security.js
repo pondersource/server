@@ -5,7 +5,7 @@
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -26,6 +26,7 @@ import { loadState } from '@nextcloud/initial-state'
 import Vue from 'vue'
 
 import AdminTwoFactor from './components/AdminTwoFactor.vue'
+import Encryption from './components/Encryption.vue'
 import store from './store/admin-security'
 
 // eslint-disable-next-line camelcase
@@ -45,3 +46,6 @@ const View = Vue.extend(AdminTwoFactor)
 new View({
 	store,
 }).$mount('#two-factor-auth-settings')
+
+const EncryptionView = Vue.extend(Encryption)
+new EncryptionView().$mount('#vue-admin-encryption')

@@ -3,7 +3,7 @@
  *
  * @author Christopher Ng <chrng8@gmail.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -23,7 +23,8 @@
 import axios from '@nextcloud/axios'
 import { getCurrentUser } from '@nextcloud/auth'
 import { generateOcsUrl } from '@nextcloud/router'
-import confirmPassword from '@nextcloud/password-confirmation'
+import { confirmPassword } from '@nextcloud/password-confirmation'
+import '@nextcloud/password-confirmation/dist/style.css'
 
 import { SCOPE_SUFFIX } from '../../constants/AccountPropertyConstants'
 
@@ -32,9 +33,9 @@ import { SCOPE_SUFFIX } from '../../constants/AccountPropertyConstants'
  *
  * @param {string} accountProperty the account property
  * @param {string|boolean} value the primary value
- * @returns {object}
+ * @return {object}
  */
-export const savePrimaryAccountProperty = async(accountProperty, value) => {
+export const savePrimaryAccountProperty = async (accountProperty, value) => {
 	// TODO allow boolean values on backend route handler
 	// Convert boolean to string for compatibility
 	if (typeof value === 'boolean') {
@@ -59,9 +60,9 @@ export const savePrimaryAccountProperty = async(accountProperty, value) => {
  *
  * @param {string} accountProperty the account property
  * @param {string} scope the federation scope
- * @returns {object}
+ * @return {object}
  */
-export const savePrimaryAccountPropertyScope = async(accountProperty, scope) => {
+export const savePrimaryAccountPropertyScope = async (accountProperty, scope) => {
 	const userId = getCurrentUser().uid
 	const url = generateOcsUrl('cloud/users/{userId}', { userId })
 

@@ -86,7 +86,7 @@ class Streamer {
 		} elseif ($request->isUserAgent($this->preferTarFor)) {
 			$this->streamerInstance = new TarStreamer();
 		} else {
-			$this->streamerInstance = new ZipStreamer(['zip64' => PHP_INT_SIZE !== 4]);
+			$this->streamerInstance = new ZipStreamer(['zip64' => true]);
 		}
 	}
 
@@ -95,6 +95,7 @@ class Streamer {
 	 * @param string $name
 	 */
 	public function sendHeaders($name) {
+		header('X-Accel-Buffering: no');
 		$extension = $this->streamerInstance instanceof ZipStreamer ? '.zip' : '.tar';
 		$fullName = $name . $extension;
 		$this->streamerInstance->sendHeaders($fullName);
@@ -147,13 +148,13 @@ class Streamer {
 	/**
 	 * Add a file to the archive at the specified location and file name.
 	 *
-	 * @param string $stream Stream to read data from
+	 * @param resource $stream Stream to read data from
 	 * @param string $internalName Filepath and name to be used in the archive.
 	 * @param int $size Filesize
 	 * @param int|bool $time File mtime as int, or false
 	 * @return bool $success
 	 */
-	public function addFileFromStream($stream, $internalName, $size, $time) {
+	public function addFileFromStream($stream, string $internalName, int $size, $time): bool {
 		$options = [];
 		if ($time) {
 			$options = [

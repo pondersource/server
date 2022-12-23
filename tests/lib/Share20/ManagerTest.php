@@ -41,7 +41,6 @@ use OCP\IConfig;
 use OCP\IGroup;
 use OCP\IGroupManager;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IServerContainer;
 use OCP\IURLGenerator;
 use OCP\IUser;
@@ -60,6 +59,7 @@ use OCP\Share\IShare;
 use OCP\Share\IShareProvider;
 use PHPUnit\Framework\MockObject\MockBuilder;
 use PHPUnit\Framework\MockObject\MockObject;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
@@ -73,7 +73,7 @@ class ManagerTest extends \Test\TestCase {
 
 	/** @var Manager */
 	protected $manager;
-	/** @var ILogger|MockObject */
+	/** @var LoggerInterface|MockObject */
 	protected $logger;
 	/** @var IConfig|MockObject */
 	protected $config;
@@ -113,7 +113,7 @@ class ManagerTest extends \Test\TestCase {
 	protected $knownUserService;
 
 	protected function setUp(): void {
-		$this->logger = $this->createMock(ILogger::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->config = $this->createMock(IConfig::class);
 		$this->secureRandom = $this->createMock(ISecureRandom::class);
 		$this->hasher = $this->createMock(IHasher::class);
@@ -248,22 +248,18 @@ class ManagerTest extends \Test\TestCase {
 			->method('delete')
 			->with($share);
 
-		$this->eventDispatcher->expects($this->at(0))
+		$this->eventDispatcher->expects($this->exactly(2))
 			->method('dispatch')
-			->with(
-				'OCP\Share::preUnshare',
-				$this->callBack(function (GenericEvent $e) use ($share) {
-					return $e->getSubject() === $share;
-				})
-			);
-		$this->eventDispatcher->expects($this->at(1))
-			->method('dispatch')
-			->with(
-				'OCP\Share::postUnshare',
-				$this->callBack(function (GenericEvent $e) use ($share) {
-					return $e->getSubject() === $share &&
-						$e->getArgument('deletedShares') === [$share];
-				})
+			->withConsecutive(
+				['OCP\Share::preUnshare',
+					$this->callBack(function (GenericEvent $e) use ($share) {
+						return $e->getSubject() === $share;
+					})],
+				['OCP\Share::postUnshare',
+					$this->callBack(function (GenericEvent $e) use ($share) {
+						return $e->getSubject() === $share &&
+							$e->getArgument('deletedShares') === [$share];
+					})]
 			);
 
 		$manager->deleteShare($share);
@@ -296,22 +292,18 @@ class ManagerTest extends \Test\TestCase {
 			->method('delete')
 			->with($share);
 
-		$this->eventDispatcher->expects($this->at(0))
+		$this->eventDispatcher->expects($this->exactly(2))
 			->method('dispatch')
-			->with(
-				'OCP\Share::preUnshare',
-				$this->callBack(function (GenericEvent $e) use ($share) {
-					return $e->getSubject() === $share;
-				})
-			);
-		$this->eventDispatcher->expects($this->at(1))
-			->method('dispatch')
-			->with(
-				'OCP\Share::postUnshare',
-				$this->callBack(function (GenericEvent $e) use ($share) {
-					return $e->getSubject() === $share &&
-						$e->getArgument('deletedShares') === [$share];
-				})
+			->withConsecutive(
+				['OCP\Share::preUnshare',
+					$this->callBack(function (GenericEvent $e) use ($share) {
+						return $e->getSubject() === $share;
+					})],
+				['OCP\Share::postUnshare',
+					$this->callBack(function (GenericEvent $e) use ($share) {
+						return $e->getSubject() === $share &&
+							$e->getArgument('deletedShares') === [$share];
+					})]
 			);
 
 		$manager->deleteShare($share);
@@ -365,22 +357,18 @@ class ManagerTest extends \Test\TestCase {
 			->method('delete')
 			->withConsecutive([$share3], [$share2], [$share1]);
 
-		$this->eventDispatcher->expects($this->at(0))
+		$this->eventDispatcher->expects($this->exactly(2))
 			->method('dispatch')
-			->with(
-				'OCP\Share::preUnshare',
-				$this->callBack(function (GenericEvent $e) use ($share1) {
-					return $e->getSubject() === $share1;
-				})
-			);
-		$this->eventDispatcher->expects($this->at(1))
-			->method('dispatch')
-			->with(
-				'OCP\Share::postUnshare',
-				$this->callBack(function (GenericEvent $e) use ($share1, $share2, $share3) {
-					return $e->getSubject() === $share1 &&
-						$e->getArgument('deletedShares') === [$share3, $share2, $share1];
-				})
+			->withConsecutive(
+				['OCP\Share::preUnshare',
+					$this->callBack(function (GenericEvent $e) use ($share1) {
+						return $e->getSubject() === $share1;
+					})],
+				['OCP\Share::postUnshare',
+					$this->callBack(function (GenericEvent $e) use ($share1, $share2, $share3) {
+						return $e->getSubject() === $share1 &&
+							$e->getArgument('deletedShares') === [$share3, $share2, $share1];
+					})]
 			);
 
 		$manager->deleteShare($share1);
@@ -408,7 +396,7 @@ class ManagerTest extends \Test\TestCase {
 			->method('deleteFromSelf')
 			->with($share, $recipientId);
 
-		$this->eventDispatcher->expects($this->at(0))
+		$this->eventDispatcher->expects($this->once())
 			->method('dispatch')
 			->with(
 				'OCP\Share::postUnshareFromSelf',
@@ -481,7 +469,7 @@ class ManagerTest extends \Test\TestCase {
 			->getMock();
 
 		$date = new \DateTime();
-		$date->setTime(0,0,0);
+		$date->setTime(0, 0, 0);
 
 		$share = $this->manager->newShare();
 		$share->setExpirationDate($date)
@@ -505,14 +493,46 @@ class ManagerTest extends \Test\TestCase {
 		$this->expectExceptionMessage('Passwords are enforced for link and mail shares');
 
 		$this->config->method('getAppValue')->willReturnMap([
+			['core', 'shareapi_enforce_links_password_excluded_groups', '', ''],
 			['core', 'shareapi_enforce_links_password', 'no', 'yes'],
 		]);
 
 		self::invokePrivate($this->manager, 'verifyPassword', [null]);
 	}
 
+	public function testVerifyPasswordNotEnforcedGroup() {
+		$this->config->method('getAppValue')->willReturnMap([
+			['core', 'shareapi_enforce_links_password_excluded_groups', '', '["admin"]'],
+			['core', 'shareapi_enforce_links_password', 'no', 'yes'],
+		]);
+
+		// Create admin user
+		$user = $this->createMock(IUser::class);
+		$this->userSession->method('getUser')->willReturn($user);
+		$this->groupManager->method('getUserGroupIds')->with($user)->willReturn(['admin']);
+
+		$result = self::invokePrivate($this->manager, 'verifyPassword', [null]);
+		$this->assertNull($result);
+	}
+
+	public function testVerifyPasswordNotEnforcedMultipleGroups() {
+		$this->config->method('getAppValue')->willReturnMap([
+			['core', 'shareapi_enforce_links_password_excluded_groups', '', '["admin", "special"]'],
+			['core', 'shareapi_enforce_links_password', 'no', 'yes'],
+		]);
+
+		// Create admin user
+		$user = $this->createMock(IUser::class);
+		$this->userSession->method('getUser')->willReturn($user);
+		$this->groupManager->method('getUserGroupIds')->with($user)->willReturn(['special']);
+
+		$result = self::invokePrivate($this->manager, 'verifyPassword', [null]);
+		$this->assertNull($result);
+	}
+
 	public function testVerifyPasswordNull() {
 		$this->config->method('getAppValue')->willReturnMap([
+			['core', 'shareapi_enforce_links_password_excluded_groups', '', ''],
 			['core', 'shareapi_enforce_links_password', 'no', 'no'],
 		]);
 
@@ -522,6 +542,7 @@ class ManagerTest extends \Test\TestCase {
 
 	public function testVerifyPasswordHook() {
 		$this->config->method('getAppValue')->willReturnMap([
+			['core', 'shareapi_enforce_links_password_excluded_groups', '', ''],
 			['core', 'shareapi_enforce_links_password', 'no', 'no'],
 		]);
 
@@ -543,6 +564,7 @@ class ManagerTest extends \Test\TestCase {
 		$this->expectExceptionMessage('password not accepted');
 
 		$this->config->method('getAppValue')->willReturnMap([
+			['core', 'shareapi_enforce_links_password_excluded_groups', '', ''],
 			['core', 'shareapi_enforce_links_password', 'no', 'no'],
 		]);
 
@@ -559,7 +581,7 @@ class ManagerTest extends \Test\TestCase {
 	}
 
 	public function createShare($id, $type, $path, $sharedWith, $sharedBy, $shareOwner,
-		$permissions, $expireDate = null, $password = null) {
+		$permissions, $expireDate = null, $password = null, $attributes = null) {
 		$share = $this->createMock(IShare::class);
 
 		$share->method('getShareType')->willReturn($type);
@@ -568,6 +590,7 @@ class ManagerTest extends \Test\TestCase {
 		$share->method('getShareOwner')->willReturn($shareOwner);
 		$share->method('getNode')->willReturn($path);
 		$share->method('getPermissions')->willReturn($permissions);
+		$share->method('getAttributes')->willReturn($attributes);
 		$share->method('getExpirationDate')->willReturn($expireDate);
 		$share->method('getPassword')->willReturn($password);
 
@@ -594,30 +617,30 @@ class ManagerTest extends \Test\TestCase {
 			->willReturn($storage);
 
 		$data = [
-			[$this->createShare(null, IShare::TYPE_USER,  $file, null, $user0, $user0, 31, null, null), 'SharedWith is not a valid user', true],
-			[$this->createShare(null, IShare::TYPE_USER,  $file, $group0, $user0, $user0, 31, null, null), 'SharedWith is not a valid user', true],
-			[$this->createShare(null, IShare::TYPE_USER,  $file, 'foo@bar.com', $user0, $user0, 31, null, null), 'SharedWith is not a valid user', true],
+			[$this->createShare(null, IShare::TYPE_USER, $file, null, $user0, $user0, 31, null, null), 'SharedWith is not a valid user', true],
+			[$this->createShare(null, IShare::TYPE_USER, $file, $group0, $user0, $user0, 31, null, null), 'SharedWith is not a valid user', true],
+			[$this->createShare(null, IShare::TYPE_USER, $file, 'foo@bar.com', $user0, $user0, 31, null, null), 'SharedWith is not a valid user', true],
 			[$this->createShare(null, IShare::TYPE_GROUP, $file, null, $user0, $user0, 31, null, null), 'SharedWith is not a valid group', true],
 			[$this->createShare(null, IShare::TYPE_GROUP, $file, $user2, $user0, $user0, 31, null, null), 'SharedWith is not a valid group', true],
 			[$this->createShare(null, IShare::TYPE_GROUP, $file, 'foo@bar.com', $user0, $user0, 31, null, null), 'SharedWith is not a valid group', true],
-			[$this->createShare(null, IShare::TYPE_LINK,  $file, $user2, $user0, $user0, 31, null, null), 'SharedWith should be empty', true],
-			[$this->createShare(null, IShare::TYPE_LINK,  $file, $group0, $user0, $user0, 31, null, null), 'SharedWith should be empty', true],
-			[$this->createShare(null, IShare::TYPE_LINK,  $file, 'foo@bar.com', $user0, $user0, 31, null, null), 'SharedWith should be empty', true],
+			[$this->createShare(null, IShare::TYPE_LINK, $file, $user2, $user0, $user0, 31, null, null), 'SharedWith should be empty', true],
+			[$this->createShare(null, IShare::TYPE_LINK, $file, $group0, $user0, $user0, 31, null, null), 'SharedWith should be empty', true],
+			[$this->createShare(null, IShare::TYPE_LINK, $file, 'foo@bar.com', $user0, $user0, 31, null, null), 'SharedWith should be empty', true],
 			[$this->createShare(null, -1, $file, null, $user0, $user0, 31, null, null), 'unknown share type', true],
 
-			[$this->createShare(null, IShare::TYPE_USER,  $file, $user2, null, $user0, 31, null, null), 'SharedBy should be set', true],
+			[$this->createShare(null, IShare::TYPE_USER, $file, $user2, null, $user0, 31, null, null), 'SharedBy should be set', true],
 			[$this->createShare(null, IShare::TYPE_GROUP, $file, $group0, null, $user0, 31, null, null), 'SharedBy should be set', true],
-			[$this->createShare(null, IShare::TYPE_LINK,  $file, null, null, $user0, 31, null, null), 'SharedBy should be set', true],
+			[$this->createShare(null, IShare::TYPE_LINK, $file, null, null, $user0, 31, null, null), 'SharedBy should be set', true],
 
-			[$this->createShare(null, IShare::TYPE_USER,  $file, $user0, $user0, $user0, 31, null, null), 'Cannot share with yourself', true],
+			[$this->createShare(null, IShare::TYPE_USER, $file, $user0, $user0, $user0, 31, null, null), 'Cannot share with yourself', true],
 
-			[$this->createShare(null, IShare::TYPE_USER,  null, $user2, $user0, $user0, 31, null, null), 'Path should be set', true],
+			[$this->createShare(null, IShare::TYPE_USER, null, $user2, $user0, $user0, 31, null, null), 'Path should be set', true],
 			[$this->createShare(null, IShare::TYPE_GROUP, null, $group0, $user0, $user0, 31, null, null), 'Path should be set', true],
-			[$this->createShare(null, IShare::TYPE_LINK,  null, null, $user0, $user0, 31, null, null), 'Path should be set', true],
+			[$this->createShare(null, IShare::TYPE_LINK, null, null, $user0, $user0, 31, null, null), 'Path should be set', true],
 
-			[$this->createShare(null, IShare::TYPE_USER,  $node, $user2, $user0, $user0, 31, null, null), 'Path should be either a file or a folder', true],
+			[$this->createShare(null, IShare::TYPE_USER, $node, $user2, $user0, $user0, 31, null, null), 'Path should be either a file or a folder', true],
 			[$this->createShare(null, IShare::TYPE_GROUP, $node, $group0, $user0, $user0, 31, null, null), 'Path should be either a file or a folder', true],
-			[$this->createShare(null, IShare::TYPE_LINK,  $node, null, $user0, $user0, 31, null, null), 'Path should be either a file or a folder', true],
+			[$this->createShare(null, IShare::TYPE_LINK, $node, null, $user0, $user0, 31, null, null), 'Path should be either a file or a folder', true],
 		];
 
 		$nonShareAble = $this->createMock(Folder::class);
@@ -629,9 +652,9 @@ class ManagerTest extends \Test\TestCase {
 		$nonShareAble->method('getStorage')
 			->willReturn($storage);
 
-		$data[] = [$this->createShare(null, IShare::TYPE_USER,  $nonShareAble, $user2, $user0, $user0, 31, null, null), 'You are not allowed to share name', true];
+		$data[] = [$this->createShare(null, IShare::TYPE_USER, $nonShareAble, $user2, $user0, $user0, 31, null, null), 'You are not allowed to share name', true];
 		$data[] = [$this->createShare(null, IShare::TYPE_GROUP, $nonShareAble, $group0, $user0, $user0, 31, null, null), 'You are not allowed to share name', true];
-		$data[] = [$this->createShare(null, IShare::TYPE_LINK,  $nonShareAble, null, $user0, $user0, 31, null, null), 'You are not allowed to share name', true];
+		$data[] = [$this->createShare(null, IShare::TYPE_LINK, $nonShareAble, null, $user0, $user0, 31, null, null), 'You are not allowed to share name', true];
 
 		$limitedPermssions = $this->createMock(File::class);
 		$limitedPermssions->method('isShareable')->willReturn(true);
@@ -644,17 +667,17 @@ class ManagerTest extends \Test\TestCase {
 		$limitedPermssions->method('getStorage')
 			->willReturn($storage);
 
-		$data[] = [$this->createShare(null, IShare::TYPE_USER,  $limitedPermssions, $user2, $user0, $user0, null, null, null), 'A share requires permissions', true];
+		$data[] = [$this->createShare(null, IShare::TYPE_USER, $limitedPermssions, $user2, $user0, $user0, null, null, null), 'A share requires permissions', true];
 		$data[] = [$this->createShare(null, IShare::TYPE_GROUP, $limitedPermssions, $group0, $user0, $user0, null, null, null), 'A share requires permissions', true];
-		$data[] = [$this->createShare(null, IShare::TYPE_LINK,  $limitedPermssions, null, $user0, $user0, null, null, null), 'A share requires permissions', true];
+		$data[] = [$this->createShare(null, IShare::TYPE_LINK, $limitedPermssions, null, $user0, $user0, null, null, null), 'A share requires permissions', true];
 
 		$mount = $this->createMock(MoveableMount::class);
 		$limitedPermssions->method('getMountPoint')->willReturn($mount);
 
 
-		$data[] = [$this->createShare(null, IShare::TYPE_USER,  $limitedPermssions, $user2, $user0, $user0, 31, null, null), 'Cannot increase permissions of path', true];
+		$data[] = [$this->createShare(null, IShare::TYPE_USER, $limitedPermssions, $user2, $user0, $user0, 31, null, null), 'Cannot increase permissions of path', true];
 		$data[] = [$this->createShare(null, IShare::TYPE_GROUP, $limitedPermssions, $group0, $user0, $user0, 17, null, null), 'Cannot increase permissions of path', true];
-		$data[] = [$this->createShare(null, IShare::TYPE_LINK,  $limitedPermssions, null, $user0, $user0, 3, null, null), 'Cannot increase permissions of path', true];
+		$data[] = [$this->createShare(null, IShare::TYPE_LINK, $limitedPermssions, null, $user0, $user0, 3, null, null), 'Cannot increase permissions of path', true];
 
 		$nonMoveableMountPermssions = $this->createMock(Folder::class);
 		$nonMoveableMountPermssions->method('isShareable')->willReturn(true);
@@ -667,7 +690,7 @@ class ManagerTest extends \Test\TestCase {
 		$nonMoveableMountPermssions->method('getStorage')
 			->willReturn($storage);
 
-		$data[] = [$this->createShare(null, IShare::TYPE_USER,  $nonMoveableMountPermssions, $user2, $user0, $user0, 11, null, null), 'Cannot increase permissions of path', false];
+		$data[] = [$this->createShare(null, IShare::TYPE_USER, $nonMoveableMountPermssions, $user2, $user0, $user0, 11, null, null), 'Cannot increase permissions of path', false];
 		$data[] = [$this->createShare(null, IShare::TYPE_GROUP, $nonMoveableMountPermssions, $group0, $user0, $user0, 11, null, null), 'Cannot increase permissions of path', false];
 
 		$rootFolder = $this->createMock(Folder::class);
@@ -675,9 +698,9 @@ class ManagerTest extends \Test\TestCase {
 		$rootFolder->method('getPermissions')->willReturn(\OCP\Constants::PERMISSION_ALL);
 		$rootFolder->method('getId')->willReturn(42);
 
-		$data[] = [$this->createShare(null, IShare::TYPE_USER,  $rootFolder, $user2, $user0, $user0, 30, null, null), 'You cannot share your root folder', true];
+		$data[] = [$this->createShare(null, IShare::TYPE_USER, $rootFolder, $user2, $user0, $user0, 30, null, null), 'You cannot share your root folder', true];
 		$data[] = [$this->createShare(null, IShare::TYPE_GROUP, $rootFolder, $group0, $user0, $user0, 2, null, null), 'You cannot share your root folder', true];
-		$data[] = [$this->createShare(null, IShare::TYPE_LINK,  $rootFolder, null, $user0, $user0, 16, null, null), 'You cannot share your root folder', true];
+		$data[] = [$this->createShare(null, IShare::TYPE_LINK, $rootFolder, null, $user0, $user0, 16, null, null), 'You cannot share your root folder', true];
 
 		$allPermssions = $this->createMock(Folder::class);
 		$allPermssions->method('isShareable')->willReturn(true);
@@ -688,12 +711,12 @@ class ManagerTest extends \Test\TestCase {
 		$allPermssions->method('getStorage')
 			->willReturn($storage);
 
-		$data[] = [$this->createShare(null, IShare::TYPE_USER,  $allPermssions, $user2, $user0, $user0, 30, null, null), 'Shares need at least read permissions', true];
+		$data[] = [$this->createShare(null, IShare::TYPE_USER, $allPermssions, $user2, $user0, $user0, 30, null, null), 'Shares need at least read permissions', true];
 		$data[] = [$this->createShare(null, IShare::TYPE_GROUP, $allPermssions, $group0, $user0, $user0, 2, null, null), 'Shares need at least read permissions', true];
 
-		$data[] = [$this->createShare(null, IShare::TYPE_USER,  $allPermssions, $user2, $user0, $user0, 31, null, null), null, false];
+		$data[] = [$this->createShare(null, IShare::TYPE_USER, $allPermssions, $user2, $user0, $user0, 31, null, null), null, false];
 		$data[] = [$this->createShare(null, IShare::TYPE_GROUP, $allPermssions, $group0, $user0, $user0, 3, null, null), null, false];
-		$data[] = [$this->createShare(null, IShare::TYPE_LINK,  $allPermssions, null, $user0, $user0, 17, null, null), null, false];
+		$data[] = [$this->createShare(null, IShare::TYPE_LINK, $allPermssions, null, $user0, $user0, 17, null, null), null, false];
 
 
 		$remoteStorage = $this->createMock(Storage\IStorage::class);
@@ -889,7 +912,7 @@ class ManagerTest extends \Test\TestCase {
 		}
 
 		$expected = new \DateTime();
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 		$expected->add(new \DateInterval('P3D'));
 
 		self::invokePrivate($this->manager, 'validateExpirationDateInternal', [$share]);
@@ -924,7 +947,7 @@ class ManagerTest extends \Test\TestCase {
 		}
 
 		$expected = new \DateTime();
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 		$expected->add(new \DateInterval('P1D'));
 
 		self::invokePrivate($this->manager, 'validateExpirationDateInternal', [$share]);
@@ -972,10 +995,10 @@ class ManagerTest extends \Test\TestCase {
 	public function testValidateExpirationDateInternalEnforceValid($shareType) {
 		$future = new \DateTime();
 		$future->add(new \DateInterval('P2D'));
-		$future->setTime(1,2,3);
+		$future->setTime(1, 2, 3);
 
 		$expected = clone $future;
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 
 		$share = $this->manager->newShare();
 		$share->setShareType($shareType);
@@ -1014,10 +1037,10 @@ class ManagerTest extends \Test\TestCase {
 	public function testValidateExpirationDateInternalNoDefault($shareType) {
 		$date = new \DateTime();
 		$date->add(new \DateInterval('P5D'));
-		$date->setTime(1,2,3);
+		$date->setTime(1, 2, 3);
 
 		$expected = clone $date;
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 
 		$share = $this->manager->newShare();
 		$share->setShareType($shareType);
@@ -1062,7 +1085,7 @@ class ManagerTest extends \Test\TestCase {
 
 		$expected = new \DateTime();
 		$expected->add(new \DateInterval('P3D'));
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 
 		if ($shareType === IShare::TYPE_USER) {
 			$this->config->method('getAppValue')
@@ -1097,10 +1120,10 @@ class ManagerTest extends \Test\TestCase {
 	public function testValidateExpirationDateInternalDefault($shareType) {
 		$future = new \DateTime();
 		$future->add(new \DateInterval('P5D'));
-		$future->setTime(1,2,3);
+		$future->setTime(1, 2, 3);
 
 		$expected = clone $future;
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 
 		$share = $this->manager->newShare();
 		$share->setShareType($shareType);
@@ -1139,7 +1162,7 @@ class ManagerTest extends \Test\TestCase {
 	public function testValidateExpirationDateInternalHookModification($shareType) {
 		$nextWeek = new \DateTime();
 		$nextWeek->add(new \DateInterval('P7D'));
-		$nextWeek->setTime(0,0,0);
+		$nextWeek->setTime(0, 0, 0);
 
 		$save = clone $nextWeek;
 
@@ -1168,7 +1191,7 @@ class ManagerTest extends \Test\TestCase {
 
 		$nextWeek = new \DateTime();
 		$nextWeek->add(new \DateInterval('P7D'));
-		$nextWeek->setTime(0,0,0);
+		$nextWeek->setTime(0, 0, 0);
 
 		$share = $this->manager->newShare();
 		$share->setShareType($shareType);
@@ -1267,7 +1290,7 @@ class ManagerTest extends \Test\TestCase {
 			]);
 
 		$expected = new \DateTime();
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 		$expected->add(new \DateInterval('P3D'));
 
 		self::invokePrivate($this->manager, 'validateExpirationDateLink', [$share]);
@@ -1288,7 +1311,7 @@ class ManagerTest extends \Test\TestCase {
 			]);
 
 		$expected = new \DateTime();
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 		$expected->add(new \DateInterval('P1D'));
 
 		self::invokePrivate($this->manager, 'validateExpirationDateLink', [$share]);
@@ -1320,10 +1343,10 @@ class ManagerTest extends \Test\TestCase {
 	public function testValidateExpirationDateEnforceValid() {
 		$future = new \DateTime();
 		$future->add(new \DateInterval('P2D'));
-		$future->setTime(1,2,3);
+		$future->setTime(1, 2, 3);
 
 		$expected = clone $future;
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 
 		$share = $this->manager->newShare();
 		$share->setExpirationDate($future);
@@ -1349,10 +1372,10 @@ class ManagerTest extends \Test\TestCase {
 	public function testValidateExpirationDateNoDefault() {
 		$date = new \DateTime();
 		$date->add(new \DateInterval('P5D'));
-		$date->setTime(1,2,3);
+		$date->setTime(1, 2, 3);
 
 		$expected = clone $date;
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 
 		$share = $this->manager->newShare();
 		$share->setExpirationDate($date);
@@ -1388,7 +1411,7 @@ class ManagerTest extends \Test\TestCase {
 
 		$expected = new \DateTime();
 		$expected->add(new \DateInterval('P3D'));
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 
 		$this->config->method('getAppValue')
 			->willReturnMap([
@@ -1411,10 +1434,10 @@ class ManagerTest extends \Test\TestCase {
 	public function testValidateExpirationDateDefault() {
 		$future = new \DateTime();
 		$future->add(new \DateInterval('P5D'));
-		$future->setTime(1,2,3);
+		$future->setTime(1, 2, 3);
 
 		$expected = clone $future;
-		$expected->setTime(0,0,0);
+		$expected->setTime(0, 0, 0);
 
 		$share = $this->manager->newShare();
 		$share->setExpirationDate($future);
@@ -1440,7 +1463,7 @@ class ManagerTest extends \Test\TestCase {
 	public function testValidateExpirationDateHookModification() {
 		$nextWeek = new \DateTime();
 		$nextWeek->add(new \DateInterval('P7D'));
-		$nextWeek->setTime(0,0,0);
+		$nextWeek->setTime(0, 0, 0);
 
 		$save = clone $nextWeek;
 
@@ -1465,7 +1488,7 @@ class ManagerTest extends \Test\TestCase {
 
 		$nextWeek = new \DateTime();
 		$nextWeek->add(new \DateInterval('P7D'));
-		$nextWeek->setTime(0,0,0);
+		$nextWeek->setTime(0, 0, 0);
 
 		$share = $this->manager->newShare();
 		$share->setExpirationDate($nextWeek);
@@ -1880,13 +1903,31 @@ class ManagerTest extends \Test\TestCase {
 	}
 
 
-	public function testLinkCreateChecksNoPublicUpload() {
+	public function testFileLinkCreateChecksNoPublicUpload() {
+		$share = $this->manager->newShare();
+
+		$share->setPermissions(\OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_UPDATE);
+		$share->setNodeType('file');
+
+		$this->config
+			->method('getAppValue')
+			->willReturnMap([
+				['core', 'shareapi_allow_links', 'yes', 'yes'],
+				['core', 'shareapi_allow_public_upload', 'yes', 'no']
+			]);
+
+		self::invokePrivate($this->manager, 'linkCreateChecks', [$share]);
+		$this->addToAssertionCount(1);
+	}
+
+	public function testFolderLinkCreateChecksNoPublicUpload() {
 		$this->expectException(\Exception::class);
 		$this->expectExceptionMessage('Public upload is not allowed');
 
 		$share = $this->manager->newShare();
 
 		$share->setPermissions(\OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_UPDATE);
+		$share->setNodeType('folder');
 
 		$this->config
 			->method('getAppValue')
@@ -1902,6 +1943,9 @@ class ManagerTest extends \Test\TestCase {
 		$share = $this->manager->newShare();
 
 		$share->setPermissions(\OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_UPDATE);
+		$share->setSharedWith('sharedWith');
+		$folder = $this->createMock(\OC\Files\Node\Folder::class);
+		$share->setNode($folder);
 
 		$this->config
 			->method('getAppValue')
@@ -1918,6 +1962,9 @@ class ManagerTest extends \Test\TestCase {
 		$share = $this->manager->newShare();
 
 		$share->setPermissions(\OCP\Constants::PERMISSION_READ);
+		$share->setSharedWith('sharedWith');
+		$folder = $this->createMock(\OC\Files\Node\Folder::class);
+		$share->setNode($folder);
 
 		$this->config
 			->method('getAppValue')
@@ -2271,44 +2318,39 @@ class ManagerTest extends \Test\TestCase {
 				return $share->setId(42);
 			});
 
-		// Pre share
-		$this->eventDispatcher->expects($this->at(0))
+		$this->eventDispatcher->expects($this->exactly(2))
 			->method('dispatch')
-			->with(
-				$this->equalTo('OCP\Share::preShare'),
-				$this->callback(function (GenericEvent $e) use ($path, $date) {
-					/** @var IShare $share */
-					$share = $e->getSubject();
+			->withConsecutive(
+				// Pre share
+				[$this->equalTo('OCP\Share::preShare'),
+					$this->callback(function (GenericEvent $e) use ($path, $date) {
+						/** @var IShare $share */
+						$share = $e->getSubject();
 
-					return $share->getShareType() === IShare::TYPE_LINK &&
-						$share->getNode() === $path &&
-						$share->getSharedBy() === 'sharedBy' &&
-						$share->getPermissions() === \OCP\Constants::PERMISSION_ALL &&
-						$share->getExpirationDate() === $date &&
-						$share->getPassword() === 'hashed' &&
-						$share->getToken() === 'token';
-				})
-			);
+						return $share->getShareType() === IShare::TYPE_LINK &&
+							$share->getNode() === $path &&
+							$share->getSharedBy() === 'sharedBy' &&
+							$share->getPermissions() === \OCP\Constants::PERMISSION_ALL &&
+							$share->getExpirationDate() === $date &&
+							$share->getPassword() === 'hashed' &&
+							$share->getToken() === 'token';
+					})],
+				// Post share
+				[$this->equalTo('OCP\Share::postShare'),
+					$this->callback(function (GenericEvent $e) use ($path, $date) {
+						/** @var IShare $share */
+						$share = $e->getSubject();
 
-		// Post share
-		$this->eventDispatcher->expects($this->at(1))
-			->method('dispatch')
-			->with(
-				$this->equalTo('OCP\Share::postShare'),
-				$this->callback(function (GenericEvent $e) use ($path, $date) {
-					/** @var IShare $share */
-					$share = $e->getSubject();
-
-					return $share->getShareType() === IShare::TYPE_LINK &&
-						$share->getNode() === $path &&
-						$share->getSharedBy() === 'sharedBy' &&
-						$share->getPermissions() === \OCP\Constants::PERMISSION_ALL &&
-						$share->getExpirationDate() === $date &&
-						$share->getPassword() === 'hashed' &&
-						$share->getToken() === 'token' &&
-						$share->getId() === '42' &&
-						$share->getTarget() === '/target';
-				})
+						return $share->getShareType() === IShare::TYPE_LINK &&
+							$share->getNode() === $path &&
+							$share->getSharedBy() === 'sharedBy' &&
+							$share->getPermissions() === \OCP\Constants::PERMISSION_ALL &&
+							$share->getExpirationDate() === $date &&
+							$share->getPassword() === 'hashed' &&
+							$share->getToken() === 'token' &&
+							$share->getId() === '42' &&
+							$share->getTarget() === '/target';
+					})]
 			);
 
 		/** @var IShare $share */
@@ -2383,44 +2425,37 @@ class ManagerTest extends \Test\TestCase {
 				return $share->setId(42);
 			});
 
-		// Pre share
-		$this->eventDispatcher->expects($this->at(0))
+		$this->eventDispatcher->expects($this->exactly(2))
 			->method('dispatch')
-			->with(
-				$this->equalTo('OCP\Share::preShare'),
-				$this->callback(function (GenericEvent $e) use ($path) {
-					/** @var IShare $share */
-					$share = $e->getSubject();
+			->withConsecutive(
+				[$this->equalTo('OCP\Share::preShare'),
+					$this->callback(function (GenericEvent $e) use ($path) {
+						/** @var IShare $share */
+						$share = $e->getSubject();
 
-					return $share->getShareType() === IShare::TYPE_EMAIL &&
-						$share->getNode() === $path &&
-						$share->getSharedBy() === 'sharedBy' &&
-						$share->getPermissions() === \OCP\Constants::PERMISSION_ALL &&
-						$share->getExpirationDate() === null &&
-						$share->getPassword() === null &&
-						$share->getToken() === 'token';
-				})
-			);
+						return $share->getShareType() === IShare::TYPE_EMAIL &&
+							$share->getNode() === $path &&
+							$share->getSharedBy() === 'sharedBy' &&
+							$share->getPermissions() === \OCP\Constants::PERMISSION_ALL &&
+							$share->getExpirationDate() === null &&
+							$share->getPassword() === null &&
+							$share->getToken() === 'token';
+					})],
+				[$this->equalTo('OCP\Share::postShare'),
+					$this->callback(function (GenericEvent $e) use ($path) {
+						/** @var IShare $share */
+						$share = $e->getSubject();
 
-		// Post share
-		$this->eventDispatcher->expects($this->at(1))
-			->method('dispatch')
-			->with(
-				$this->equalTo('OCP\Share::postShare'),
-				$this->callback(function (GenericEvent $e) use ($path) {
-					/** @var IShare $share */
-					$share = $e->getSubject();
-
-					return $share->getShareType() === IShare::TYPE_EMAIL &&
-						$share->getNode() === $path &&
-						$share->getSharedBy() === 'sharedBy' &&
-						$share->getPermissions() === \OCP\Constants::PERMISSION_ALL &&
-						$share->getExpirationDate() === null &&
-						$share->getPassword() === null &&
-						$share->getToken() === 'token' &&
-						$share->getId() === '42' &&
-						$share->getTarget() === '/target';
-				})
+						return $share->getShareType() === IShare::TYPE_EMAIL &&
+							$share->getNode() === $path &&
+							$share->getSharedBy() === 'sharedBy' &&
+							$share->getPermissions() === \OCP\Constants::PERMISSION_ALL &&
+							$share->getExpirationDate() === null &&
+							$share->getPassword() === null &&
+							$share->getToken() === 'token' &&
+							$share->getId() === '42' &&
+							$share->getTarget() === '/target';
+					})],
 			);
 
 		/** @var IShare $share */
@@ -2623,7 +2658,7 @@ class ManagerTest extends \Test\TestCase {
 		}
 
 		$today = new \DateTime();
-		$today->setTime(0,0,0);
+		$today->setTime(0, 0, 0);
 
 		/*
 		 * Set the expiration date to today for some shares
@@ -2809,23 +2844,21 @@ class ManagerTest extends \Test\TestCase {
 
 		$share = $this->createMock(IShare::class);
 
-		$factory->expects($this->at(0))
+		$factory->expects($this->exactly(2))
 			->method('getProviderForType')
-			->with(IShare::TYPE_LINK)
-			->willReturn($this->defaultProvider);
-		$factory->expects($this->at(1))
-			->method('getProviderForType')
-			->with(IShare::TYPE_REMOTE)
+			->withConsecutive(
+				[IShare::TYPE_LINK],
+				[IShare::TYPE_REMOTE]
+			)
 			->willReturn($this->defaultProvider);
 
-		$this->defaultProvider->expects($this->at(0))
+		$this->defaultProvider->expects($this->exactly(2))
 			->method('getShareByToken')
 			->with('token')
-			->will($this->throwException(new ShareNotFound()));
-		$this->defaultProvider->expects($this->at(1))
-			->method('getShareByToken')
-			->with('token')
-			->willReturn($share);
+			->willReturnOnConsecutiveCalls(
+				$this->throwException(new ShareNotFound()),
+				$share
+			);
 
 		$ret = $manager->getShareByToken('token');
 		$this->assertSame($share, $ret);
@@ -2851,7 +2884,7 @@ class ManagerTest extends \Test\TestCase {
 			->getMock();
 
 		$date = new \DateTime();
-		$date->setTime(0,0,0);
+		$date->setTime(0, 0, 0);
 		$share = $this->manager->newShare();
 		$share->setExpirationDate($date);
 
@@ -2875,7 +2908,7 @@ class ManagerTest extends \Test\TestCase {
 			->willReturn('yes');
 
 		$date = new \DateTime();
-		$date->setTime(0,0,0);
+		$date->setTime(0, 0, 0);
 		$date->add(new \DateInterval('P2D'));
 		$share = $this->manager->newShare();
 		$share->setExpirationDate($date);
@@ -2904,21 +2937,19 @@ class ManagerTest extends \Test\TestCase {
 
 	public function testGetShareByTokenPublicUploadDisabled() {
 		$this->config
-			->expects($this->at(0))
+			->expects($this->exactly(2))
 			->method('getAppValue')
-			->with('core', 'shareapi_allow_links', 'yes')
-			->willReturn('yes');
+			->willReturnMap([
+				['core', 'shareapi_allow_links', 'yes', 'yes'],
+				['core', 'shareapi_allow_public_upload', 'yes', 'no'],
+			]);
 
 		$share = $this->manager->newShare();
 		$share->setShareType(IShare::TYPE_LINK)
 			->setPermissions(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_UPDATE);
-
-		$this->config
-			->expects($this->at(1))
-			->method('getAppValue')
-			->willReturnMap([
-				['core', 'shareapi_allow_public_upload', 'yes', 'no'],
-			]);
+		$share->setSharedWith('sharedWith');
+		$folder = $this->createMock(\OC\Files\Node\Folder::class);
+		$share->setNode($folder);
 
 		$this->defaultProvider->expects($this->once())
 			->method('getShareByToken')
@@ -3005,6 +3036,8 @@ class ManagerTest extends \Test\TestCase {
 		$manager->expects($this->once())->method('getShareById')->with('foo:42')->willReturn($originalShare);
 
 		$share = $this->manager->newShare();
+		$attrs = $this->manager->newShare()->newAttributes();
+		$attrs->setAttribute('app1', 'perm1', true);
 		$share->setProviderId('foo')
 			->setId('42')
 			->setShareType(IShare::TYPE_USER);
@@ -3095,6 +3128,8 @@ class ManagerTest extends \Test\TestCase {
 		$manager->expects($this->once())->method('getShareById')->with('foo:42')->willReturn($originalShare);
 
 		$share = $this->manager->newShare();
+		$attrs = $this->manager->newShare()->newAttributes();
+		$attrs->setAttribute('app1', 'perm1', true);
 		$share->setProviderId('foo')
 			->setId('42')
 			->setShareType(IShare::TYPE_USER)
@@ -3102,6 +3137,7 @@ class ManagerTest extends \Test\TestCase {
 			->setShareOwner('newUser')
 			->setSharedBy('sharer')
 			->setPermissions(31)
+			->setAttributes($attrs)
 			->setNode($node);
 
 		$this->defaultProvider->expects($this->once())
@@ -3126,6 +3162,7 @@ class ManagerTest extends \Test\TestCase {
 			'uidOwner' => 'sharer',
 			'permissions' => 31,
 			'path' => '/myPath',
+			'attributes' => $attrs->toArray(),
 		]);
 
 		$manager->updateShare($share);
@@ -3195,7 +3232,7 @@ class ManagerTest extends \Test\TestCase {
 			->setPermissions(15);
 
 		$tomorrow = new \DateTime();
-		$tomorrow->setTime(0,0,0);
+		$tomorrow->setTime(0, 0, 0);
 		$tomorrow->add(new \DateInterval('P1D'));
 
 		$file = $this->createMock(File::class);
@@ -3276,7 +3313,7 @@ class ManagerTest extends \Test\TestCase {
 			->setPermissions(15);
 
 		$tomorrow = new \DateTime();
-		$tomorrow->setTime(0,0,0);
+		$tomorrow->setTime(0, 0, 0);
 		$tomorrow->add(new \DateInterval('P1D'));
 
 		$file = $this->createMock(File::class);
@@ -3342,7 +3379,7 @@ class ManagerTest extends \Test\TestCase {
 			->setPermissions(\OCP\Constants::PERMISSION_ALL);
 
 		$tomorrow = new \DateTime();
-		$tomorrow->setTime(0,0,0);
+		$tomorrow->setTime(0, 0, 0);
 		$tomorrow->add(new \DateInterval('P1D'));
 
 		$file = $this->createMock(File::class);
@@ -3424,7 +3461,7 @@ class ManagerTest extends \Test\TestCase {
 			->setSendPasswordByTalk(false);
 
 		$tomorrow = new \DateTime();
-		$tomorrow->setTime(0,0,0);
+		$tomorrow->setTime(0, 0, 0);
 		$tomorrow->add(new \DateInterval('P1D'));
 
 		$file = $this->createMock(File::class);
@@ -3507,7 +3544,7 @@ class ManagerTest extends \Test\TestCase {
 			->setSendPasswordByTalk(false);
 
 		$tomorrow = new \DateTime();
-		$tomorrow->setTime(0,0,0);
+		$tomorrow->setTime(0, 0, 0);
 		$tomorrow->add(new \DateInterval('P1D'));
 
 		$file = $this->createMock(File::class);
@@ -3598,7 +3635,7 @@ class ManagerTest extends \Test\TestCase {
 			->setSendPasswordByTalk(false);
 
 		$tomorrow = new \DateTime();
-		$tomorrow->setTime(0,0,0);
+		$tomorrow->setTime(0, 0, 0);
 		$tomorrow->add(new \DateInterval('P1D'));
 
 		$file = $this->createMock(File::class);
@@ -3671,7 +3708,7 @@ class ManagerTest extends \Test\TestCase {
 			->setSendPasswordByTalk(false);
 
 		$tomorrow = new \DateTime();
-		$tomorrow->setTime(0,0,0);
+		$tomorrow->setTime(0, 0, 0);
 		$tomorrow->add(new \DateInterval('P1D'));
 
 		$file = $this->createMock(File::class);
@@ -3744,7 +3781,7 @@ class ManagerTest extends \Test\TestCase {
 			->setSendPasswordByTalk(false);
 
 		$tomorrow = new \DateTime();
-		$tomorrow->setTime(0,0,0);
+		$tomorrow->setTime(0, 0, 0);
 		$tomorrow->add(new \DateInterval('P1D'));
 
 		$file = $this->createMock(File::class);
@@ -3817,7 +3854,7 @@ class ManagerTest extends \Test\TestCase {
 			->setSendPasswordByTalk(false);
 
 		$tomorrow = new \DateTime();
-		$tomorrow->setTime(0,0,0);
+		$tomorrow->setTime(0, 0, 0);
 		$tomorrow->add(new \DateInterval('P1D'));
 
 		$file = $this->createMock(File::class);
@@ -3891,7 +3928,7 @@ class ManagerTest extends \Test\TestCase {
 			->setSendPasswordByTalk(true);
 
 		$tomorrow = new \DateTime();
-		$tomorrow->setTime(0,0,0);
+		$tomorrow->setTime(0, 0, 0);
 		$tomorrow->add(new \DateInterval('P1D'));
 
 		$file = $this->createMock(File::class);
@@ -3965,7 +4002,7 @@ class ManagerTest extends \Test\TestCase {
 			->setSendPasswordByTalk(true);
 
 		$tomorrow = new \DateTime();
-		$tomorrow->setTime(0,0,0);
+		$tomorrow->setTime(0, 0, 0);
 		$tomorrow->add(new \DateInterval('P1D'));
 
 		$file = $this->createMock(File::class);

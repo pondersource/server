@@ -3,7 +3,7 @@
  *
  * @author Christopher Ng <chrng8@gmail.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -26,29 +26,17 @@
  * TODO add nice validation errors for Profile page settings modal
  */
 
-import { VALIDATE_EMAIL_REGEX } from '../constants/AccountPropertyConstants'
-
-/**
- * Validate the string input
- *
- * *Generic validator just to check that input is not an empty string*
- *
- * @param {string} input the input
- * @returns {boolean}
- */
-export function validateStringInput(input) {
-	return input !== ''
-}
+import { VALIDATE_EMAIL_REGEX } from '../constants/AccountPropertyConstants.js'
 
 /**
  * Validate the email input
  *
- * *Compliant with PHP core FILTER_VALIDATE_EMAIL validator*
+ * Compliant with PHP core FILTER_VALIDATE_EMAIL validator*
  *
- * *Reference implementation https://github.com/mpyw/FILTER_VALIDATE_EMAIL.js/blob/71e62ca48841d2246a1b531e7e84f5a01f15e615/src/index.ts*
+ * Reference implementation https://github.com/mpyw/FILTER_VALIDATE_EMAIL.js/blob/71e62ca48841d2246a1b531e7e84f5a01f15e615/src/index.ts*
  *
  * @param {string} input the input
- * @returns {boolean}
+ * @return {boolean}
  */
 export function validateEmail(input) {
 	return typeof input === 'string'
@@ -59,12 +47,40 @@ export function validateEmail(input) {
 }
 
 /**
+ * Validate the URL input
+ *
+ * @param {string} input the input
+ * @return {boolean}
+ */
+export function validateUrl(input) {
+	try {
+		// eslint-disable-next-line no-new
+		new URL(input)
+		return true
+	} catch (e) {
+		return false
+	}
+}
+
+/**
  * Validate the language input
  *
  * @param {object} input the input
- * @returns {boolean}
+ * @return {boolean}
  */
 export function validateLanguage(input) {
+	return input.code !== ''
+		&& input.name !== ''
+		&& input.name !== undefined
+}
+
+/**
+ * Validate the locale input
+ *
+ * @param {object} input the input
+ * @return {boolean}
+ */
+export function validateLocale(input) {
 	return input.code !== ''
 		&& input.name !== ''
 		&& input.name !== undefined
@@ -74,7 +90,7 @@ export function validateLanguage(input) {
  * Validate boolean input
  *
  * @param {boolean} input the input
- * @returns {boolean}
+ * @return {boolean}
  */
 export function validateBoolean(input) {
 	return typeof input === 'boolean'

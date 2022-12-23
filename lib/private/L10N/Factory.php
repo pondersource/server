@@ -40,6 +40,8 @@ declare(strict_types=1);
 
 namespace OC\L10N;
 
+use OCP\ICache;
+use OCP\ICacheFactory;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IUser;
@@ -94,7 +96,9 @@ class Factory implements IFactory {
 	protected $request;
 
 	/** @var IUserSession */
-	protected $userSession;
+	protected IUserSession $userSession;
+
+	private ICache $cache;
 
 	/** @var string */
 	protected $serverRoot;
@@ -109,11 +113,13 @@ class Factory implements IFactory {
 		IConfig $config,
 		IRequest $request,
 		IUserSession $userSession,
+		ICacheFactory $cacheFactory,
 		$serverRoot
 	) {
 		$this->config = $config;
 		$this->request = $request;
 		$this->userSession = $userSession;
+		$this->cache = $cacheFactory->createLocal('L10NFactory');
 		$this->serverRoot = $serverRoot;
 	}
 
@@ -338,6 +344,10 @@ class Factory implements IFactory {
 			$key = 'null';
 		}
 
+		if ($availableLanguages = $this->cache->get($key)) {
+			$this->availableLanguages[$key] = $availableLanguages;
+		}
+
 		// also works with null as key
 		if (!empty($this->availableLanguages[$key])) {
 			return $this->availableLanguages[$key];
@@ -374,6 +384,7 @@ class Factory implements IFactory {
 		}
 
 		$this->availableLanguages[$key] = $available;
+		$this->cache->set($key, $available, 60);
 		return $available;
 	}
 
@@ -430,6 +441,15 @@ class Factory implements IFactory {
 			$language = $this->config->getUserValue($user->getUID(), 'core', 'lang', null);
 			if ($language !== null) {
 				return $language;
+			}
+
+			// Use language from request
+			if ($this->userSession->getUser() instanceof IUser &&
+				$user->getUID() === $this->userSession->getUser()->getUID()) {
+				try {
+					return $this->getLanguageFromRequest();
+				} catch (LanguageNotFoundException $e) {
+				}
 			}
 		}
 
@@ -584,71 +604,6 @@ class Factory implements IFactory {
 			return \OC_App::getAppPath($app) . '/l10n/';
 		}
 		return $this->serverRoot . '/core/l10n/';
-	}
-
-
-	/**
-	 * Creates a function from the plural string
-	 *
-	 * Parts of the code is copied from Habari:
-	 * https://github.com/habari/system/blob/master/classes/locale.php
-	 * @param string $string
-	 * @return string
-	 */
-	public function createPluralFunction($string) {
-		if (isset($this->pluralFunctions[$string])) {
-			return $this->pluralFunctions[$string];
-		}
-
-		if (preg_match('/^\s*nplurals\s*=\s*(\d+)\s*;\s*plural=(.*)$/u', $string, $matches)) {
-			// sanitize
-			$nplurals = preg_replace('/[^0-9]/', '', $matches[1]);
-			$plural = preg_replace('#[^n0-9:\(\)\?\|\&=!<>+*/\%-]#', '', $matches[2]);
-
-			$body = str_replace(
-				['plural', 'n', '$n$plurals',],
-				['$plural', '$n', '$nplurals',],
-				'nplurals=' . $nplurals . '; plural=' . $plural
-			);
-
-			// add parents
-			// important since PHP's ternary evaluates from left to right
-			$body .= ';';
-			$res = '';
-			$p = 0;
-			$length = strlen($body);
-			for ($i = 0; $i < $length; $i++) {
-				$ch = $body[$i];
-				switch ($ch) {
-					case '?':
-						$res .= ' ? (';
-						$p++;
-						break;
-					case ':':
-						$res .= ') : (';
-						break;
-					case ';':
-						$res .= str_repeat(')', $p) . ';';
-						$p = 0;
-						break;
-					default:
-						$res .= $ch;
-				}
-			}
-
-			$body = $res . 'return ($plural>=$nplurals?$nplurals-1:$plural);';
-			$function = create_function('$n', $body);
-			$this->pluralFunctions[$string] = $function;
-			return $function;
-		} else {
-			// default: one plural form for all cases but n==1 (english)
-			$function = create_function(
-				'$n',
-				'$nplurals=2;$plural=($n==1?0:1);return ($plural>=$nplurals?$nplurals-1:$plural);'
-			);
-			$this->pluralFunctions[$string] = $function;
-			return $function;
-		}
 	}
 
 	/**

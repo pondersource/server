@@ -31,40 +31,17 @@ use OCP\Comments\ICommentsManager;
 use OCP\Comments\NotFoundException;
 use OCP\IL10N;
 use OCP\IURLGenerator;
-use OCP\IUser;
 use OCP\IUserManager;
 use OCP\L10N\IFactory;
 
 class Provider implements IProvider {
+	protected IFactory $languageFactory;
+	protected ?IL10N $l = null;
+	protected IUrlGenerator $url;
+	protected ICommentsManager $commentsManager;
+	protected IUserManager $userManager;
+	protected IManager $activityManager;
 
-	/** @var IFactory */
-	protected $languageFactory;
-
-	/** @var IL10N */
-	protected $l;
-
-	/** @var IURLGenerator */
-	protected $url;
-
-	/** @var ICommentsManager */
-	protected $commentsManager;
-
-	/** @var IUserManager */
-	protected $userManager;
-
-	/** @var IManager */
-	protected $activityManager;
-
-	/** @var string[] */
-	protected $displayNames = [];
-
-	/**
-	 * @param IFactory $languageFactory
-	 * @param IURLGenerator $url
-	 * @param ICommentsManager $commentsManager
-	 * @param IUserManager $userManager
-	 * @param IManager $activityManager
-	 */
 	public function __construct(IFactory $languageFactory, IURLGenerator $url, ICommentsManager $commentsManager, IUserManager $userManager, IManager $activityManager) {
 		$this->languageFactory = $languageFactory;
 		$this->url = $url;
@@ -111,23 +88,19 @@ class Provider implements IProvider {
 	}
 
 	/**
-	 * @param IEvent $event
-	 * @return IEvent
 	 * @throws \InvalidArgumentException
 	 */
-	protected function parseShortVersion(IEvent $event) {
+	protected function parseShortVersion(IEvent $event): IEvent {
 		$subjectParameters = $this->getSubjectParameters($event);
 
 		if ($event->getSubject() === 'add_comment_subject') {
 			if ($subjectParameters['actor'] === $this->activityManager->getCurrentUserId()) {
-				$event->setParsedSubject($this->l->t('You commented'))
-					->setRichSubject($this->l->t('You commented'), []);
+				$event->setRichSubject($this->l->t('You commented'), []);
 			} else {
 				$author = $this->generateUserParameter($subjectParameters['actor']);
-				$event->setParsedSubject($this->l->t('%1$s commented', [$author['name']]))
-					->setRichSubject($this->l->t('{author} commented'), [
-						'author' => $author,
-					]);
+				$event->setRichSubject($this->l->t('{author} commented'), [
+					'author' => $author,
+				]);
 			}
 		} else {
 			throw new \InvalidArgumentException();
@@ -137,11 +110,9 @@ class Provider implements IProvider {
 	}
 
 	/**
-	 * @param IEvent $event
-	 * @return IEvent
 	 * @throws \InvalidArgumentException
 	 */
-	protected function parseLongVersion(IEvent $event) {
+	protected function parseLongVersion(IEvent $event): IEvent {
 		$subjectParameters = $this->getSubjectParameters($event);
 
 		if ($event->getSubject() === 'add_comment_subject') {
@@ -170,7 +141,7 @@ class Provider implements IProvider {
 		return $event;
 	}
 
-	protected function getSubjectParameters(IEvent $event) {
+	protected function getSubjectParameters(IEvent $event): array {
 		$subjectParameters = $event->getSubjectParameters();
 		if (isset($subjectParameters['fileId'])) {
 			return $subjectParameters;
@@ -190,10 +161,7 @@ class Provider implements IProvider {
 		];
 	}
 
-	/**
-	 * @param IEvent $event
-	 */
-	protected function parseMessage(IEvent $event) {
+	protected function parseMessage(IEvent $event): void {
 		$messageParameters = $event->getMessageParameters();
 		if (empty($messageParameters)) {
 			// Email
@@ -228,12 +196,7 @@ class Provider implements IProvider {
 		}
 	}
 
-	/**
-	 * @param int $id
-	 * @param string $path
-	 * @return array
-	 */
-	protected function generateFileParameter($id, $path) {
+	protected function generateFileParameter(int $id, string $path): array {
 		return [
 			'type' => 'file',
 			'id' => $id,
@@ -243,32 +206,11 @@ class Provider implements IProvider {
 		];
 	}
 
-	/**
-	 * @param string $uid
-	 * @return array
-	 */
-	protected function generateUserParameter($uid) {
-		if (!isset($this->displayNames[$uid])) {
-			$this->displayNames[$uid] = $this->getDisplayName($uid);
-		}
-
+	protected function generateUserParameter(string $uid): array {
 		return [
 			'type' => 'user',
 			'id' => $uid,
-			'name' => $this->displayNames[$uid],
+			'name' => $this->userManager->getDisplayName($uid) ?? $uid,
 		];
-	}
-
-	/**
-	 * @param string $uid
-	 * @return string
-	 */
-	protected function getDisplayName($uid) {
-		$user = $this->userManager->get($uid);
-		if ($user instanceof IUser) {
-			return $user->getDisplayName();
-		} else {
-			return $uid;
-		}
 	}
 }
