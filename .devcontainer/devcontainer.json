@@ -18,10 +18,5 @@
 	],
 	"settings": {
 		"php.suggest.basic": false,
-	},
-	"features": {
-    		"ghcr.io/devcontainers/features/sshd:1": {
-        		"version": "latest"
-    	}
-}
+	}
 }
