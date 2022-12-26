@@ -34,10 +34,12 @@ use OCP\WorkflowEngine\IFileCheck;
 use OC\Files\Storage\Wrapper\Wrapper;
 use OCP\ISession;
 
+/** @psalm-suppress PropertyNotSetInConstructor */
 class MfaVerified implements ICheck, IFileCheck {
 	use TFileCheck;
 
 	/** @var array */
+	/** @psalm-suppress PropertyNotSetInConstructor */
 	protected $fileIds;
 
 	/** @var IL10N */
@@ -60,7 +62,7 @@ class MfaVerified implements ICheck, IFileCheck {
 	 * @param string $value
 	 * @return bool
 	 */
-	public function executeCheck($operator, $value) {
+	public function executeCheck($operator, $value): bool {
 		$mfaVerified = $this->session->get('user_saml.samlUserData')["mfa_verified"][0];
 		if (strtolower($value) == 'true') {
 			return $mfaVerified == '1'; //Mfa verified must not have access
@@ -132,7 +134,11 @@ class MfaVerified implements ICheck, IFileCheck {
 		return $parentIds;
 	}
 
-	protected function dirname($path) {
+	/**
+	 * @param string $path
+	 * @return string
+	 */
+	protected function dirname(string $path): string {
 		$dir = dirname($path);
 		return $dir === '.' ? '' : $dir;
 	}
