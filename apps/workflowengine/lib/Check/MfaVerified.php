@@ -40,6 +40,7 @@ class MfaVerified implements ICheck, IFileCheck {
 
 	/** @var array */
 	/** @psalm-suppress PropertyNotSetInConstructor */
+	/** @psalm-suppress MissingPropertyType */
 	protected $fileIds;
 
 	/** @var IL10N */
@@ -76,7 +77,7 @@ class MfaVerified implements ICheck, IFileCheck {
 	 * @param string $value
 	 * @throws \UnexpectedValueException
 	 */
-	public function validateCheck($operator, $value) {
+	public function validateCheck($operator, $value): void {
 		if (!in_array($operator, ['is'])) {
 			throw new \UnexpectedValueException($this->l->t('The given operator is invalid'), 1);
 		}
