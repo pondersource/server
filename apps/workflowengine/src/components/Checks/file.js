@@ -103,7 +103,7 @@ const FileChecks = [
 
 	{
 		class: 'OCA\\WorkflowEngine\\Check\\MfaVerified',
-		name: t('workflowengine', 'Mfa Verified'),
+		name: t('workflowengine', 'MFA Verified'),
 		operators: [
 			{ operator: 'is', name: t('workflowengine', 'is verified?') },
 		],

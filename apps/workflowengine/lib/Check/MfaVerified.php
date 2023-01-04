@@ -38,11 +38,6 @@ use OCP\ISession;
 class MfaVerified implements ICheck, IFileCheck {
 	use TFileCheck;
 
-	/** @var array */
-	/** @psalm-suppress PropertyNotSetInConstructor */
-	/** @psalm-suppress MissingPropertyType */
-	protected $fileIds;
-
 	/** @var IL10N */
 	protected $l;
 
@@ -66,9 +61,9 @@ class MfaVerified implements ICheck, IFileCheck {
 	public function executeCheck($operator, $value): bool {
 		$mfaVerified = $this->session->get('user_saml.samlUserData')["mfa_verified"][0];
 		if (strtolower($value) == 'true') {
-			return $mfaVerified == '1'; //Mfa verified must not have access
+			return $mfaVerified == '1'; // checking whether the current user is MFA-verified
 		} else {
-			return $mfaVerified != '1';
+			return $mfaVerified != '1'; // checking whether the current user is not MFA-verified
 		}
 	}
 
@@ -85,54 +80,6 @@ class MfaVerified implements ICheck, IFileCheck {
 		if (!in_array($value, ['true', 'false'])) {
 			throw new \UnexpectedValueException($this->l->t('The given value is invalid, must be one of ("true", "false")'), 1);
 		}
-	}
-
-	/**
-	 * Get the file ids of the given path and its parents
-	 * @param ICache $cache
-	 * @param string $path
-	 * @param bool $isExternalStorage
-	 * @return int[]
-	 */
-	protected function getFileIds(ICache $cache, $path, $isExternalStorage) {
-		/** @psalm-suppress InvalidArgument */
-		if ($this->storage->instanceOfStorage(\OCA\GroupFolders\Mount\GroupFolderStorage::class)) {
-			// Special implementation for groupfolder since all groupfolders share the same storage
-			// id so add the group folder id in the cache key too.
-			$groupFolderStorage = $this->storage;
-			if ($this->storage instanceof Wrapper) {
-				$groupFolderStorage = $this->storage->getInstanceOfStorage(\OCA\GroupFolders\Mount\GroupFolderStorage::class);
-			}
-			if ($groupFolderStorage === null) {
-				throw new \LogicException('Should not happen: Storage is instance of GroupFolderStorage but no group folder storage found while unwrapping.');
-			}
-			/**
-			 * @psalm-suppress UndefinedDocblockClass
-			 * @psalm-suppress UndefinedInterfaceMethod
-			 */
-			$cacheId = $cache->getNumericStorageId() . '/' . $groupFolderStorage->getFolderId();
-		} else {
-			$cacheId = $cache->getNumericStorageId();
-		}
-		if (isset($this->fileIds[$cacheId][$path])) {
-			return $this->fileIds[$cacheId][$path];
-		}
-
-		$parentIds = [];
-		if ($path !== $this->dirname($path)) {
-			$parentIds = $this->getFileIds($cache, $this->dirname($path), $isExternalStorage);
-		} elseif (!$isExternalStorage) {
-			return [];
-		}
-
-		$fileId = $cache->getId($path);
-		if ($fileId !== -1) {
-			$parentIds[] = $fileId;
-		}
-
-		$this->fileIds[$cacheId][$path] = $parentIds;
-
-		return $parentIds;
 	}
 
 	/**
