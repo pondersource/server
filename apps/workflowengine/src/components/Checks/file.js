@@ -100,6 +100,17 @@ const FileChecks = [
 		],
 		component: FileSystemTag,
 	},
+
+	{
+		class: 'OCA\\WorkflowEngine\\Check\\MfaVerified',
+		name: t('workflowengine', 'MFA Verified'),
+		operators: [
+			{ operator: 'is', name: t('workflowengine', 'is verified?') },
+		],
+		placeholder: (check) => {
+			return 'true'
+		},
+	},
 ]
 
 export default FileChecks
