@@ -7,7 +7,7 @@
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Sujith Haridasan <sujith.h@gmail.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -25,7 +25,8 @@
  */
 
 import axios from '@nextcloud/axios'
-import confirmPassword from '@nextcloud/password-confirmation'
+import { confirmPassword } from '@nextcloud/password-confirmation'
+import '@nextcloud/password-confirmation/dist/style.css'
 
 const sanitize = function(url) {
 	return url.replace(/\/$/, '') // Remove last url slash
@@ -62,7 +63,7 @@ export default {
 	 *     .catch((error) => {throw error;});
 	 * }).catch((error) => {requireAdmin OR API failure});
 	 *
-	 * @returns {Promise}
+	 * @return {Promise}
 	 */
 	requireAdmin() {
 		return confirmPassword()

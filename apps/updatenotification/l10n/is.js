@@ -7,10 +7,10 @@ OC.L10N.register(
     "The update server could not be reached since %d days to check for new updates." : "Ekki hefur verið hægt að nálgast uppfærsluþjóninn í %d daga til að athuga með nýjar uppfærslur.",
     "Please check the Nextcloud and server log files for errors." : "Skoðaðu hvort einhver villuboð séu í annálaskrám Nextcloud þjónsins.",
     "Update to %1$s is available." : "Uppfærsla fyrir %1$s er tiltæk.",
-    "Update for %1$s to version %2$s is available." : "Uppfærsla %1$s í útgáfu %2$s er tiltæk.",
     "Update for {app} to version %s is available." : "Uppfærsla fyrir {app} í útgáfu %s er tiltæk.",
     "Update notification" : "Tilkynning um uppfærslu",
     "Displays update notifications for Nextcloud and provides the SSO for the updater." : "Birtir tilkynningar um uppfærslur fyrir Nextcloud og sér um SSO-innskráningu fyrir uppfærslustýringuna.",
+    "Update" : "Uppfæra",
     "The version you are running is not maintained anymore. Please make sure to update to a supported version as soon as possible." : "Útgáfunni sem þú ert að keyra er ekki legur viðhaldið. Uppfærðu í studda útgáfu við fyrsta tækifæri.",
     "View in store" : "Skoða í hugbúnaðarsafni",
     "Open updater" : "Opna uppfærslustýringu",
@@ -33,13 +33,6 @@ OC.L10N.register(
     "The most recent stable version. It is suited for regular use and will always update to the latest major version." : "Nýjasta stöðuga útgáfan. Hún hentar fyrir alla venjulega notkun og er alltaf uppfærð í nýjustu aðalútgáfu.",
     "Beta" : "BETA-prófunarútgáfa",
     "A pre-release version only for testing new features, not for production environments." : "For-útgáfa sem einungis er hugsuð til að prófa nýja eiginleika, og er alls ekki ætluð fyrir alvöru vinnslu.",
-    "Apps missing updates" : "Forrit sem vantar uppfærslur",
-    "Apps with available updates" : "Forrit með tiltækar uppfærslur",
-    "Note that after a new release it can take some time before it shows up here. We roll out new versions spread out over time to our users and sometimes skip a version when issues are found." : "Athugaðu að það getur tekið nokkurn tíma áður en nýjar útgáfur birtast hér. Við dreifum útgáfum yfir tíma auk þess sem stundum er útgáfum sleppt ef í þeim finnast hnökrar.",
-    "Only notification for app updates are available." : "Eingöngu eru eru tiltækar tilkynningar fyrir uppfærslur forrita.",
-    "Checking apps for compatible updates" : "Athuga forrit vegna hugsanlegra uppfærslna",
-    "Could not connect to the appstore or the appstore returned no updates at all. Search manually for updates or make sure your server has access to the internet and can connect to the appstore." : "Gat ekki tengst við forritabúðina eða að í henni eru engar uppfærslur. Leitaðu handvirkt að uppfærslum, eða gakktu úr skugga um að þjónninn þinn sé með aðgang að internetinu og geti tengst forritabúðinni.",
-    "<strong>All</strong> apps have an update for this version available" : "<strong>Öll</strong> forrit eru með uppfærslu tiltæka fyrir þessa útgáfu",
-    "_<strong>%n</strong> app has no update for this version available_::_<strong>%n</strong> apps have no update for this version available_" : ["<strong>%n</strong> forrit eru með uppfærslu tiltæka fyrir þessa útgáfu","<strong>%n</strong> forrit eru með uppfærslu tiltæka fyrir þessa útgáfu"]
+    "Update for %1$s to version %2$s is available." : "Uppfærsla %1$s í útgáfu %2$s er tiltæk."
 },
 "nplurals=2; plural=(n % 10 != 1 || n % 100 == 11);");

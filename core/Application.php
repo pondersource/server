@@ -5,6 +5,7 @@
  *
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Joas Schilling <coding@schilljs.com>
+ * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Julius Härtl <jus@bitgrid.net>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Mario Danic <mario@lovelyhq.com>
@@ -42,18 +43,26 @@ use OC\Authentication\Listeners\UserDeletedStoreCleanupListener;
 use OC\Authentication\Listeners\UserDeletedTokenCleanupListener;
 use OC\Authentication\Listeners\UserDeletedWebAuthnCleanupListener;
 use OC\Authentication\Notifications\Notifier as AuthenticationNotifier;
+use OC\Core\Listener\BeforeTemplateRenderedListener;
 use OC\Core\Notification\CoreNotifier;
 use OC\DB\Connection;
 use OC\DB\MissingColumnInformation;
 use OC\DB\MissingIndexInformation;
 use OC\DB\MissingPrimaryKeyInformation;
 use OC\DB\SchemaWrapper;
+use OC\Metadata\FileEventListener;
+use OC\TagManager;
 use OCP\AppFramework\App;
+use OCP\AppFramework\Http\Events\BeforeTemplateRenderedEvent;
 use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Files\Events\Node\NodeDeletedEvent;
+use OCP\Files\Events\Node\NodeWrittenEvent;
+use OCP\Files\Events\NodeRemovedFromCache;
 use OCP\IDBConnection;
 use OCP\User\Events\BeforeUserDeletedEvent;
 use OCP\User\Events\UserDeletedEvent;
 use OCP\Util;
+use OCP\IConfig;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
 /**
@@ -73,7 +82,7 @@ class Application extends App {
 
 		$server = $container->getServer();
 		/** @var IEventDispatcher $eventDispatcher */
-		$eventDispatcher = $server->query(IEventDispatcher::class);
+		$eventDispatcher = $server->get(IEventDispatcher::class);
 
 		$notificationManager = $server->getNotificationManager();
 		$notificationManager->registerNotifierService(CoreNotifier::class);
@@ -195,12 +204,36 @@ class Application extends App {
 					if (!$table->hasIndex('properties_path_index')) {
 						$subject->addHintForMissingSubject($table->getName(), 'properties_path_index');
 					}
+					if (!$table->hasIndex('properties_pathonly_index')) {
+						$subject->addHintForMissingSubject($table->getName(), 'properties_pathonly_index');
+					}
 				}
 
 				if ($schema->hasTable('jobs')) {
 					$table = $schema->getTable('jobs');
 					if (!$table->hasIndex('job_lastcheck_reserved')) {
 						$subject->addHintForMissingSubject($table->getName(), 'job_lastcheck_reserved');
+					}
+				}
+
+				if ($schema->hasTable('direct_edit')) {
+					$table = $schema->getTable('direct_edit');
+					if (!$table->hasIndex('direct_edit_timestamp')) {
+						$subject->addHintForMissingSubject($table->getName(), 'direct_edit_timestamp');
+					}
+				}
+
+				if ($schema->hasTable('preferences')) {
+					$table = $schema->getTable('preferences');
+					if (!$table->hasIndex('preferences_app_key')) {
+						$subject->addHintForMissingSubject($table->getName(), 'preferences_app_key');
+					}
+				}
+
+				if ($schema->hasTable('mounts')) {
+					$table = $schema->getTable('mounts');
+					if (!$table->hasIndex('mounts_class_index')) {
+						$subject->addHintForMissingSubject($table->getName(), 'mounts_class_index');
 					}
 				}
 			}
@@ -280,6 +313,7 @@ class Application extends App {
 			}
 		);
 
+		$eventDispatcher->addServiceListener(BeforeTemplateRenderedEvent::class, BeforeTemplateRenderedListener::class);
 		$eventDispatcher->addServiceListener(RemoteWipeStarted::class, RemoteWipeActivityListener::class);
 		$eventDispatcher->addServiceListener(RemoteWipeStarted::class, RemoteWipeNotificationsListener::class);
 		$eventDispatcher->addServiceListener(RemoteWipeStarted::class, RemoteWipeEmailListener::class);
@@ -291,5 +325,20 @@ class Application extends App {
 		$eventDispatcher->addServiceListener(BeforeUserDeletedEvent::class, UserDeletedFilesCleanupListener::class);
 		$eventDispatcher->addServiceListener(UserDeletedEvent::class, UserDeletedFilesCleanupListener::class);
 		$eventDispatcher->addServiceListener(UserDeletedEvent::class, UserDeletedWebAuthnCleanupListener::class);
+
+		// Metadata
+		/** @var IConfig $config */
+		$config = $container->get(IConfig::class);
+		if ($config->getSystemValueBool('enable_file_metadata', true)) {
+			/** @psalm-suppress InvalidArgument */
+			$eventDispatcher->addServiceListener(NodeDeletedEvent::class, FileEventListener::class);
+			/** @psalm-suppress InvalidArgument */
+			$eventDispatcher->addServiceListener(NodeRemovedFromCache::class, FileEventListener::class);
+			/** @psalm-suppress InvalidArgument */
+			$eventDispatcher->addServiceListener(NodeWrittenEvent::class, FileEventListener::class);
+		}
+
+		// Tags
+		$eventDispatcher->addServiceListener(UserDeletedEvent::class, TagManager::class);
 	}
 }

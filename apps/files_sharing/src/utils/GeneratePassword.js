@@ -3,7 +3,7 @@
  *
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -22,6 +22,7 @@
 
 import axios from '@nextcloud/axios'
 import Config from '../services/ConfigService'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 
 const config = new Config()
 const passwordSet = 'abcdefgijkmnopqrstwxyzABCDEFGHJKLMNPQRSTWXYZ23456789'
@@ -31,7 +32,7 @@ const passwordSet = 'abcdefgijkmnopqrstwxyzABCDEFGHJKLMNPQRSTWXYZ23456789'
  * request a valid password if password_policy
  * is enabled
  *
- * @returns {string} a valid password
+ * @return {string} a valid password
  */
 export default async function() {
 	// password policy is enabled, let's request a pass
@@ -39,10 +40,12 @@ export default async function() {
 		try {
 			const request = await axios.get(config.passwordPolicy.api.generate)
 			if (request.data.ocs.data.password) {
+				showSuccess(t('files_sharing', 'Password created successfully'))
 				return request.data.ocs.data.password
 			}
 		} catch (error) {
 			console.info('Error generating password from password_policy', error)
+			showError(t('files_sharing', 'Error generating password from password_policy'))
 		}
 	}
 

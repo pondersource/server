@@ -54,11 +54,8 @@ OC.L10N.register(
     "Images" : "Bilder",
     "Office documents" : "Office-Dokumente",
     "PDF documents" : "PDF-Dokumente",
-    "Custom mimetype" : "Benutzerdefinierter Mime-Typ",
-    "Select a tag" : "Schlagwort auswählen",
-    "No results" : "Keine Ergebnisse",
-    "%s (invisible)" : "%s (unsichtbar)",
-    "%s (restricted)" : "%s (eingeschränkt)",
+    "Custom MIME type" : "Benutzerdefinierter MIME Typ",
+    "Custom mimetype" : "Benutzerdefinierter MIME-Typ",
     "Please enter a valid time span" : "Bitte einen gültigen Zeitraum angeben",
     "Select a request URL" : "Wählen Sie eine Anforderungs-URL aus",
     "Predefined URLs" : "Vordefinierte URLs",
@@ -115,6 +112,9 @@ OC.L10N.register(
     "User group membership" : "Benutzergruppen-Mitgliedschaft",
     "is member of" : "Ist Mitglied von",
     "is not member of" : "Ist kein Mitglied von",
-    "Browse the app store" : "Appstore durchsuchen"
+    "Select a tag" : "Schlagwort auswählen",
+    "No results" : "Keine Ergebnisse",
+    "%s (invisible)" : "%s (unsichtbar)",
+    "%s (restricted)" : "%s (eingeschränkt)"
 },
 "nplurals=2; plural=(n != 1);");

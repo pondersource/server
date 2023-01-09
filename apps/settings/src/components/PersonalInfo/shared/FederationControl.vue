@@ -21,8 +21,7 @@
 -->
 
 <template>
-	<Actions
-		:class="{ 'federation-actions': !additional, 'federation-actions--additional': additional }"
+	<NcActions :class="{ 'federation-actions': !additional, 'federation-actions--additional': additional }"
 		:aria-label="ariaLabel"
 		:default-icon="scopeIcon"
 		:disabled="disabled">
@@ -36,40 +35,46 @@
 			:name="federationScope.name"
 			:tooltip-disabled="federationScope.tooltipDisabled"
 			:tooltip="federationScope.tooltip" />
-	</Actions>
+	</NcActions>
 </template>
 
 <script>
-import Actions from '@nextcloud/vue/dist/Components/Actions'
+import NcActions from '@nextcloud/vue/dist/Components/NcActions'
 import { loadState } from '@nextcloud/initial-state'
 import { showError } from '@nextcloud/dialogs'
 
-import FederationControlAction from './FederationControlAction'
+import FederationControlAction from './FederationControlAction.vue'
 
 import {
 	ACCOUNT_PROPERTY_READABLE_ENUM,
+	ACCOUNT_SETTING_PROPERTY_READABLE_ENUM,
+	PROFILE_READABLE_ENUM,
 	PROPERTY_READABLE_KEYS_ENUM,
 	PROPERTY_READABLE_SUPPORTED_SCOPES_ENUM,
 	SCOPE_ENUM, SCOPE_PROPERTY_ENUM,
 	UNPUBLISHED_READABLE_PROPERTIES,
-} from '../../../constants/AccountPropertyConstants'
-import { savePrimaryAccountPropertyScope } from '../../../service/PersonalInfo/PersonalInfoService'
+} from '../../../constants/AccountPropertyConstants.js'
+import { savePrimaryAccountPropertyScope } from '../../../service/PersonalInfo/PersonalInfoService.js'
+import logger from '../../../logger.js'
 
-const { lookupServerUploadEnabled } = loadState('settings', 'accountParameters', {})
+const {
+	federationEnabled,
+	lookupServerUploadEnabled,
+} = loadState('settings', 'accountParameters', {})
 
 export default {
 	name: 'FederationControl',
 
 	components: {
-		Actions,
+		NcActions,
 		FederationControlAction,
 	},
 
 	props: {
-		accountProperty: {
+		readable: {
 			type: String,
 			required: true,
-			validator: (value) => Object.values(ACCOUNT_PROPERTY_READABLE_ENUM).includes(value),
+			validator: (value) => Object.values(ACCOUNT_PROPERTY_READABLE_ENUM).includes(value) || Object.values(ACCOUNT_SETTING_PROPERTY_READABLE_ENUM).includes(value) || value === PROFILE_READABLE_ENUM.PROFILE_VISIBILITY,
 		},
 		additional: {
 			type: Boolean,
@@ -95,14 +100,18 @@ export default {
 
 	data() {
 		return {
-			accountPropertyLowerCase: this.accountProperty.toLocaleLowerCase(),
+			readableLowerCase: this.readable.toLocaleLowerCase(),
 			initialScope: this.scope,
 		}
 	},
 
 	computed: {
 		ariaLabel() {
-			return t('settings', 'Change scope level of {accountProperty}', { accountProperty: this.accountPropertyLowerCase })
+			return t('settings', 'Change scope level of {property}, current scope is {scope}', { property: this.readableLowerCase, scope: this.scopeDisplayNameLowerCase })
+		},
+
+		scopeDisplayNameLowerCase() {
+			return SCOPE_PROPERTY_ENUM[this.scope].displayName.toLocaleLowerCase()
 		},
 
 		scopeIcon() {
@@ -114,15 +123,21 @@ export default {
 		},
 
 		supportedScopes() {
-			if (lookupServerUploadEnabled && !UNPUBLISHED_READABLE_PROPERTIES.includes(this.accountProperty)) {
-				return [
-					...PROPERTY_READABLE_SUPPORTED_SCOPES_ENUM[this.accountProperty],
-					SCOPE_ENUM.FEDERATED,
-					SCOPE_ENUM.PUBLISHED,
-				]
+			const scopes = PROPERTY_READABLE_SUPPORTED_SCOPES_ENUM[this.readable]
+
+			if (UNPUBLISHED_READABLE_PROPERTIES.includes(this.readable)) {
+				return scopes
 			}
 
-			return PROPERTY_READABLE_SUPPORTED_SCOPES_ENUM[this.accountProperty]
+			if (federationEnabled) {
+				scopes.push(SCOPE_ENUM.FEDERATED)
+			}
+
+			if (lookupServerUploadEnabled) {
+				scopes.push(SCOPE_ENUM.PUBLISHED)
+			}
+
+			return scopes
 		},
 	},
 
@@ -139,14 +154,14 @@ export default {
 
 		async updatePrimaryScope(scope) {
 			try {
-				const responseData = await savePrimaryAccountPropertyScope(PROPERTY_READABLE_KEYS_ENUM[this.accountProperty], scope)
+				const responseData = await savePrimaryAccountPropertyScope(PROPERTY_READABLE_KEYS_ENUM[this.readable], scope)
 				this.handleResponse({
 					scope,
 					status: responseData.ocs?.meta?.status,
 				})
 			} catch (e) {
 				this.handleResponse({
-					errorMessage: t('settings', 'Unable to update federation scope of the primary {accountProperty}', { accountProperty: this.accountPropertyLowerCase }),
+					errorMessage: t('settings', 'Unable to update federation scope of the primary {property}', { property: this.readableLowerCase }),
 					error: e,
 				})
 			}
@@ -161,7 +176,7 @@ export default {
 				})
 			} catch (e) {
 				this.handleResponse({
-					errorMessage: t('settings', 'Unable to update federation scope of additional {accountProperty}', { accountProperty: this.accountPropertyLowerCase }),
+					errorMessage: t('settings', 'Unable to update federation scope of additional {property}', { property: this.readableLowerCase }),
 					error: e,
 				})
 			}
@@ -173,7 +188,7 @@ export default {
 			} else {
 				this.$emit('update:scope', this.initialScope)
 				showError(errorMessage)
-				this.logger.error(errorMessage, error)
+				logger.error(errorMessage, error)
 			}
 		},
 	},

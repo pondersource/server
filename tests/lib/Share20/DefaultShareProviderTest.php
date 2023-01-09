@@ -23,6 +23,7 @@
 namespace Test\Share20;
 
 use OC\Share20\DefaultShareProvider;
+use OC\Share20\ShareAttributes;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Defaults;
 use OCP\Files\File;
@@ -364,6 +365,7 @@ class DefaultShareProviderTest extends \Test\TestCase {
 
 		$group0 = $this->createMock(IGroup::class);
 		$group0->method('inGroup')->with($user1)->willReturn(true);
+		$group0->method('getDisplayName')->willReturn('g0-displayname');
 
 		$node = $this->createMock(Folder::class);
 		$node->method('getId')->willReturn(42);
@@ -703,6 +705,11 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		$share->setSharedWithDisplayName('Displayed Name');
 		$share->setSharedWithAvatar('/path/to/image.svg');
 		$share->setPermissions(1);
+
+		$attrs = new ShareAttributes();
+		$attrs->setAttribute('permissions', 'download', true);
+		$share->setAttributes($attrs);
+
 		$share->setTarget('/target');
 
 		$share2 = $this->provider->create($share);
@@ -723,6 +730,17 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		$this->assertSame('/path/to/image.svg', $share->getSharedWithAvatar());
 		$this->assertSame(null, $share2->getSharedWithDisplayName());
 		$this->assertSame(null, $share2->getSharedWithAvatar());
+
+		$this->assertSame(
+			[
+				[
+					'scope' => 'permissions',
+					'key' => 'download',
+					'enabled' => true
+				]
+			],
+			$share->getAttributes()->toArray()
+		);
 	}
 
 	public function testCreateGroupShare() {
@@ -760,6 +778,9 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		$share->setSharedWithDisplayName('Displayed Name');
 		$share->setSharedWithAvatar('/path/to/image.svg');
 		$share->setTarget('/target');
+		$attrs = new ShareAttributes();
+		$attrs->setAttribute('permissions', 'download', true);
+		$share->setAttributes($attrs);
 
 		$share2 = $this->provider->create($share);
 
@@ -779,6 +800,17 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		$this->assertSame('/path/to/image.svg', $share->getSharedWithAvatar());
 		$this->assertSame(null, $share2->getSharedWithDisplayName());
 		$this->assertSame(null, $share2->getSharedWithAvatar());
+
+		$this->assertSame(
+			[
+				[
+					'scope' => 'permissions',
+					'key' => 'download',
+					'enabled' => true
+				]
+			],
+			$share->getAttributes()->toArray()
+		);
 	}
 
 	public function testCreateLinkShare() {
@@ -951,7 +983,7 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		$this->rootFolder->method('getUserFolder')->with('shareOwner')->willReturnSelf();
 		$this->rootFolder->method('getById')->with($fileId)->willReturn([$file]);
 
-		$share = $this->provider->getSharedWith('sharedWith', IShare::TYPE_USER, null, 1 , 0);
+		$share = $this->provider->getSharedWith('sharedWith', IShare::TYPE_USER, null, 1, 0);
 		$this->assertCount(1, $share);
 
 		$share = $share[0];
@@ -1023,7 +1055,7 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		$this->rootFolder->method('getUserFolder')->with('shareOwner')->willReturnSelf();
 		$this->rootFolder->method('getById')->with($fileId)->willReturn([$file]);
 
-		$share = $this->provider->getSharedWith('sharedWith', IShare::TYPE_GROUP, null, 20 , 1);
+		$share = $this->provider->getSharedWith('sharedWith', IShare::TYPE_GROUP, null, 20, 1);
 		$this->assertCount(1, $share);
 
 		$share = $share[0];
@@ -1267,7 +1299,7 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		]);
 		$this->groupManager->method('getUserGroupIds')->with($user)->willReturn($groups);
 
-		$share = $this->provider->getSharedWith('sharedWith', $shareType, null, 1 , 0);
+		$share = $this->provider->getSharedWith('sharedWith', $shareType, null, 1, 0);
 		$this->assertCount(0, $share);
 	}
 
@@ -1457,6 +1489,7 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		$group = $this->createMock(IGroup::class);
 		$group->method('getGID')->willReturn('group');
 		$group->method('inGroup')->with($user2)->willReturn(true);
+		$group->method('getDisplayName')->willReturn('group-displayname');
 		$this->groupManager->method('get')->with('group')->willReturn($group);
 
 		$file = $this->createMock(File::class);
@@ -1528,6 +1561,7 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		$group = $this->createMock(IGroup::class);
 		$group->method('getGID')->willReturn('group');
 		$group->method('inGroup')->with($user2)->willReturn(true);
+		$group->method('getDisplayName')->willReturn('group-displayname');
 		$this->groupManager->method('get')->with('group')->willReturn($group);
 
 		$file = $this->createMock(File::class);
@@ -1585,6 +1619,7 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		$group = $this->createMock(IGroup::class);
 		$group->method('getGID')->willReturn('group');
 		$group->method('inGroup')->with($user2)->willReturn(false);
+		$group->method('getDisplayName')->willReturn('group-displayname');
 		$this->groupManager->method('get')->with('group')->willReturn($group);
 
 		$file = $this->createMock(File::class);
@@ -1971,6 +2006,7 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		for ($i = 0; $i < 2; $i++) {
 			$group = $this->createMock(IGroup::class);
 			$group->method('getGID')->willReturn('group'.$i);
+			$group->method('getDisplayName')->willReturn('group-displayname' . $i);
 			$groups['group'.$i] = $group;
 		}
 
@@ -2049,6 +2085,7 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		for ($i = 0; $i < 2; $i++) {
 			$group = $this->createMock(IGroup::class);
 			$group->method('getGID')->willReturn('group'.$i);
+			$group->method('getDisplayName')->willReturn('group-displayname'.$i);
 			$groups['group'.$i] = $group;
 		}
 
@@ -2165,6 +2202,7 @@ class DefaultShareProviderTest extends \Test\TestCase {
 		$group0 = $this->createMock(IGroup::class);
 		$group0->method('getGID')->willReturn('group0');
 		$group0->method('inGroup')->with($user0)->willReturn(true);
+		$group0->method('getDisplayName')->willReturn('group0-displayname');
 
 		$this->groupManager->method('get')->with('group0')->willReturn($group0);
 

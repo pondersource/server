@@ -6,7 +6,7 @@
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Vincent Petry <vincent@nextcloud.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -155,7 +155,23 @@
 		 */
 		sharePermissions: null,
 
+		/**
+		 * @type Array
+		 */
+		shareAttributes: [],
+
 		quotaAvailableBytes: -1,
+
+		canDownload: function() {
+			for (const i in this.shareAttributes) {
+				const attr = this.shareAttributes[i]
+				if (attr.scope === 'permissions' && attr.key === 'download') {
+					return attr.enabled
+				}
+			}
+
+			return true
+		},
 	}
 
 	if (!OC.Files) {

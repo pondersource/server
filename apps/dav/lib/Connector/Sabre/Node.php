@@ -36,9 +36,13 @@
 namespace OCA\DAV\Connector\Sabre;
 
 use OC\Files\Mount\MoveableMount;
+use OC\Files\Node\File;
+use OC\Files\Node\Folder;
 use OC\Files\View;
 use OCA\DAV\Connector\Sabre\Exception\InvalidPath;
+use OCP\Files\DavUtil;
 use OCP\Files\FileInfo;
+use OCP\Files\IRootFolder;
 use OCP\Files\StorageNotAvailableException;
 use OCP\Share\IShare;
 use OCP\Share\Exceptions\ShareNotFound;
@@ -75,6 +79,8 @@ abstract class Node implements \Sabre\DAV\INode {
 	 */
 	protected $shareManager;
 
+	protected \OCP\Files\Node $node;
+
 	/**
 	 * Sets up the node, expects a full path name
 	 *
@@ -91,10 +97,26 @@ abstract class Node implements \Sabre\DAV\INode {
 		} else {
 			$this->shareManager = \OC::$server->getShareManager();
 		}
+		if ($info instanceof Folder || $info instanceof File) {
+			$this->node = $info;
+		} else {
+			$root = \OC::$server->get(IRootFolder::class);
+			if ($info->getType() === FileInfo::TYPE_FOLDER) {
+				$this->node = new Folder($root, $view, $this->path, $info);
+			} else {
+				$this->node = new File($root, $view, $this->path, $info);
+			}
+		}
 	}
 
 	protected function refreshInfo() {
 		$this->info = $this->fileView->getFileInfo($this->path);
+		$root = \OC::$server->get(IRootFolder::class);
+		if ($this->info->getType() === FileInfo::TYPE_FOLDER) {
+			$this->node = new Folder($root, $this->fileView, $this->path, $this->info);
+		} else {
+			$this->node = new File($root, $this->fileView, $this->path, $this->info);
+		}
 	}
 
 	/**
@@ -230,10 +252,8 @@ abstract class Node implements \Sabre\DAV\INode {
 	 * @return string|null
 	 */
 	public function getFileId() {
-		if ($this->info->getId()) {
-			$instanceId = \OC_Util::getInstanceId();
-			$id = sprintf('%08d', $this->info->getId());
-			return $id . $instanceId;
+		if ($id = $this->info->getId()) {
+			return DavUtil::getDavFileId($id);
 		}
 
 		return null;
@@ -302,6 +322,31 @@ abstract class Node implements \Sabre\DAV\INode {
 	}
 
 	/**
+	 * @return array
+	 */
+	public function getShareAttributes(): array {
+		$attributes = [];
+
+		try {
+			$storage = $this->info->getStorage();
+		} catch (StorageNotAvailableException $e) {
+			$storage = null;
+		}
+
+		if ($storage && $storage->instanceOfStorage(\OCA\Files_Sharing\SharedStorage::class)) {
+			/** @var \OCA\Files_Sharing\SharedStorage $storage */
+			$attributes = $storage->getShare()->getAttributes();
+			if ($attributes === null) {
+				return [];
+			} else {
+				return $attributes->toArray();
+			}
+		}
+
+		return $attributes;
+	}
+
+	/**
 	 * @param string $user
 	 * @return string
 	 */
@@ -310,23 +355,19 @@ abstract class Node implements \Sabre\DAV\INode {
 			return '';
 		}
 
-		$types = [
-			IShare::TYPE_USER,
-			IShare::TYPE_GROUP,
-			IShare::TYPE_CIRCLE,
-			IShare::TYPE_ROOM
-		];
-
-		foreach ($types as $shareType) {
-			$shares = $this->shareManager->getSharedWith($user, $shareType, $this, -1);
-			foreach ($shares as $share) {
-				$note = $share->getNote();
-				if ($share->getShareOwner() !== $user && !empty($note)) {
-					return $note;
-				}
-			}
+		// Retrieve note from the share object already loaded into
+		// memory, to avoid additional database queries.
+		$storage = $this->getNode()->getStorage();
+		if (!$storage->instanceOfStorage(\OCA\Files_Sharing\SharedStorage::class)) {
+			return '';
 		}
+		/** @var \OCA\Files_Sharing\SharedStorage $storage */
 
+		$share = $storage->getShare();
+		$note = $share->getNote();
+		if ($share->getShareOwner() !== $user) {
+			return $note;
+		}
 		return '';
 	}
 
@@ -334,35 +375,7 @@ abstract class Node implements \Sabre\DAV\INode {
 	 * @return string
 	 */
 	public function getDavPermissions() {
-		$p = '';
-		if ($this->info->isShared()) {
-			$p .= 'S';
-		}
-		if ($this->info->isShareable()) {
-			$p .= 'R';
-		}
-		if ($this->info->isMounted()) {
-			$p .= 'M';
-		}
-		if ($this->info->isReadable()) {
-			$p .= 'G';
-		}
-		if ($this->info->isDeletable()) {
-			$p .= 'D';
-		}
-		if ($this->info->isUpdateable()) {
-			$p .= 'NV'; // Renameable, Moveable
-		}
-		if ($this->info->getType() === \OCP\Files\FileInfo::TYPE_FILE) {
-			if ($this->info->isUpdateable()) {
-				$p .= 'W';
-			}
-		} else {
-			if ($this->info->isCreatable()) {
-				$p .= 'CK';
-			}
-		}
-		return $p;
+		return DavUtil::getDavPermissions($this->info);
 	}
 
 	public function getOwner() {
@@ -403,15 +416,11 @@ abstract class Node implements \Sabre\DAV\INode {
 		return $this->info;
 	}
 
-	protected function sanitizeMtime($mtimeFromRequest) {
-		// In PHP 5.X "is_numeric" returns true for strings in hexadecimal
-		// notation. This is no longer the case in PHP 7.X, so this check
-		// ensures that strings with hexadecimal notations fail too in PHP 5.X.
-		$isHexadecimal = is_string($mtimeFromRequest) && preg_match('/^\s*0[xX]/', $mtimeFromRequest);
-		if ($isHexadecimal || !is_numeric($mtimeFromRequest)) {
-			throw new \InvalidArgumentException('X-OC-MTime header must be an integer (unix timestamp).');
-		}
+	public function getNode(): \OCP\Files\Node {
+		return $this->node;
+	}
 
-		return (int)$mtimeFromRequest;
+	protected function sanitizeMtime($mtimeFromRequest) {
+		return MtimeSanitizer::sanitizeMtime($mtimeFromRequest);
 	}
 }

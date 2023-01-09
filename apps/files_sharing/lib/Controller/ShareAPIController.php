@@ -44,8 +44,11 @@ declare(strict_types=1);
  */
 namespace OCA\Files_Sharing\Controller;
 
+use OC\Files\FileInfo;
+use OC\Files\Storage\Wrapper\Wrapper;
 use OCA\Files_Sharing\Exceptions\SharingRightsException;
 use OCA\Files_Sharing\External\Storage;
+use OCA\Files_Sharing\SharedStorage;
 use OCA\Files\Helper;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Http\DataResponse;
@@ -278,6 +281,7 @@ class ShareAPIController extends OCSController {
 		} elseif ($share->getShareType() === IShare::TYPE_EMAIL) {
 			$result['share_with'] = $share->getSharedWith();
 			$result['password'] = $share->getPassword();
+			$result['password_expiration_time'] = $share->getPasswordExpirationTime() !== null ? $share->getPasswordExpirationTime()->format(\DateTime::ATOM) : null;
 			$result['send_password_by_talk'] = $share->getSendPasswordByTalk();
 			$result['share_with_displayname'] = $this->getDisplayNameFromAddressBook($share->getSharedWith(), 'EMAIL');
 			$result['token'] = $share->getToken();
@@ -322,6 +326,11 @@ class ShareAPIController extends OCSController {
 		$result['mail_send'] = $share->getMailSend() ? 1 : 0;
 		$result['hide_download'] = $share->getHideDownload() ? 1 : 0;
 
+		$result['attributes'] = null;
+		if ($attributes = $share->getAttributes()) {
+			$result['attributes'] =  \json_encode($attributes->toArray());
+		}
+
 		return $result;
 	}
 
@@ -334,8 +343,12 @@ class ShareAPIController extends OCSController {
 	 * @return string
 	 */
 	private function getDisplayNameFromAddressBook(string $query, string $property): string {
-		// FIXME: If we inject the contacts manager it gets initialized bofore any address books are registered
-		$result = \OC::$server->getContactsManager()->search($query, [$property]);
+		// FIXME: If we inject the contacts manager it gets initialized before any address books are registered
+		$result = \OC::$server->getContactsManager()->search($query, [$property], [
+			'limit' => 1,
+			'enumeration' => false,
+			'strict_search' => true,
+		]);
 		foreach ($result as $r) {
 			foreach ($r[$property] as $value) {
 				if ($value === $query && $r['FN']) {
@@ -353,26 +366,34 @@ class ShareAPIController extends OCSController {
 	 * @NoAdminRequired
 	 *
 	 * @param string $id
+	 * @param bool $includeTags
 	 * @return DataResponse
 	 * @throws OCSNotFoundException
 	 */
-	public function getShare(string $id): DataResponse {
+	public function getShare(string $id, bool $include_tags = false): DataResponse {
 		try {
 			$share = $this->getShareById($id);
 		} catch (ShareNotFound $e) {
-			throw new OCSNotFoundException($this->l->t('Wrong share ID, share doesn\'t exist'));
+			throw new OCSNotFoundException($this->l->t('Wrong share ID, share does not exist'));
 		}
 
 		try {
 			if ($this->canAccessShare($share)) {
 				$share = $this->formatShare($share);
-				return new DataResponse([$share]);
+
+				if ($include_tags) {
+					$share = Helper::populateTags([$share], 'file_source', \OC::$server->getTagManager());
+				} else {
+					$share = [$share];
+				}
+
+				return new DataResponse($share);
 			}
 		} catch (NotFoundException $e) {
-			// Fall trough
+			// Fall through
 		}
 
-		throw new OCSNotFoundException($this->l->t('Wrong share ID, share doesn\'t exist'));
+		throw new OCSNotFoundException($this->l->t('Wrong share ID, share does not exist'));
 	}
 
 	/**
@@ -388,7 +409,7 @@ class ShareAPIController extends OCSController {
 		try {
 			$share = $this->getShareById($id);
 		} catch (ShareNotFound $e) {
-			throw new OCSNotFoundException($this->l->t('Wrong share ID, share doesn\'t exist'));
+			throw new OCSNotFoundException($this->l->t('Wrong share ID, share does not exist'));
 		}
 
 		try {
@@ -398,7 +419,7 @@ class ShareAPIController extends OCSController {
 		}
 
 		if (!$this->canAccessShare($share)) {
-			throw new OCSNotFoundException($this->l->t('Wrong share ID, share doesn\'t exist'));
+			throw new OCSNotFoundException($this->l->t('Wrong share ID, share does not exist'));
 		}
 
 		// if it's a group share or a room share
@@ -430,6 +451,7 @@ class ShareAPIController extends OCSController {
 	 * @param string $sendPasswordByTalk
 	 * @param string $expireDate
 	 * @param string $label
+	 * @param string $attributes
 	 *
 	 * @return DataResponse
 	 * @throws NotFoundException
@@ -449,12 +471,21 @@ class ShareAPIController extends OCSController {
 		string $password = '',
 		string $sendPasswordByTalk = null,
 		string $expireDate = '',
-		string $label = ''
+		string $note = '',
+		string $label = '',
+		string $attributes = null
 	): DataResponse {
 		$share = $this->shareManager->newShare();
 
 		if ($permissions === null) {
-			$permissions = $this->config->getAppValue('core', 'shareapi_default_permissions', Constants::PERMISSION_ALL);
+			if ($shareType === IShare::TYPE_LINK
+				|| $shareType === IShare::TYPE_EMAIL) {
+
+				// to keep legacy default behaviour, we ignore the setting below for link shares
+				$permissions = Constants::PERMISSION_READ;
+			} else {
+				$permissions = (int)$this->config->getAppValue('core', 'shareapi_default_permissions', (string)Constants::PERMISSION_ALL);
+			}
 		}
 
 		// Verify path
@@ -464,12 +495,22 @@ class ShareAPIController extends OCSController {
 
 		$userFolder = $this->rootFolder->getUserFolder($this->currentUser);
 		try {
-			$path = $userFolder->get($path);
+			/** @var \OC\Files\Node\Node $node */
+			$node = $userFolder->get($path);
 		} catch (NotFoundException $e) {
-			throw new OCSNotFoundException($this->l->t('Wrong path, file/folder doesn\'t exist'));
+			throw new OCSNotFoundException($this->l->t('Wrong path, file/folder does not exist'));
 		}
 
-		$share->setNode($path);
+		// a user can have access to a file through different paths, with differing permissions
+		// combine all permissions to determine if the user can share this file
+		$nodes = $userFolder->getById($node->getId());
+		foreach ($nodes as $nodeById) {
+			/** @var FileInfo $fileInfo */
+			$fileInfo = $node->getFileInfo();
+			$fileInfo['permissions'] |= $nodeById->getPermissions();
+		}
+
+		$share->setNode($node);
 
 		try {
 			$this->lock($share->getNode());
@@ -484,7 +525,7 @@ class ShareAPIController extends OCSController {
 		// Shares always require read permissions
 		$permissions |= Constants::PERMISSION_READ;
 
-		if ($path instanceof \OCP\Files\File) {
+		if ($node instanceof \OCP\Files\File) {
 			// Single file shares should never have delete or create permissions
 			$permissions &= ~Constants::PERMISSION_DELETE;
 			$permissions &= ~Constants::PERMISSION_CREATE;
@@ -495,9 +536,16 @@ class ShareAPIController extends OCSController {
 		 * We check the permissions via webdav. But the permissions of the mount point
 		 * do not equal the share permissions. Here we fix that for federated mounts.
 		 */
-		if ($path->getStorage()->instanceOfStorage(Storage::class)) {
-			$permissions &= ~($permissions & ~$path->getPermissions());
+		if ($node->getStorage()->instanceOfStorage(Storage::class)) {
+			$permissions &= ~($permissions & ~$node->getPermissions());
 		}
+
+		if ($attributes !== null) {
+			$share = $this->setShareAttributes($share, $attributes);
+		}
+
+		$share->setSharedBy($this->currentUser);
+		$this->checkInheritedAttributes($share);
 
 		if ($shareType === IShare::TYPE_USER) {
 			// Valid user is required to share
@@ -532,7 +580,7 @@ class ShareAPIController extends OCSController {
 				}
 
 				// Public upload can only be set for folders
-				if ($path instanceof \OCP\Files\File) {
+				if ($node instanceof \OCP\Files\File) {
 					throw new OCSNotFoundException($this->l->t('Public upload is only possible for publicly shared folders'));
 				}
 
@@ -540,12 +588,10 @@ class ShareAPIController extends OCSController {
 					Constants::PERMISSION_CREATE |
 					Constants::PERMISSION_UPDATE |
 					Constants::PERMISSION_DELETE;
-			} else {
-				$permissions = Constants::PERMISSION_READ;
 			}
 
 			// TODO: It might make sense to have a dedicated setting to allow/deny converting link shares into federated ones
-			if (($permissions & Constants::PERMISSION_READ) && $this->shareManager->outgoingServer2ServerSharesAllowed()) {
+			if ($this->shareManager->outgoingServer2ServerSharesAllowed()) {
 				$permissions |= Constants::PERMISSION_SHARE;
 			}
 
@@ -568,7 +614,7 @@ class ShareAPIController extends OCSController {
 
 			if ($sendPasswordByTalk === 'true') {
 				if (!$this->appManager->isEnabledForUser('spreed')) {
-					throw new OCSForbiddenException($this->l->t('Sharing %s sending the password by Nextcloud Talk failed because Nextcloud Talk is not enabled', [$path->getPath()]));
+					throw new OCSForbiddenException($this->l->t('Sharing %s sending the password by Nextcloud Talk failed because Nextcloud Talk is not enabled', [$node->getPath()]));
 				}
 
 				$share->setSendPasswordByTalk(true);
@@ -585,7 +631,7 @@ class ShareAPIController extends OCSController {
 			}
 		} elseif ($shareType === IShare::TYPE_REMOTE) {
 			if (!$this->shareManager->outgoingServer2ServerSharesAllowed()) {
-				throw new OCSForbiddenException($this->l->t('Sharing %1$s failed because the back end does not allow shares from type %2$s', [$path->getPath(), $shareType]));
+				throw new OCSForbiddenException($this->l->t('Sharing %1$s failed because the back end does not allow shares from type %2$s', [$node->getPath(), $shareType]));
 			}
 
 			if ($shareWith === null) {
@@ -604,7 +650,7 @@ class ShareAPIController extends OCSController {
 			}
 		} elseif ($shareType === IShare::TYPE_REMOTE_GROUP) {
 			if (!$this->shareManager->outgoingServer2ServerGroupSharesAllowed()) {
-				throw new OCSForbiddenException($this->l->t('Sharing %1$s failed because the back end does not allow shares from type %2$s', [$path->getPath(), $shareType]));
+				throw new OCSForbiddenException($this->l->t('Sharing %1$s failed because the back end does not allow shares from type %2$s', [$node->getPath(), $shareType]));
 			}
 
 			if ($shareWith === null) {
@@ -638,20 +684,23 @@ class ShareAPIController extends OCSController {
 			try {
 				$this->getRoomShareHelper()->createShare($share, $shareWith, $permissions, $expireDate);
 			} catch (QueryException $e) {
-				throw new OCSForbiddenException($this->l->t('Sharing %s failed because the back end does not support room shares', [$path->getPath()]));
+				throw new OCSForbiddenException($this->l->t('Sharing %s failed because the back end does not support room shares', [$node->getPath()]));
 			}
 		} elseif ($shareType === IShare::TYPE_DECK) {
 			try {
 				$this->getDeckShareHelper()->createShare($share, $shareWith, $permissions, $expireDate);
 			} catch (QueryException $e) {
-				throw new OCSForbiddenException($this->l->t('Sharing %s failed because the back end does not support room shares', [$path->getPath()]));
+				throw new OCSForbiddenException($this->l->t('Sharing %s failed because the back end does not support room shares', [$node->getPath()]));
 			}
 		} else {
 			throw new OCSBadRequestException($this->l->t('Unknown share type'));
 		}
 
 		$share->setShareType($shareType);
-		$share->setSharedBy($this->currentUser);
+
+		if ($note !== '') {
+			$share->setNote($note);
+		}
 
 		try {
 			$share = $this->shareManager->createShare($share);
@@ -799,7 +848,7 @@ class ShareAPIController extends OCSController {
 				$this->lock($node);
 			} catch (NotFoundException $e) {
 				throw new OCSNotFoundException(
-					$this->l->t('Wrong path, file/folder doesn\'t exist')
+					$this->l->t('Wrong path, file/folder does not exist')
 				);
 			} catch (LockedException $e) {
 				throw new OCSNotFoundException($this->l->t('Could not lock node'));
@@ -931,7 +980,7 @@ class ShareAPIController extends OCSController {
 			$node = $userFolder->get($path);
 			$this->lock($node);
 		} catch (\OCP\Files\NotFoundException $e) {
-			throw new OCSNotFoundException($this->l->t('Wrong path, file/folder doesn\'t exist'));
+			throw new OCSNotFoundException($this->l->t('Wrong path, file/folder does not exist'));
 		} catch (LockedException $e) {
 			throw new OCSNotFoundException($this->l->t('Could not lock path'));
 		}
@@ -994,6 +1043,13 @@ class ShareAPIController extends OCSController {
 		return new DataResponse(array_values($shares));
 	}
 
+	/**
+	 * Check whether a set of permissions contains the permissions to check.
+	 */
+	private function hasPermission(int $permissionsSet, int $permissionsToCheck): bool {
+		return ($permissionsSet & $permissionsToCheck) === $permissionsToCheck;
+	}
+
 
 	/**
 	 * @NoAdminRequired
@@ -1007,6 +1063,7 @@ class ShareAPIController extends OCSController {
 	 * @param string $note
 	 * @param string $label
 	 * @param string $hideDownload
+	 * @param string $attributes
 	 * @return DataResponse
 	 * @throws LockedException
 	 * @throws NotFoundException
@@ -1023,18 +1080,19 @@ class ShareAPIController extends OCSController {
 		string $expireDate = null,
 		string $note = null,
 		string $label = null,
-		string $hideDownload = null
+		string $hideDownload = null,
+		string $attributes = null
 	): DataResponse {
 		try {
 			$share = $this->getShareById($id);
 		} catch (ShareNotFound $e) {
-			throw new OCSNotFoundException($this->l->t('Wrong share ID, share doesn\'t exist'));
+			throw new OCSNotFoundException($this->l->t('Wrong share ID, share does not exist'));
 		}
 
 		$this->lock($share->getNode());
 
 		if (!$this->canAccessShare($share, false)) {
-			throw new OCSNotFoundException($this->l->t('Wrong share ID, share doesn\'t exist'));
+			throw new OCSNotFoundException($this->l->t('Wrong share ID, share does not exist'));
 		}
 
 		if (!$this->canEditShare($share)) {
@@ -1049,7 +1107,8 @@ class ShareAPIController extends OCSController {
 			$expireDate === null &&
 			$note === null &&
 			$label === null &&
-			$hideDownload === null
+			$hideDownload === null &&
+			$attributes === null
 		) {
 			throw new OCSBadRequestException($this->l->t('Wrong or no update parameter given'));
 		}
@@ -1057,6 +1116,11 @@ class ShareAPIController extends OCSController {
 		if ($note !== null) {
 			$share->setNote($note);
 		}
+
+		if ($attributes !== null) {
+			$share = $this->setShareAttributes($share, $attributes);
+		}
+		$this->checkInheritedAttributes($share);
 
 		/**
 		 * expirationdate, password and publicUpload only make sense for link shares
@@ -1095,16 +1159,16 @@ class ShareAPIController extends OCSController {
 				$newPermissions = $newPermissions & ~Constants::PERMISSION_SHARE;
 			}
 
-			if ($newPermissions !== null &&
-				!in_array($newPermissions, [
-					Constants::PERMISSION_READ,
-					Constants::PERMISSION_READ | Constants::PERMISSION_CREATE | Constants::PERMISSION_UPDATE, // legacy
-					Constants::PERMISSION_READ | Constants::PERMISSION_CREATE | Constants::PERMISSION_UPDATE | Constants::PERMISSION_DELETE, // correct
-					Constants::PERMISSION_CREATE, // hidden file list
-					Constants::PERMISSION_READ | Constants::PERMISSION_UPDATE, // allow to edit single files
-				], true)
-			) {
-				throw new OCSBadRequestException($this->l->t('Cannot change permissions for public share links'));
+			if ($newPermissions !== null) {
+				if (!$this->hasPermission($newPermissions, Constants::PERMISSION_READ) && !$this->hasPermission($newPermissions, Constants::PERMISSION_CREATE)) {
+					throw new OCSBadRequestException($this->l->t('Share must at least have READ or CREATE permissions'));
+				}
+
+				if (!$this->hasPermission($newPermissions, Constants::PERMISSION_READ) && (
+						$this->hasPermission($newPermissions, Constants::PERMISSION_UPDATE) || $this->hasPermission($newPermissions, Constants::PERMISSION_DELETE)
+					)) {
+					throw new OCSBadRequestException($this->l->t('Share must have READ permission if UPDATE or DELETE permission is set'));
+				}
 			}
 
 			if (
@@ -1122,7 +1186,9 @@ class ShareAPIController extends OCSController {
 				}
 
 				// normalize to correct public upload permissions
-				$newPermissions = Constants::PERMISSION_READ | Constants::PERMISSION_CREATE | Constants::PERMISSION_UPDATE | Constants::PERMISSION_DELETE;
+				if ($publicUpload === 'true') {
+					$newPermissions = Constants::PERMISSION_READ | Constants::PERMISSION_CREATE | Constants::PERMISSION_UPDATE | Constants::PERMISSION_DELETE;
+				}
 			}
 
 			if ($newPermissions !== null) {
@@ -1154,7 +1220,7 @@ class ShareAPIController extends OCSController {
 
 			if ($label !== null) {
 				if (strlen($label) > 255) {
-					throw new OCSBadRequestException("Maxmimum label length is 255");
+					throw new OCSBadRequestException("Maximum label length is 255");
 				}
 				$share->setLabel($label);
 			}
@@ -1192,7 +1258,7 @@ class ShareAPIController extends OCSController {
 			$share = $this->shareManager->updateShare($share);
 		} catch (GenericShareException $e) {
 			$code = $e->getCode() === 0 ? 403 : $e->getCode();
-			throw new OCSException($e->getHint(), $code);
+			throw new OCSException($e->getHint(), (int)$code);
 		} catch (\Exception $e) {
 			throw new OCSBadRequestException($e->getMessage(), $e);
 		}
@@ -1263,18 +1329,18 @@ class ShareAPIController extends OCSController {
 		try {
 			$share = $this->getShareById($id);
 		} catch (ShareNotFound $e) {
-			throw new OCSNotFoundException($this->l->t('Wrong share ID, share doesn\'t exist'));
+			throw new OCSNotFoundException($this->l->t('Wrong share ID, share does not exist'));
 		}
 
 		if (!$this->canAccessShare($share)) {
-			throw new OCSNotFoundException($this->l->t('Wrong share ID, share doesn\'t exist'));
+			throw new OCSNotFoundException($this->l->t('Wrong share ID, share does not exist'));
 		}
 
 		try {
 			$this->shareManager->acceptShare($share, $this->currentUser);
 		} catch (GenericShareException $e) {
 			$code = $e->getCode() === 0 ? 403 : $e->getCode();
-			throw new OCSException($e->getHint(), $code);
+			throw new OCSException($e->getHint(), (int)$code);
 		} catch (\Exception $e) {
 			throw new OCSBadRequestException($e->getMessage(), $e);
 		}
@@ -1476,7 +1542,7 @@ class ShareAPIController extends OCSController {
 	 */
 	private function parseDate(string $expireDate): \DateTime {
 		try {
-			$date = new \DateTime($expireDate);
+			$date = new \DateTime(trim($expireDate, "\""));
 		} catch (\Exception $e) {
 			throw new \Exception('Invalid date. Format must be YYYY-MM-DD');
 		}
@@ -1803,5 +1869,66 @@ class ShareAPIController extends OCSController {
 				$shares[$newShare['id']] = $newShare;
 			}
 		}
+	}
+
+	/**
+	 * @param IShare $share
+	 * @param string|null $attributesString
+	 * @return IShare modified share
+	 */
+	private function setShareAttributes(IShare $share, ?string $attributesString) {
+		$newShareAttributes = null;
+		if ($attributesString !== null) {
+			$newShareAttributes = $this->shareManager->newShare()->newAttributes();
+			$formattedShareAttributes = \json_decode($attributesString, true);
+			if (is_array($formattedShareAttributes)) {
+				foreach ($formattedShareAttributes as $formattedAttr) {
+					$newShareAttributes->setAttribute(
+						$formattedAttr['scope'],
+						$formattedAttr['key'],
+						is_string($formattedAttr['enabled']) ? (bool) \json_decode($formattedAttr['enabled']) : $formattedAttr['enabled']
+					);
+				}
+			} else {
+				throw new OCSBadRequestException('Invalid share attributes provided: \"' . $attributesString . '\"');
+			}
+		}
+		$share->setAttributes($newShareAttributes);
+
+		return $share;
+	}
+
+	private function checkInheritedAttributes(IShare $share): void {
+		if (!$share->getSharedBy()) {
+			return; // Probably in a test
+		}
+		$userFolder = $this->rootFolder->getUserFolder($share->getSharedBy());
+		$nodes = $userFolder->getById($share->getNodeId());
+		if (empty($nodes)) {
+			return;
+		}
+		$node = $nodes[0];
+		if ($node->getStorage()->instanceOfStorage(SharedStorage::class)) {
+			$storage = $node->getStorage();
+			if ($storage instanceof Wrapper) {
+				$storage = $storage->getInstanceOfStorage(SharedStorage::class);
+				if ($storage === null) {
+					throw new \RuntimeException('Should not happen, instanceOfStorage but getInstanceOfStorage return null');
+				}
+			} else {
+				throw new \RuntimeException('Should not happen, instanceOfStorage but not a wrapper');
+			}
+			/** @var \OCA\Files_Sharing\SharedStorage $storage */
+			$inheritedAttributes = $storage->getShare()->getAttributes();
+			if ($inheritedAttributes !== null && $inheritedAttributes->getAttribute('permissions', 'download') === false) {
+				$share->setHideDownload(true);
+				$attributes = $share->getAttributes();
+				if ($attributes) {
+					$attributes->setAttribute('permissions', 'download', false);
+					$share->setAttributes($attributes);
+				}
+			}
+		}
+
 	}
 }

@@ -3,7 +3,7 @@
  *
  * @author Christopher Ng <chrng8@gmail.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -21,17 +21,25 @@
  */
 
 import Vue from 'vue'
-import { generateFilePath } from '@nextcloud/router'
 import { getRequestToken } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import VTooltip from 'v-tooltip'
 
-import logger from './logger'
+import logger from './logger.js'
 
-import Profile from './views/Profile'
+import Profile from './views/Profile.vue'
+import ProfileSections from './profile/ProfileSections.js'
 
 __webpack_nonce__ = btoa(getRequestToken())
-__webpack_public_path__ = generateFilePath('core', '', 'js/')
+
+if (!window.OCA) {
+	window.OCA = {}
+}
+
+if (!window.OCA.Core) {
+	window.OCA.Core = {}
+}
+Object.assign(window.OCA.Core, { ProfileSections: new ProfileSections() })
 
 Vue.use(VTooltip)
 
@@ -45,4 +53,7 @@ Vue.mixin({
 })
 
 const View = Vue.extend(Profile)
-new View().$mount('#vue-profile')
+
+window.addEventListener('DOMContentLoaded', () => {
+	new View().$mount('#vue-profile')
+})

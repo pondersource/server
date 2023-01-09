@@ -21,17 +21,16 @@
   -->
 
 <template>
-	<Content app-name="settings" :navigation-class="{ 'icon-loading': loadingAddGroup }">
-		<AppNavigation>
-			<AppNavigationNew button-id="new-user-button"
+	<NcContent app-name="settings" :navigation-class="{ 'icon-loading': loadingAddGroup }">
+		<NcAppNavigation>
+			<NcAppNavigationNew button-id="new-user-button"
 				:text="t('settings','New user')"
 				button-class="icon-add"
 				@click="showNewUserMenu"
 				@keyup.enter="showNewUserMenu"
 				@keyup.space="showNewUserMenu" />
 			<template #list>
-				<AppNavigationItem
-					id="addgroup"
+				<NcAppNavigationItem id="addgroup"
 					ref="addGroup"
 					:edit-placeholder="t('settings', 'Enter group name')"
 					:editable="true"
@@ -40,67 +39,50 @@
 					icon="icon-add"
 					@click="showAddGroupForm"
 					@update:title="createGroup" />
-				<AppNavigationItem
-					id="everyone"
+				<NcAppNavigationItem id="everyone"
 					:exact="true"
 					:title="t('settings', 'Active users')"
 					:to="{ name: 'users' }"
 					icon="icon-contacts-dark">
-					<AppNavigationCounter v-if="userCount > 0" slot="counter">
+					<NcAppNavigationCounter v-if="userCount > 0" slot="counter">
 						{{ userCount }}
-					</AppNavigationCounter>
-				</AppNavigationItem>
-				<AppNavigationItem
-					v-if="settings.isAdmin"
+					</NcAppNavigationCounter>
+				</NcAppNavigationItem>
+				<NcAppNavigationItem v-if="settings.isAdmin"
 					id="admin"
 					:exact="true"
 					:title="t('settings', 'Admins')"
 					:to="{ name: 'group', params: { selectedGroup: 'admin' } }"
 					icon="icon-user-admin">
-					<AppNavigationCounter v-if="adminGroupMenu.count" slot="counter">
+					<NcAppNavigationCounter v-if="adminGroupMenu.count" slot="counter">
 						{{ adminGroupMenu.count }}
-					</AppNavigationCounter>
-				</AppNavigationItem>
+					</NcAppNavigationCounter>
+				</NcAppNavigationItem>
 
 				<!-- Hide the disabled if none, if we don't have the data (-1) show it -->
-				<AppNavigationItem
-					v-if="disabledGroupMenu.usercount > 0 || disabledGroupMenu.usercount === -1"
+				<NcAppNavigationItem v-if="disabledGroupMenu.usercount > 0 || disabledGroupMenu.usercount === -1"
 					id="disabled"
 					:exact="true"
 					:title="t('settings', 'Disabled users')"
 					:to="{ name: 'group', params: { selectedGroup: 'disabled' } }"
 					icon="icon-disabled-users">
-					<AppNavigationCounter v-if="disabledGroupMenu.usercount > 0" slot="counter">
+					<NcAppNavigationCounter v-if="disabledGroupMenu.usercount > 0" slot="counter">
 						{{ disabledGroupMenu.usercount }}
-					</AppNavigationCounter>
-				</AppNavigationItem>
+					</NcAppNavigationCounter>
+				</NcAppNavigationItem>
 
-				<AppNavigationCaption v-if="groupList.length > 0" :title="t('settings', 'Groups')" />
-				<AppNavigationItem
-					v-for="group in groupList"
+				<NcAppNavigationCaption v-if="groupList.length > 0" :title="t('settings', 'Groups')" />
+				<GroupListItem v-for="group in groupList"
+					:id="group.id"
 					:key="group.id"
-					:exact="true"
 					:title="group.title"
-					:to="{ name: 'group', params: { selectedGroup: encodeURIComponent(group.id) } }"
-					icon="icon-group">
-					<AppNavigationCounter v-if="group.count" slot="counter">
-						{{ group.count }}
-					</AppNavigationCounter>
-					<template slot="actions">
-						<ActionButton
-							v-if="group.id !== 'admin' && group.id !== 'disabled' && settings.isAdmin"
-							icon="icon-delete"
-							@click="removeGroup(group.id)">
-							{{ t('settings', 'Remove group') }}
-						</ActionButton>
-					</template>
-				</AppNavigationItem>
+					:count="group.count" />
 			</template>
 			<template #footer>
-				<AppNavigationSettings>
+				<NcAppNavigationSettings>
 					<div>
 						<p>{{ t('settings', 'Default quota:') }}</p>
-						<Multiselect :value="defaultQuota"
+						<NcMultiselect :value="defaultQuota"
 							:options="quotaOptions"
 							tag-placeholder="create"
 							:placeholder="t('settings', 'Select default quota')"
@@ -147,35 +129,34 @@
 							class="checkbox">
 						<label for="sendWelcomeMail">{{ t('settings', 'Send email to new user') }}</label>
 					</div>
-				</AppNavigationSettings>
+				</NcAppNavigationSettings>
 			</template>
-		</AppNavigation>
-		<AppContent>
-			<UserList
-				:users="users"
+		</NcAppNavigation>
+		<NcAppContent>
+			<UserList :users="users"
 				:show-config="showConfig"
 				:selected-group="selectedGroupDecoded"
 				:external-actions="externalActions" />
-		</AppContent>
-	</Content>
+		</NcAppContent>
+	</NcContent>
 </template>
 
 <script>
-import ActionButton from '@nextcloud/vue/dist/Components/ActionButton'
-import AppContent from '@nextcloud/vue/dist/Components/AppContent'
-import AppNavigation from '@nextcloud/vue/dist/Components/AppNavigation'
-import AppNavigationCaption from '@nextcloud/vue/dist/Components/AppNavigationCaption'
-import AppNavigationCounter from '@nextcloud/vue/dist/Components/AppNavigationCounter'
-import AppNavigationItem from '@nextcloud/vue/dist/Components/AppNavigationItem'
-import AppNavigationNew from '@nextcloud/vue/dist/Components/AppNavigationNew'
-import AppNavigationSettings from '@nextcloud/vue/dist/Components/AppNavigationSettings'
+import NcAppContent from '@nextcloud/vue/dist/Components/NcAppContent'
+import NcAppNavigation from '@nextcloud/vue/dist/Components/NcAppNavigation'
+import NcAppNavigationCaption from '@nextcloud/vue/dist/Components/NcAppNavigationCaption'
+import NcAppNavigationCounter from '@nextcloud/vue/dist/Components/NcAppNavigationCounter'
+import NcAppNavigationItem from '@nextcloud/vue/dist/Components/NcAppNavigationItem'
+import NcAppNavigationNew from '@nextcloud/vue/dist/Components/NcAppNavigationNew'
+import NcAppNavigationSettings from '@nextcloud/vue/dist/Components/NcAppNavigationSettings'
 import axios from '@nextcloud/axios'
-import Content from '@nextcloud/vue/dist/Components/Content'
+import NcContent from '@nextcloud/vue/dist/Components/NcContent'
 import { generateUrl } from '@nextcloud/router'
-import Multiselect from '@nextcloud/vue/dist/Components/Multiselect'
+import NcMultiselect from '@nextcloud/vue/dist/Components/NcMultiselect'
 import Vue from 'vue'
 import VueLocalStorage from 'vue-localstorage'
 
+import GroupListItem from '../components/GroupListItem'
 import UserList from '../components/UserList'
 
 Vue.use(VueLocalStorage)
@@ -183,16 +164,16 @@ Vue.use(VueLocalStorage)
 export default {
 	name: 'Users',
 	components: {
-		ActionButton,
-		AppContent,
-		AppNavigation,
-		AppNavigationCaption,
-		AppNavigationCounter,
-		AppNavigationItem,
-		AppNavigationNew,
-		AppNavigationSettings,
-		Content,
-		Multiselect,
+		NcAppContent,
+		NcAppNavigation,
+		NcAppNavigationCaption,
+		NcAppNavigationCounter,
+		NcAppNavigationItem,
+		NcAppNavigationNew,
+		NcAppNavigationSettings,
+		NcContent,
+		GroupListItem,
+		NcMultiselect,
 		UserList,
 	},
 	props: {
@@ -373,24 +354,11 @@ export default {
 			this.$localStorage.set(key, status)
 			return status
 		},
-		removeGroup(groupid) {
-			const self = this
-			// TODO migrate to a vue js confirm dialog component
-			OC.dialogs.confirm(
-				t('settings', 'You are about to remove the group {group}. The users will NOT be deleted.', { group: groupid }),
-				t('settings', 'Please confirm the group removal '),
-				function(success) {
-					if (success) {
-						self.$store.dispatch('removeGroup', groupid)
-					}
-				}
-			)
-		},
 
 		/**
 		 * Dispatch default quota set request
 		 *
-		 * @param {string|Object} quota Quota in readable format '5 GB' or Object {id: '5 GB', label: '5GB'}
+		 * @param {string | object} quota Quota in readable format '5 GB' or Object {id: '5 GB', label: '5GB'}
 		 */
 		setDefaultQuota(quota = 'none') {
 			this.$store.dispatch('setAppConfig', {
@@ -410,7 +378,7 @@ export default {
 		 * Validate quota string to make sure it's a valid human file size
 		 *
 		 * @param {string} quota Quota in readable format '5 GB'
-		 * @returns {Promise|boolean}
+		 * @return {Promise|boolean}
 		 */
 		validateQuota(quota) {
 			// only used for new presets sent through @Tag
@@ -429,7 +397,7 @@ export default {
 		 * @param {string} icon the icon class
 		 * @param {string} text the text to display
 		 * @param {Function} action the function to run
-		 * @returns {Array}
+		 * @return {Array}
 		 */
 		registerAction(icon, text, action) {
 			this.externalActions.push({
@@ -484,8 +452,9 @@ export default {
 
 		/**
 		 * Format a group to a menu entry
-		 * @param {Object} group the group
-		 * @returns {Object}
+		 *
+		 * @param {object} group the group
+		 * @return {object}
 		 */
 		formatGroupMenu(group) {
 			const item = {}

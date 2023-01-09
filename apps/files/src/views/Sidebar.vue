@@ -21,11 +21,11 @@
   -->
 
 <template>
-	<AppSidebar
-		v-if="file"
+	<NcAppSidebar v-if="file"
 		ref="sidebar"
 		v-bind="appSidebar"
 		:force-menu="true"
+		tabindex="0"
 		@close="close"
 		@update:active="setActiveTab"
 		@update:starred="toggleStarred"
@@ -46,25 +46,23 @@
 		<template v-if="fileInfo" #secondary-actions>
 			<!-- TODO: create proper api for apps to register actions
 			And inject themselves here. -->
-			<ActionButton
-				v-if="isSystemTagsEnabled"
+			<NcActionButton v-if="isSystemTagsEnabled"
 				:close-after-click="true"
 				icon="icon-tag"
 				@click="toggleTags">
 				{{ t('files', 'Tags') }}
-			</ActionButton>
+			</NcActionButton>
 		</template>
 
 		<!-- Error display -->
-		<EmptyContent v-if="error" icon="icon-error">
+		<NcEmptyContent v-if="error" icon="icon-error">
 			{{ error }}
-		</EmptyContent>
+		</NcEmptyContent>
 
 		<!-- If fileInfo fetch is complete, render tabs -->
 		<template v-for="tab in tabs" v-else-if="fileInfo">
 			<!-- Hide them if we're loading another file but keep them mounted -->
-			<SidebarTab
-				v-if="tab.enabled(fileInfo)"
+			<SidebarTab v-if="tab.enabled(fileInfo)"
 				v-show="!loading"
 				:id="tab.id"
 				:key="tab.id"
@@ -74,9 +72,14 @@
 				:on-update="tab.update"
 				:on-destroy="tab.destroy"
 				:on-scroll-bottom-reached="tab.scrollBottomReached"
-				:file-info="fileInfo" />
+				:file-info="fileInfo">
+				<template v-if="tab.iconSvg !== undefined" #icon>
+					<!-- eslint-disable-next-line vue/no-v-html -->
+					<span class="svg-icon" v-html="tab.iconSvg" />
+				</template>
+			</SidebarTab>
 		</template>
-	</AppSidebar>
+	</NcAppSidebar>
 </template>
 <script>
 import { encodePath } from '@nextcloud/paths'
@@ -84,10 +87,11 @@ import $ from 'jquery'
 import axios from '@nextcloud/axios'
 import { emit } from '@nextcloud/event-bus'
 import moment from '@nextcloud/moment'
+import { Type as ShareTypes } from '@nextcloud/sharing'
 
-import AppSidebar from '@nextcloud/vue/dist/Components/AppSidebar'
-import ActionButton from '@nextcloud/vue/dist/Components/ActionButton'
-import EmptyContent from '@nextcloud/vue/dist/Components/EmptyContent'
+import NcAppSidebar from '@nextcloud/vue/dist/Components/NcAppSidebar'
+import NcActionButton from '@nextcloud/vue/dist/Components/NcActionButton'
+import NcEmptyContent from '@nextcloud/vue/dist/Components/NcEmptyContent'
 
 import FileInfo from '../services/FileInfo'
 import SidebarTab from '../components/SidebarTab'
@@ -97,9 +101,9 @@ export default {
 	name: 'Sidebar',
 
 	components: {
-		ActionButton,
-		AppSidebar,
-		EmptyContent,
+		NcActionButton,
+		NcAppSidebar,
+		NcEmptyContent,
 		LegacyView,
 		SidebarTab,
 	},
@@ -113,6 +117,7 @@ export default {
 			fileInfo: null,
 			starLoading: false,
 			isFullScreen: false,
+			hasLowHeight: false,
 		}
 	},
 
@@ -121,7 +126,8 @@ export default {
 		 * Current filename
 		 * This is bound to the Sidebar service and
 		 * is used to load a new file
-		 * @returns {string}
+		 *
+		 * @return {string}
 		 */
 		file() {
 			return this.Sidebar.file
@@ -129,7 +135,8 @@ export default {
 
 		/**
 		 * List of all the registered tabs
-		 * @returns {Array}
+		 *
+		 * @return {Array}
 		 */
 		tabs() {
 			return this.Sidebar.tabs
@@ -137,7 +144,8 @@ export default {
 
 		/**
 		 * List of all the registered views
-		 * @returns {Array}
+		 *
+		 * @return {Array}
 		 */
 		views() {
 			return this.Sidebar.views
@@ -145,7 +153,8 @@ export default {
 
 		/**
 		 * Current user dav root path
-		 * @returns {string}
+		 *
+		 * @return {string}
 		 */
 		davPath() {
 			const user = OC.getCurrentUser().uid
@@ -154,8 +163,9 @@ export default {
 
 		/**
 		 * Current active tab handler
+		 *
 		 * @param {string} id the tab id to set as active
-		 * @returns {string} the current active tab
+		 * @return {string} the current active tab
 		 */
 		activeTab() {
 			return this.Sidebar.activeTab
@@ -163,7 +173,8 @@ export default {
 
 		/**
 		 * Sidebar subtitle
-		 * @returns {string}
+		 *
+		 * @return {string}
 		 */
 		subtitle() {
 			return `${this.size}, ${this.time}`
@@ -171,7 +182,8 @@ export default {
 
 		/**
 		 * File last modified formatted string
-		 * @returns {string}
+		 *
+		 * @return {string}
 		 */
 		time() {
 			return OC.Util.relativeModifiedDate(this.fileInfo.mtime)
@@ -179,7 +191,8 @@ export default {
 
 		/**
 		 * File last modified full string
-		 * @returns {string}
+		 *
+		 * @return {string}
 		 */
 		fullTime() {
 			return moment(this.fileInfo.mtime).format('LLL')
@@ -187,7 +200,8 @@ export default {
 
 		/**
 		 * File size formatted string
-		 * @returns {string}
+		 *
+		 * @return {string}
 		 */
 		size() {
 			return OC.Util.humanFileSize(this.fileInfo.size)
@@ -195,7 +209,8 @@ export default {
 
 		/**
 		 * File background/figure to illustrate the sidebar header
-		 * @returns {string}
+		 *
+		 * @return {string}
 		 */
 		background() {
 			return this.getPreviewIfAny(this.fileInfo)
@@ -204,7 +219,7 @@ export default {
 		/**
 		 * App sidebar v-binding object
 		 *
-		 * @returns {Object}
+		 * @return {object}
 		 */
 		appSidebar() {
 			if (this.fileInfo) {
@@ -214,10 +229,10 @@ export default {
 					active: this.activeTab,
 					background: this.background,
 					class: {
-						'app-sidebar--has-preview': this.fileInfo.hasPreview,
+						'app-sidebar--has-preview': this.fileInfo.hasPreview && !this.isFullScreen,
 						'app-sidebar--full': this.isFullScreen,
 					},
-					compact: !this.fileInfo.hasPreview,
+					compact: this.hasLowHeight || !this.fileInfo.hasPreview || this.isFullScreen,
 					loading: this.loading,
 					starred: this.fileInfo.isFavourited,
 					subtitle: this.subtitle,
@@ -243,7 +258,7 @@ export default {
 		/**
 		 * Default action object for the current file
 		 *
-		 * @returns {Object}
+		 * @return {object}
 		 */
 		defaultAction() {
 			return this.fileInfo
@@ -260,7 +275,7 @@ export default {
 		 * nothing is listening for a click if there
 		 * is no default action
 		 *
-		 * @returns {string|null}
+		 * @return {string|null}
 		 */
 		defaultActionListener() {
 			return this.defaultAction ? 'figure-click' : null
@@ -275,8 +290,8 @@ export default {
 		/**
 		 * Can this tab be displayed ?
 		 *
-		 * @param {Object} tab a registered tab
-		 * @returns {boolean}
+		 * @param {object} tab a registered tab
+		 * @return {boolean}
 		 */
 		canDisplay(tab) {
 			return tab.enabled(this.fileInfo)
@@ -292,7 +307,7 @@ export default {
 		},
 
 		getPreviewIfAny(fileInfo) {
-			if (fileInfo.hasPreview) {
+			if (fileInfo.hasPreview && !this.isFullScreen) {
 				return OC.generateUrl(`/core/preview?fileId=${fileInfo.id}&x=${screen.width}&y=${screen.height}&a=true`)
 			}
 			return this.getIconUrl(fileInfo)
@@ -302,8 +317,8 @@ export default {
 		 * Copied from https://github.com/nextcloud/server/blob/16e0887ec63591113ee3f476e0c5129e20180cde/apps/files/js/filelist.js#L1377
 		 * TODO: We also need this as a standalone library
 		 *
-		 * @param {Object} fileInfo the fileinfo
-		 * @returns {string} Url to the icon for mimeType
+		 * @param {object} fileInfo the fileinfo
+		 * @return {string} Url to the icon for mimeType
 		 */
 		getIconUrl(fileInfo) {
 			const mimeType = fileInfo.mimetype || 'application/octet-stream'
@@ -316,8 +331,8 @@ export default {
 				} else if (fileInfo.mountType !== undefined && fileInfo.mountType !== '') {
 					return OC.MimeType.getIconUrl('dir-' + fileInfo.mountType)
 				} else if (fileInfo.shareTypes && (
-					fileInfo.shareTypes.indexOf(OC.Share.SHARE_TYPE_LINK) > -1
-					|| fileInfo.shareTypes.indexOf(OC.Share.SHARE_TYPE_EMAIL) > -1)
+					fileInfo.shareTypes.indexOf(ShareTypes.SHARE_TYPE_LINK) > -1
+					|| fileInfo.shareTypes.indexOf(ShareTypes.SHARE_TYPE_EMAIL) > -1)
 				) {
 					return OC.MimeType.getIconUrl('dir-public')
 				} else if (fileInfo.shareTypes && fileInfo.shareTypes.length > 0) {
@@ -341,7 +356,7 @@ export default {
 		 * Toggle favourite state
 		 * TODO: better implementation
 		 *
-		 * @param {Boolean} state favourited or not
+		 * @param {boolean} state favourited or not
 		 */
 		async toggleStarred(state) {
 			try {
@@ -397,7 +412,7 @@ export default {
 		 * Open the sidebar for the given file
 		 *
 		 * @param {string} path the file path to load
-		 * @returns {Promise}
+		 * @return {Promise}
 		 * @throws {Error} loading failure
 		 */
 		async open(path) {
@@ -446,10 +461,18 @@ export default {
 
 		/**
 		 * Allow to set the Sidebar as fullscreen from OCA.Files.Sidebar
-		 * @param {boolean} isFullScreen - Wether or not to render the Sidebar in fullscreen.
+		 *
+		 * @param {boolean} isFullScreen - Whether or not to render the Sidebar in fullscreen.
 		 */
 		setFullScreenMode(isFullScreen) {
 			this.isFullScreen = isFullScreen
+			if (isFullScreen) {
+				document.querySelector('#content')?.classList.add('with-sidebar--full')
+					|| document.querySelector('#content-vue')?.classList.add('with-sidebar--full')
+			} else {
+				document.querySelector('#content')?.classList.remove('with-sidebar--full')
+					|| document.querySelector('#content-vue')?.classList.remove('with-sidebar--full')
+			}
 		},
 
 		/**
@@ -467,6 +490,16 @@ export default {
 		handleClosed() {
 			emit('files:sidebar:closed')
 		},
+		handleWindowResize() {
+			this.hasLowHeight = document.documentElement.clientHeight < 1024
+		},
+	},
+	created() {
+		window.addEventListener('resize', this.handleWindowResize)
+		this.handleWindowResize()
+	},
+	beforeDestroy() {
+		window.removeEventListener('resize', this.handleWindowResize)
 	},
 }
 </script>
@@ -490,6 +523,14 @@ export default {
 		z-index: 2025 !important;
 		top: 0 !important;
 		height: 100% !important;
+	}
+
+	.svg-icon {
+		::v-deep svg {
+			width: 20px;
+			height: 20px;
+			fill: currentColor;
+		}
 	}
 }
 </style>

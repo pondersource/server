@@ -22,9 +22,6 @@ OC.L10N.register(
     "Check %s is invalid or does not exist" : "La validación %s es inválida o no existe",
     "Folder" : "Carpeta",
     "Images" : "Imágenes",
-    "No results" : "No hay resultados",
-    "%s (invisible)" : "%s (invisible) ",
-    "%s (restricted)" : "%s (restringido)",
     "Predefined URLs" : "URLs predefinidos",
     "Files WebDAV" : "Archivos WebDAV",
     "Android client" : "Cliente Android",
@@ -59,6 +56,8 @@ OC.L10N.register(
     "User group membership" : "Membresia al grupo de usuarios",
     "is member of" : "es miembro de",
     "is not member of" : "no es miembro de",
-    "Browse the app store" : "Navega la tienda de aplicaciones"
+    "No results" : "No hay resultados",
+    "%s (invisible)" : "%s (invisible) ",
+    "%s (restricted)" : "%s (restringido)"
 },
-"nplurals=2; plural=(n != 1);");
+"nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;");

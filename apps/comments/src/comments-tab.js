@@ -3,7 +3,7 @@
  *
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -20,12 +20,15 @@
  *
  */
 
+// eslint-disable-next-line node/no-missing-import, import/no-unresolved
+import MessageReplyText from '@mdi/svg/svg/message-reply-text.svg?raw'
+
 // Init Comments tab component
 let TabInstance = null
 const commentTab = new OCA.Files.Sidebar.Tab({
 	id: 'comments',
 	name: t('comments', 'Comments'),
-	icon: 'icon-comment',
+	iconSvg: MessageReplyText,
 
 	async mount(el, fileInfo, context) {
 		if (TabInstance) {

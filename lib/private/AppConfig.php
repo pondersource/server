@@ -45,16 +45,87 @@ class AppConfig implements IAppConfig {
 
 	/** @var array[] */
 	protected $sensitiveValues = [
+		'circles' => [
+			'/^key_pairs$/',
+			'/^local_gskey$/',
+		],
 		'external' => [
 			'/^sites$/',
 		],
+		'integration_discourse' => [
+			'/^private_key$/',
+			'/^public_key$/',
+		],
+		'integration_dropbox' => [
+			'/^client_id$/',
+			'/^client_secret$/',
+		],
+		'integration_github' => [
+			'/^client_id$/',
+			'/^client_secret$/',
+		],
+		'integration_gitlab' => [
+			'/^client_id$/',
+			'/^client_secret$/',
+			'/^oauth_instance_url$/',
+		],
+		'integration_google' => [
+			'/^client_id$/',
+			'/^client_secret$/',
+		],
+		'integration_jira' => [
+			'/^client_id$/',
+			'/^client_secret$/',
+			'/^forced_instance_url$/',
+		],
+		'integration_onedrive' => [
+			'/^client_id$/',
+			'/^client_secret$/',
+		],
+		'integration_openproject' => [
+			'/^client_id$/',
+			'/^client_secret$/',
+			'/^oauth_instance_url$/',
+		],
+		'integration_reddit' => [
+			'/^client_id$/',
+			'/^client_secret$/',
+		],
+		'integration_suitecrm' => [
+			'/^client_id$/',
+			'/^client_secret$/',
+			'/^oauth_instance_url$/',
+		],
+		'integration_twitter' => [
+			'/^consumer_key$/',
+			'/^consumer_secret$/',
+			'/^followed_user$/',
+		],
+		'integration_zammad' => [
+			'/^client_id$/',
+			'/^client_secret$/',
+			'/^oauth_instance_url$/',
+		],
+		'notify_push' => [
+			'/^cookie$/',
+		],
 		'spreed' => [
-			'/^bridge_bot_password/',
+			'/^bridge_bot_password$/',
+			'/^hosted-signaling-server-(.*)$/',
 			'/^signaling_servers$/',
 			'/^signaling_ticket_secret$/',
+			'/^signaling_token_privkey_(.*)$/',
+			'/^signaling_token_pubkey_(.*)$/',
+			'/^sip_bridge_dialin_info$/',
+			'/^sip_bridge_shared_secret$/',
 			'/^stun_servers$/',
 			'/^turn_servers$/',
 			'/^turn_server_secret$/',
+		],
+		'support' => [
+			'/^last_response$/',
+			'/^potential_subscription_key$/',
+			'/^subscription_key$/',
 		],
 		'theming' => [
 			'/^imprintUrl$/',
@@ -64,6 +135,9 @@ class AppConfig implements IAppConfig {
 		],
 		'user_ldap' => [
 			'/^(s..)?ldap_agent_password$/',
+		],
+		'user_saml' => [
+			'/^idp-x509cert$/',
 		],
 	];
 
@@ -357,13 +431,12 @@ class AppConfig implements IAppConfig {
 		$this->configLoaded = true;
 	}
 
+
 	/**
 	 * Clear all the cached app config values
-	 *
-	 * WARNING: do not use this - this is only for usage with the SCSSCacher to
-	 * clear the memory cache of the app config
+	 * New cache will be generated next time a config value is retrieved
 	 */
-	public function clearCachedConfig() {
+	public function clearCachedConfig(): void {
 		$this->configLoaded = false;
 	}
 }

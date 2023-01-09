@@ -39,6 +39,7 @@ use OC\DB\ConnectionAdapter;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\Response;
+use OCP\Diagnostics\IEventLogger;
 use OCP\IConfig;
 use OCP\IRequest;
 use Psr\Log\LoggerInterface;
@@ -69,6 +70,9 @@ class Dispatcher {
 	/** @var LoggerInterface */
 	private $logger;
 
+	/** @var IEventLogger */
+	private $eventLogger;
+
 	/**
 	 * @param Http $protocol the http protocol with contains all status headers
 	 * @param MiddlewareDispatcher $middlewareDispatcher the dispatcher which
@@ -79,6 +83,7 @@ class Dispatcher {
 	 * @param IConfig $config
 	 * @param ConnectionAdapter $connection
 	 * @param LoggerInterface $logger
+	 * @param IEventLogger $eventLogger
 	 */
 	public function __construct(Http $protocol,
 								MiddlewareDispatcher $middlewareDispatcher,
@@ -86,7 +91,8 @@ class Dispatcher {
 								IRequest $request,
 								IConfig $config,
 								ConnectionAdapter $connection,
-								LoggerInterface $logger) {
+								LoggerInterface $logger,
+								IEventLogger $eventLogger) {
 		$this->protocol = $protocol;
 		$this->middlewareDispatcher = $middlewareDispatcher;
 		$this->reflector = $reflector;
@@ -94,6 +100,7 @@ class Dispatcher {
 		$this->config = $config;
 		$this->connection = $connection;
 		$this->logger = $logger;
+		$this->eventLogger = $eventLogger;
 	}
 
 
@@ -111,7 +118,7 @@ class Dispatcher {
 		$out = [null, [], null];
 
 		try {
-			// prefill reflector with everything thats needed for the
+			// prefill reflector with everything that's needed for the
 			// middlewares
 			$this->reflector->reflect($controller, $methodName);
 
@@ -131,7 +138,7 @@ class Dispatcher {
 				$numExecuted = $databaseStatsAfter['executed'] - $databaseStatsBefore['executed'];
 
 				if ($numBuilt > 50) {
-					$this->logger->debug('Controller {class}::{method} created {count} QueryBuilder objects, please check if they are created inside a loop by accident.' , [
+					$this->logger->debug('Controller {class}::{method} created {count} QueryBuilder objects, please check if they are created inside a loop by accident.', [
 						'class' => get_class($controller),
 						'method' => $methodName,
 						'count' => $numBuilt,
@@ -139,7 +146,7 @@ class Dispatcher {
 				}
 
 				if ($numExecuted > 100) {
-					$this->logger->warning('Controller {class}::{method} executed {count} queries.' , [
+					$this->logger->warning('Controller {class}::{method} executed {count} queries.', [
 						'class' => get_class($controller),
 						'method' => $methodName,
 						'count' => $numExecuted,
@@ -149,7 +156,7 @@ class Dispatcher {
 
 			// if an exception appears, the middleware checks if it can handle the
 			// exception and creates a response. If no response is created, it is
-			// assumed that theres no middleware who can handle it and the error is
+			// assumed that there's no middleware who can handle it and the error is
 			// thrown again
 		} catch (\Exception $exception) {
 			$response = $this->middlewareDispatcher->afterException(
@@ -187,7 +194,7 @@ class Dispatcher {
 		$arguments = [];
 
 		// valid types that will be casted
-		$types = ['int', 'integer', 'bool', 'boolean', 'float'];
+		$types = ['int', 'integer', 'bool', 'boolean', 'float', 'double'];
 
 		foreach ($this->reflector->getParameters() as $param => $default) {
 
@@ -214,7 +221,9 @@ class Dispatcher {
 			$arguments[] = $value;
 		}
 
+		$this->eventLogger->start('controller:' . get_class($controller) . '::' . $methodName, 'App framework controller execution');
 		$response = \call_user_func_array([$controller, $methodName], $arguments);
+		$this->eventLogger->end('controller:' . get_class($controller) . '::' . $methodName);
 
 		// format response
 		if ($response instanceof DataResponse || !($response instanceof Response)) {

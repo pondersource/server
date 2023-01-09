@@ -21,7 +21,7 @@
  *
  */
 
-namespace OCA\Settings\Tests\AppInfo;
+namespace OC\Settings\Tests\AppInfo;
 
 use OC\Settings\AuthorizedGroupMapper;
 use OC\Settings\Manager;
@@ -36,24 +36,26 @@ use OCP\Settings\ISettings;
 use OCP\Settings\ISubAdminSettings;
 use Psr\Log\LoggerInterface;
 use Test\TestCase;
+use PHPUnit\Framework\MockObject\MockObject;
 
 class ManagerTest extends TestCase {
-
-	/** @var Manager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var Manager|MockObject */
 	private $manager;
-	/** @var LoggerInterface|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var LoggerInterface|MockObject */
 	private $logger;
-	/** @var IDBConnection|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IDBConnection|MockObject */
 	private $l10n;
-	/** @var IFactory|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IFactory|MockObject */
 	private $l10nFactory;
-	/** @var IURLGenerator|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IURLGenerator|MockObject */
 	private $url;
-	/** @var IServerContainer|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var IServerContainer|MockObject */
 	private $container;
-	/** @var IGroupManager|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var AuthorizedGroupMapper|MockObject */
+	private $mapper;
+	/** @var IGroupManager|MockObject */
 	private $groupManager;
-	/** @var ISubAdmin|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var ISubAdmin|MockObject */
 	private $subAdmin;
 
 	protected function setUp(): void {
@@ -82,16 +84,26 @@ class ManagerTest extends TestCase {
 	public function testGetAdminSections() {
 		$this->manager->registerSection('admin', \OCA\WorkflowEngine\Settings\Section::class);
 
+		$section = \OC::$server->query(\OCA\WorkflowEngine\Settings\Section::class);
+		$this->container->method('get')
+			->with(\OCA\WorkflowEngine\Settings\Section::class)
+			->willReturn($section);
+
 		$this->assertEquals([
-			55 => [\OC::$server->query(\OCA\WorkflowEngine\Settings\Section::class)],
+			55 => [$section],
 		], $this->manager->getAdminSections());
 	}
 
 	public function testGetPersonalSections() {
 		$this->manager->registerSection('personal', \OCA\WorkflowEngine\Settings\Section::class);
 
+		$section = \OC::$server->query(\OCA\WorkflowEngine\Settings\Section::class);
+		$this->container->method('get')
+			->with(\OCA\WorkflowEngine\Settings\Section::class)
+			->willReturn($section);
+
 		$this->assertEquals([
-			55 => [\OC::$server->query(\OCA\WorkflowEngine\Settings\Section::class)],
+			55 => [$section],
 		], $this->manager->getPersonalSections());
 	}
 
@@ -181,14 +193,16 @@ class ManagerTest extends TestCase {
 		$this->manager->registerSetting('personal', 'section1');
 		$this->manager->registerSetting('personal', 'section2');
 
-		$this->container->expects($this->at(0))
+		$this->container->expects($this->exactly(2))
 			->method('get')
-			->with('section1')
-			->willReturn($section);
-		$this->container->expects($this->at(1))
-			->method('get')
-			->with('section2')
-			->willReturn($section2);
+			->withConsecutive(
+				['section1'],
+				['section2']
+			)
+			->willReturnMap([
+				['section1', $section],
+				['section2', $section2],
+			]);
 
 		$settings = $this->manager->getPersonalSettings('security');
 
@@ -212,12 +226,18 @@ class ManagerTest extends TestCase {
 		$this->manager->registerSection('personal', \OCA\WorkflowEngine\Settings\Section::class);
 		$this->manager->registerSection('admin', \OCA\WorkflowEngine\Settings\Section::class);
 
+
+		$section = \OC::$server->query(\OCA\WorkflowEngine\Settings\Section::class);
+		$this->container->method('get')
+			->with(\OCA\WorkflowEngine\Settings\Section::class)
+			->willReturn($section);
+
 		$this->assertEquals([
-			55 => [\OC::$server->query(\OCA\WorkflowEngine\Settings\Section::class)],
+			55 => [$section],
 		], $this->manager->getPersonalSections());
 
 		$this->assertEquals([
-			55 => [\OC::$server->query(\OCA\WorkflowEngine\Settings\Section::class)],
+			55 => [$section],
 		], $this->manager->getAdminSections());
 	}
 }

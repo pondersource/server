@@ -34,6 +34,7 @@ namespace OCA\Files\Tests\Controller;
 
 use OCA\Files\Activity\Helper;
 use OCA\Files\Controller\ViewController;
+use OCA\Files\Service\UserConfig;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Services\IInitialState;
@@ -87,6 +88,8 @@ class ViewControllerTest extends TestCase {
 	private $templateManager;
 	/** @var IManager|\PHPUnit\Framework\MockObject\MockObject */
 	private $shareManager;
+	/** @var UserConfig|\PHPUnit\Framework\MockObject\MockObject */
+	private $userConfig;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -109,6 +112,7 @@ class ViewControllerTest extends TestCase {
 		$this->initialState = $this->createMock(IInitialState::class);
 		$this->templateManager = $this->createMock(ITemplateManager::class);
 		$this->shareManager = $this->createMock(IManager::class);
+		$this->userConfig = $this->createMock(UserConfig::class);
 		$this->viewController = $this->getMockBuilder('\OCA\Files\Controller\ViewController')
 			->setConstructorArgs([
 				'files',
@@ -124,6 +128,7 @@ class ViewControllerTest extends TestCase {
 				$this->initialState,
 				$this->templateManager,
 				$this->shareManager,
+				$this->userConfig,
 			])
 		->setMethods([
 			'getStorageInfo',
@@ -166,7 +171,6 @@ class ViewControllerTest extends TestCase {
 		$nav->assign('usage', '123 B');
 		$nav->assign('quota', 100);
 		$nav->assign('total_space', '100 B');
-		$nav->assign('webdav_url', 'http://localhost/remote.php/dav/files/testuser1/');
 		$nav->assign('navigationItems', [
 			'files' => [
 				'id' => 'files',
@@ -178,6 +182,7 @@ class ViewControllerTest extends TestCase {
 				'icon' => '',
 				'type' => 'link',
 				'classes' => '',
+				'expanded' => false,
 				'unread' => 0,
 			],
 			'recent' => [
@@ -190,6 +195,7 @@ class ViewControllerTest extends TestCase {
 				'icon' => '',
 				'type' => 'link',
 				'classes' => '',
+				'expanded' => false,
 				'unread' => 0,
 			],
 			'favorites' => [
@@ -205,51 +211,50 @@ class ViewControllerTest extends TestCase {
 				'sublist' => [
 					[
 						'id' => '-test1',
-						'view' => 'files',
-						'href' => '',
 						'dir' => '/test1',
 						'order' => 6,
-						'folderPosition' => 1,
 						'name' => 'test1',
-						'icon' => 'files',
-						'quickaccesselement' => 'true',
+						'icon' => 'folder',
+						'params' => [
+							'view' => 'files',
+							'dir' => '/test1',
+						],
 					],
 					[
 						'name' => 'test2',
 						'id' => '-test2-',
-						'view' => 'files',
-						'href' => '',
 						'dir' => '/test2/',
 						'order' => 7,
-						'folderPosition' => 2,
-						'icon' => 'files',
-						'quickaccesselement' => 'true',
+						'icon' => 'folder',
+						'params' => [
+							'view' => 'files',
+							'dir' => '/test2/',
+						],
 					],
 					[
 						'name' => 'sub4',
 						'id' => '-test3-sub4',
-						'view' => 'files',
-						'href' => '',
 						'dir' => '/test3/sub4',
 						'order' => 8,
-						'folderPosition' => 3,
-						'icon' => 'files',
-						'quickaccesselement' => 'true',
+						'icon' => 'folder',
+						'params' => [
+							'view' => 'files',
+							'dir' => '/test3/sub4',
+						],
 					],
 					[
 						'name' => 'sub6',
 						'id' => '-test5-sub6-',
-						'view' => 'files',
-						'href' => '',
 						'dir' => '/test5/sub6/',
 						'order' => 9,
-						'folderPosition' => 4,
-						'icon' => 'files',
-						'quickaccesselement' => 'true',
+						'icon' => 'folder',
+						'params' => [
+							'view' => 'files',
+							'dir' => '/test5/sub6/',
+						],
 					],
 				],
-				'defaultExpandedState' => false,
-				'expandedState' => 'show_Quick_Access',
+				'expanded' => false,
 				'unread' => 0,
 			],
 			'systemtagsfilter' => [
@@ -262,6 +267,7 @@ class ViewControllerTest extends TestCase {
 				'icon' => '',
 				'type' => 'link',
 				'classes' => '',
+				'expanded' => false,
 				'unread' => 0,
 			],
 			'trashbin' => [
@@ -274,6 +280,7 @@ class ViewControllerTest extends TestCase {
 				'icon' => '',
 				'type' => 'link',
 				'classes' => 'pinned',
+				'expanded' => false,
 				'unread' => 0,
 			],
 			'shareoverview' => [
@@ -323,8 +330,7 @@ class ViewControllerTest extends TestCase {
 				'active' => false,
 				'icon' => '',
 				'type' => 'link',
-				'expandedState' => 'show_sharing_menu',
-				'defaultExpandedState' => false,
+				'expanded' => false,
 				'unread' => 0,
 			]
 		]);
@@ -407,7 +413,7 @@ class ViewControllerTest extends TestCase {
 					],
 				],
 				'hiddenFields' => [],
-				'showgridview' => false
+				'showgridview' => null
 			]
 		);
 		$policy = new Http\ContentSecurityPolicy();
@@ -442,11 +448,11 @@ class ViewControllerTest extends TestCase {
 			->with('testuser1')
 			->willReturn($baseFolder);
 
-		$baseFolder->expects($this->at(0))
+		$baseFolder->expects($this->once())
 			->method('getById')
 			->with(123)
 			->willReturn([$node]);
-		$baseFolder->expects($this->at(1))
+		$baseFolder->expects($this->once())
 			->method('getRelativePath')
 			->with('/testuser1/files/test/sub')
 			->willReturn('/test/sub');
@@ -458,7 +464,7 @@ class ViewControllerTest extends TestCase {
 			->willReturn('/apps/files/?dir=/test/sub');
 
 		$expected = new Http\RedirectResponse('/apps/files/?dir=/test/sub');
-		$this->assertEquals($expected, $this->viewController->index('/whatever', '', '123'));
+		$this->assertEquals($expected, $this->viewController->index('', '', '123'));
 	}
 
 	public function testShowFileRouteWithFile() {
@@ -482,11 +488,11 @@ class ViewControllerTest extends TestCase {
 			->method('getName')
 			->willReturn('somefile.txt');
 
-		$baseFolder->expects($this->at(0))
+		$baseFolder->expects($this->once())
 			->method('getById')
 			->with(123)
 			->willReturn([$node]);
-		$baseFolder->expects($this->at(1))
+		$baseFolder->expects($this->once())
 			->method('getRelativePath')
 			->with('testuser1/files/test')
 			->willReturn('/test');
@@ -498,7 +504,7 @@ class ViewControllerTest extends TestCase {
 			->willReturn('/apps/files/?dir=/test/sub&scrollto=somefile.txt');
 
 		$expected = new Http\RedirectResponse('/apps/files/?dir=/test/sub&scrollto=somefile.txt');
-		$this->assertEquals($expected, $this->viewController->index('/whatever', '', '123'));
+		$this->assertEquals($expected, $this->viewController->index('', '', '123'));
 	}
 
 	public function testShowFileRouteWithInvalidFileId() {
@@ -508,7 +514,7 @@ class ViewControllerTest extends TestCase {
 			->with('testuser1')
 			->willReturn($baseFolder);
 
-		$baseFolder->expects($this->at(0))
+		$baseFolder->expects($this->once())
 			->method('getById')
 			->with(123)
 			->willReturn([]);
@@ -518,7 +524,7 @@ class ViewControllerTest extends TestCase {
 			->with('files.view.index', ['fileNotFound' => true])
 			->willReturn('redirect.url');
 
-		$response = $this->viewController->index('MyDir', 'MyView', '123');
+		$response = $this->viewController->index('', 'MyView', '123');
 		$this->assertInstanceOf('OCP\AppFramework\Http\RedirectResponse', $response);
 		$this->assertEquals('redirect.url', $response->getRedirectURL());
 	}
@@ -537,11 +543,11 @@ class ViewControllerTest extends TestCase {
 		$baseFolderFiles = $this->getMockBuilder(Folder::class)->getMock();
 		$baseFolderTrash = $this->getMockBuilder(Folder::class)->getMock();
 
-		$this->rootFolder->expects($this->at(0))
+		$this->rootFolder->expects($this->once())
 			->method('getUserFolder')
 			->with('testuser1')
 			->willReturn($baseFolderFiles);
-		$this->rootFolder->expects($this->at(1))
+		$this->rootFolder->expects($this->once())
 			->method('get')
 			->with('testuser1/files_trashbin/files/')
 			->willReturn($baseFolderTrash);
@@ -559,11 +565,11 @@ class ViewControllerTest extends TestCase {
 			->method('getName')
 			->willReturn('somefile.txt');
 
-		$baseFolderTrash->expects($this->at(0))
+		$baseFolderTrash->expects($this->once())
 			->method('getById')
 			->with(123)
 			->willReturn([$node]);
-		$baseFolderTrash->expects($this->at(1))
+		$baseFolderTrash->expects($this->once())
 			->method('getRelativePath')
 			->with('testuser1/files_trashbin/files/test.d1462861890/sub')
 			->willReturn('/test.d1462861890/sub');
@@ -575,6 +581,6 @@ class ViewControllerTest extends TestCase {
 			->willReturn('/apps/files/?view=trashbin&dir=/test.d1462861890/sub&scrollto=somefile.txt');
 
 		$expected = new Http\RedirectResponse('/apps/files/?view=trashbin&dir=/test.d1462861890/sub&scrollto=somefile.txt');
-		$this->assertEquals($expected, $this->viewController->index('/whatever', '', '123'));
+		$this->assertEquals($expected, $this->viewController->index('', '', '123'));
 	}
 }

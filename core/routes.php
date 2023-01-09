@@ -45,22 +45,26 @@ $application->registerRoutes($this, [
 		['name' => 'lost#setPassword', 'url' => '/lostpassword/set/{token}/{userId}', 'verb' => 'POST'],
 		['name' => 'ProfilePage#index', 'url' => '/u/{targetUserId}', 'verb' => 'GET'],
 		['name' => 'user#getDisplayNames', 'url' => '/displaynames', 'verb' => 'POST'],
+		['name' => 'avatar#getAvatarDark', 'url' => '/avatar/{userId}/{size}/dark', 'verb' => 'GET'],
 		['name' => 'avatar#getAvatar', 'url' => '/avatar/{userId}/{size}', 'verb' => 'GET'],
 		['name' => 'avatar#deleteAvatar', 'url' => '/avatar/', 'verb' => 'DELETE'],
 		['name' => 'avatar#postCroppedAvatar', 'url' => '/avatar/cropped', 'verb' => 'POST'],
 		['name' => 'avatar#getTmpAvatar', 'url' => '/avatar/tmp', 'verb' => 'GET'],
 		['name' => 'avatar#postAvatar', 'url' => '/avatar/', 'verb' => 'POST'],
+		['name' => 'GuestAvatar#getAvatarDark', 'url' => '/avatar/guest/{guestName}/{size}/dark', 'verb' => 'GET'],
 		['name' => 'GuestAvatar#getAvatar', 'url' => '/avatar/guest/{guestName}/{size}', 'verb' => 'GET'],
 		['name' => 'CSRFToken#index', 'url' => '/csrftoken', 'verb' => 'GET'],
 		['name' => 'login#tryLogin', 'url' => '/login', 'verb' => 'POST'],
 		['name' => 'login#confirmPassword', 'url' => '/login/confirm', 'verb' => 'POST'],
 		['name' => 'login#showLoginForm', 'url' => '/login', 'verb' => 'GET'],
 		['name' => 'login#logout', 'url' => '/logout', 'verb' => 'GET'],
+
 		// Original login flow used by all clients
 		['name' => 'ClientFlowLogin#showAuthPickerPage', 'url' => '/login/flow', 'verb' => 'GET'],
 		['name' => 'ClientFlowLogin#generateAppPassword', 'url' => '/login/flow', 'verb' => 'POST'],
 		['name' => 'ClientFlowLogin#grantPage', 'url' => '/login/flow/grant', 'verb' => 'GET'],
 		['name' => 'ClientFlowLogin#apptokenRedirect', 'url' => '/login/flow/apptoken', 'verb' => 'POST'],
+
 		// NG login flow used by desktop client in case of Kerberos/fancy 2fa (smart cards for example)
 		['name' => 'ClientFlowLoginV2#poll', 'url' => '/login/v2/poll', 'verb' => 'POST'],
 		['name' => 'ClientFlowLoginV2#showAuthPickerPage', 'url' => '/login/v2/flow', 'verb' => 'GET'],
@@ -68,6 +72,7 @@ $application->registerRoutes($this, [
 		['name' => 'ClientFlowLoginV2#grantPage', 'url' => '/login/v2/grant', 'verb' => 'GET'],
 		['name' => 'ClientFlowLoginV2#generateAppPassword', 'url' => '/login/v2/grant', 'verb' => 'POST'],
 		['name' => 'ClientFlowLoginV2#init', 'url' => '/login/v2', 'verb' => 'POST'],
+		['name' => 'ClientFlowLoginV2#apptokenRedirect', 'url' => '/login/v2/apptoken', 'verb' => 'POST'],
 		['name' => 'TwoFactorChallenge#selectChallenge', 'url' => '/login/selectchallenge', 'verb' => 'GET'],
 		['name' => 'TwoFactorChallenge#showChallenge', 'url' => '/login/challenge/{challengeProviderId}', 'verb' => 'GET'],
 		['name' => 'TwoFactorChallenge#solveChallenge', 'url' => '/login/challenge/{challengeProviderId}', 'verb' => 'POST'],
@@ -78,8 +83,7 @@ $application->registerRoutes($this, [
 		['name' => 'Preview#getPreviewByFileId', 'url' => '/core/preview', 'verb' => 'GET'],
 		['name' => 'Preview#getPreview', 'url' => '/core/preview.png', 'verb' => 'GET'],
 		['name' => 'RecommendedApps#index', 'url' => '/core/apps/recommended', 'verb' => 'GET'],
-		['name' => 'Svg#getSvgFromCore', 'url' => '/svg/core/{folder}/{fileName}', 'verb' => 'GET'],
-		['name' => 'Svg#getSvgFromApp', 'url' => '/svg/{app}/{fileName}', 'verb' => 'GET'],
+		['name' => 'Reference#preview', 'url' => '/core/references/preview/{referenceId}', 'verb' => 'GET'],
 		['name' => 'Css#getCss', 'url' => '/css/{appName}/{fileName}', 'verb' => 'GET'],
 		['name' => 'Js#getJs', 'url' => '/js/{appName}/{fileName}', 'verb' => 'GET'],
 		['name' => 'contactsMenu#index', 'url' => '/contactsmenu/contacts', 'verb' => 'POST'],
@@ -93,8 +97,14 @@ $application->registerRoutes($this, [
 		['name' => 'WebAuthn#startAuthentication', 'url' => 'login/webauthn/start', 'verb' => 'POST'],
 		['name' => 'WebAuthn#finishAuthentication', 'url' => 'login/webauthn/finish', 'verb' => 'POST'],
 
+		['name' => 'Error#error404', 'url' => 'error/404'],
+		['name' => 'Error#error403', 'url' => 'error/403'],
+
 		// Well known requests https://tools.ietf.org/html/rfc5785
 		['name' => 'WellKnown#handle', 'url' => '.well-known/{service}'],
+
+		// Unsupported browser
+		['name' => 'UnsupportedBrowser#index', 'url' => 'unsupported'],
 	],
 	'ocs' => [
 		['root' => '/cloud', 'name' => 'OCS#getCapabilities', 'url' => '/capabilities', 'verb' => 'GET'],
@@ -120,6 +130,10 @@ $application->registerRoutes($this, [
 		['root' => '/collaboration', 'name' => 'CollaborationResources#removeResource', 'url' => '/resources/collections/{collectionId}', 'verb' => 'DELETE'],
 		['root' => '/collaboration', 'name' => 'CollaborationResources#getCollectionsByResource', 'url' => '/resources/{resourceType}/{resourceId}', 'verb' => 'GET'],
 		['root' => '/collaboration', 'name' => 'CollaborationResources#createCollectionOnResource', 'url' => '/resources/{baseResourceType}/{baseResourceId}', 'verb' => 'POST'],
+
+		['root' => '/references', 'name' => 'ReferenceApi#resolveOne', 'url' => '/resolve', 'verb' => 'GET'],
+		['root' => '/references', 'name' => 'ReferenceApi#extract', 'url' => '/extract', 'verb' => 'POST'],
+		['root' => '/references', 'name' => 'ReferenceApi#resolve', 'url' => '/resolve', 'verb' => 'POST'],
 
 		['root' => '/profile', 'name' => 'ProfileApi#setVisibility', 'url' => '/{targetUserId}', 'verb' => 'PUT'],
 

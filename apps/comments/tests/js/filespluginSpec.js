@@ -4,7 +4,7 @@
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Vincent Petry <vincent@nextcloud.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -26,17 +26,17 @@ describe('OCA.Comments.FilesPlugin tests', function() {
 	var testFiles;
 
 	beforeEach(function() {
-		var $content = $('<div id="content"></div>');
+		var $content = $('<div id="app-content"></div>');
 		$('#testArea').append($content);
 		// dummy file list
 		var $div = $(
 			'<div>' +
-			'<table id="filestable">' +
+			'<table class="files-filestable">' +
 			'<thead></thead>' +
-			'<tbody id="fileList"></tbody>' +
+			'<tbody class="files-fileList"></tbody>' +
 			'</table>' +
 			'</div>');
-		$('#content').append($div);
+		$('#app-content').append($div);
 
 		fileList = new OCA.Files.FileList($div);
 		OCA.Comments.FilesPlugin.attach(fileList);

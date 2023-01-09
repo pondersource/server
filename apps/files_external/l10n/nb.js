@@ -11,6 +11,7 @@ OC.L10N.register(
     "Generate keys" : "Generer nøkler",
     "Error generating key pair" : "Feil ved nøkkelgenerering",
     "All users. Type to select user or group." : "Alle brukere. Tast for å velge bruker eller gruppe.",
+    "(Group)" : "(Gruppe)",
     "Compatibility with Mac NFD encoding (slow)" : "Kompatibelt med Mac NFD koding (treg)",
     "Enable encryption" : "Aktiver kryptering",
     "Enable previews" : "Skru på forhåndsvisninger",
@@ -19,9 +20,8 @@ OC.L10N.register(
     "Never" : "Aldri",
     "Once every direct access" : "En gang pr. direkte tilgang",
     "Read only" : "Skrivebeskyttet",
-    "Delete" : "Slett",
+    "Disconnect" : "Koble fra",
     "Admin defined" : "Admin-definert",
-    "Are you sure you want to delete this external storage?" : "Er du sikker på at du ønsker å slette dette eksterne lageret?",
     "Delete storage?" : "Slett lagringsplass",
     "Saved" : "Lagret",
     "Saving …" : "Lagrer...",
@@ -99,6 +99,7 @@ OC.L10N.register(
     "SFTP" : "SFTP",
     "Root" : "Rot",
     "SFTP with secret key login" : "SFTP med hemmelig nøkkel for pålogging",
+    "SMB/CIFS" : "SMB/CIFS",
     "Share" : "Delt ressurs",
     "Show hidden files" : "Vis skjulte filer",
     "Timeout" : "Tidsavbrudd",
@@ -121,10 +122,6 @@ OC.L10N.register(
     "Click to recheck the configuration" : "Klikk for å sjekke oppsettet igjen",
     "Add storage" : "Legg til lagringsplass",
     "Advanced settings" : "Avanserte innstillinger",
-    "Allow users to mount external storage" : "Tillat at brukere kobler opp eksterne lagre",
-    "External storages" : "Ekstern lagring",
-    "(group)" : "(gruppe)",
-    "SMB / CIFS" : "SMB / CIFS",
-    "SMB / CIFS using OC login" : "SMB / CIFS med OC-pålogging"
+    "Allow users to mount external storage" : "Tillat at brukere kobler opp eksterne lagre"
 },
 "nplurals=2; plural=(n != 1);");

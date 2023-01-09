@@ -54,11 +54,8 @@ OC.L10N.register(
     "Images" : "Изображения",
     "Office documents" : "Офис документи",
     "PDF documents" : "PDF документи",
+    "Custom MIME type" : "Персонализиран файл тип MIME",
     "Custom mimetype" : "Персонализиран mimetype",
-    "Select a tag" : "Избор на етикет",
-    "No results" : "Няма резултати",
-    "%s (invisible)" : "%s (невидим)",
-    "%s (restricted)" : "%s (ограничен)",
     "Please enter a valid time span" : "Моля, въведете валиден период от време",
     "Select a request URL" : "Избор на URL адрес за заявка",
     "Predefined URLs" : "Предефинирани URL-и",
@@ -115,6 +112,9 @@ OC.L10N.register(
     "User group membership" : "Членство към потребителска група",
     "is member of" : "е член на",
     "is not member of" : "не е член на",
-    "Browse the app store" : "Прегледай магазина за приложения"
+    "Select a tag" : "Избор на етикет",
+    "No results" : "Няма резултати",
+    "%s (invisible)" : "%s (невидим)",
+    "%s (restricted)" : "%s (ограничен)"
 },
 "nplurals=2; plural=(n != 1);");

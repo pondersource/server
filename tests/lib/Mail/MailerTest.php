@@ -18,10 +18,10 @@ use OCP\Defaults;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IURLGenerator;
 use OCP\L10N\IFactory;
 use OCP\Mail\Events\BeforeMessageSent;
+use Psr\Log\LoggerInterface;
 use Swift_SwiftException;
 use Test\TestCase;
 
@@ -30,7 +30,7 @@ class MailerTest extends TestCase {
 	private $config;
 	/** @var Defaults|\PHPUnit\Framework\MockObject\MockObject */
 	private $defaults;
-	/** @var ILogger|\PHPUnit\Framework\MockObject\MockObject */
+	/** @var LoggerInterface|\PHPUnit\Framework\MockObject\MockObject */
 	private $logger;
 	/** @var IURLGenerator|\PHPUnit\Framework\MockObject\MockObject */
 	private $urlGenerator;
@@ -47,7 +47,7 @@ class MailerTest extends TestCase {
 
 		$this->config = $this->createMock(IConfig::class);
 		$this->defaults = $this->createMock(Defaults::class);
-		$this->logger = $this->createMock(ILogger::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->urlGenerator = $this->createMock(IURLGenerator::class);
 		$this->l10n = $this->createMock(IL10N::class);
 		$this->dispatcher = $this->createMock(IEventDispatcher::class);
@@ -87,7 +87,7 @@ class MailerTest extends TestCase {
 			]);
 
 		$path = \OC_Helper::findBinaryPath('sendmail');
-		if ($path === null) {
+		if ($path === false) {
 			$path = '/usr/sbin/sendmail';
 		}
 
@@ -135,7 +135,7 @@ class MailerTest extends TestCase {
 		$message = $this->createMock(Message::class);
 
 		$event = new BeforeMessageSent($message);
-		$this->dispatcher->expects($this->at(0))
+		$this->dispatcher->expects($this->once())
 			->method('dispatchTyped')
 			->with($this->equalTo($event));
 

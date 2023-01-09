@@ -267,6 +267,12 @@ class UsersControllerTest extends TestCase {
 			->method('isAdmin')
 			->with('adminUser')
 			->willReturn(true);
+		$l10n = $this->createMock(IL10N::class);
+		$this->l10nFactory
+			->expects($this->once())
+			->method('get')
+			->with('provisioning_api')
+			->willReturn($l10n);
 
 		$this->api->addUser('AlreadyExistingUser', 'password', '', '', []);
 	}
@@ -939,9 +945,10 @@ class UsersControllerTest extends TestCase {
 	}
 
 	public function testGetUserDataAsAdmin() {
-		$group = $this->getMockBuilder(IGroup::class)
-			->disableOriginalConstructor()
-			->getMock();
+		$group0 = $this->createMock(IGroup::class);
+		$group1 = $this->createMock(IGroup::class);
+		$group2 = $this->createMock(IGroup::class);
+		$group3 = $this->createMock(IGroup::class);
 		$loggedInUser = $this->getMockBuilder(IUser::class)
 			->disableOriginalConstructor()
 			->getMock();
@@ -975,7 +982,7 @@ class UsersControllerTest extends TestCase {
 		$this->groupManager
 			->expects($this->any())
 			->method('getUserGroups')
-			->willReturn([$group, $group, $group]);
+			->willReturn([$group0, $group1, $group2]);
 		$this->groupManager
 			->expects($this->once())
 			->method('getSubAdmin')
@@ -983,17 +990,17 @@ class UsersControllerTest extends TestCase {
 		$subAdminManager
 			->expects($this->once())
 			->method('getSubAdminsGroups')
-			->willReturn([$group]);
-		$group->expects($this->at(0))
+			->willReturn([$group3]);
+		$group0->expects($this->once())
 			->method('getGID')
 			->willReturn('group0');
-		$group->expects($this->at(1))
+		$group1->expects($this->once())
 			->method('getGID')
 			->willReturn('group1');
-		$group->expects($this->at(2))
+		$group2->expects($this->once())
 			->method('getGID')
 			->willReturn('group2');
-		$group->expects($this->at(3))
+		$group3->expects($this->once())
 			->method('getGID')
 			->willReturn('group3');
 
@@ -1001,6 +1008,7 @@ class UsersControllerTest extends TestCase {
 			IAccountManager::PROPERTY_ADDRESS => ['value' => 'address'],
 			IAccountManager::PROPERTY_PHONE => ['value' => 'phone'],
 			IAccountManager::PROPERTY_TWITTER => ['value' => 'twitter'],
+			IAccountManager::PROPERTY_FEDIVERSE => ['value' => 'fediverse'],
 			IAccountManager::PROPERTY_WEBSITE => ['value' => 'website'],
 			IAccountManager::PROPERTY_ORGANISATION => ['value' => 'organisation'],
 			IAccountManager::PROPERTY_ROLE => ['value' => 'role'],
@@ -1009,10 +1017,10 @@ class UsersControllerTest extends TestCase {
 			IAccountManager::PROPERTY_PROFILE_ENABLED => ['value' => '1'],
 		]);
 		$this->config
-			->expects($this->at(0))
 			->method('getUserValue')
-			->with('UID', 'core', 'enabled', 'true')
-			->willReturn('true');
+			->willReturnMap([
+				['UID', 'core', 'enabled', 'true', 'true'],
+			]);
 		$this->api
 			->expects($this->once())
 			->method('fillStorageInfo')
@@ -1068,6 +1076,7 @@ class UsersControllerTest extends TestCase {
 			'address' => 'address',
 			'website' => 'website',
 			'twitter' => 'twitter',
+			'fediverse' => 'fediverse',
 			'groups' => ['group0', 'group1', 'group2'],
 			'language' => 'de',
 			'locale' => null,
@@ -1136,10 +1145,10 @@ class UsersControllerTest extends TestCase {
 			->method('getSubAdmin')
 			->willReturn($subAdminManager);
 		$this->config
-			->expects($this->at(0))
 			->method('getUserValue')
-			->with('UID', 'core', 'enabled', 'true')
-			->willReturn('true');
+			->willReturnMap([
+				['UID', 'core', 'enabled', 'true', 'true'],
+			]);
 		$this->api
 			->expects($this->once())
 			->method('fillStorageInfo')
@@ -1179,6 +1188,7 @@ class UsersControllerTest extends TestCase {
 			IAccountManager::PROPERTY_ADDRESS => ['value' => 'address'],
 			IAccountManager::PROPERTY_PHONE => ['value' => 'phone'],
 			IAccountManager::PROPERTY_TWITTER => ['value' => 'twitter'],
+			IAccountManager::PROPERTY_FEDIVERSE => ['value' => 'fediverse'],
 			IAccountManager::PROPERTY_WEBSITE => ['value' => 'website'],
 			IAccountManager::PROPERTY_ORGANISATION => ['value' => 'organisation'],
 			IAccountManager::PROPERTY_ROLE => ['value' => 'role'],
@@ -1207,6 +1217,7 @@ class UsersControllerTest extends TestCase {
 			'address' => 'address',
 			'website' => 'website',
 			'twitter' => 'twitter',
+			'fediverse' => 'fediverse',
 			'groups' => [],
 			'language' => 'da',
 			'locale' => null,
@@ -1357,6 +1368,7 @@ class UsersControllerTest extends TestCase {
 			IAccountManager::PROPERTY_ADDRESS => ['value' => 'address'],
 			IAccountManager::PROPERTY_PHONE => ['value' => 'phone'],
 			IAccountManager::PROPERTY_TWITTER => ['value' => 'twitter'],
+			IAccountManager::PROPERTY_FEDIVERSE => ['value' => 'fediverse'],
 			IAccountManager::PROPERTY_WEBSITE => ['value' => 'website'],
 			IAccountManager::PROPERTY_ORGANISATION => ['value' => 'organisation'],
 			IAccountManager::PROPERTY_ROLE => ['value' => 'role'],
@@ -1384,6 +1396,7 @@ class UsersControllerTest extends TestCase {
 			'address' => 'address',
 			'website' => 'website',
 			'twitter' => 'twitter',
+			'fediverse' => 'fediverse',
 			'groups' => [],
 			'language' => 'ru',
 			'locale' => null,
@@ -1485,7 +1498,8 @@ class UsersControllerTest extends TestCase {
 		$targetUser
 			->expects($this->once())
 			->method('setDisplayName')
-			->with('NewDisplayName');
+			->with('NewDisplayName')
+			->willReturn(true);
 		$targetUser
 			->expects($this->any())
 			->method('getUID')
@@ -1574,6 +1588,7 @@ class UsersControllerTest extends TestCase {
 	public function selfEditChangePropertyProvider() {
 		return [
 			[IAccountManager::PROPERTY_TWITTER, '@oldtwitter', '@newtwitter'],
+			[IAccountManager::PROPERTY_FEDIVERSE, '@oldFediverse@floss.social', '@newFediverse@floss.social'],
 			[IAccountManager::PROPERTY_PHONE, '1234', '12345'],
 			[IAccountManager::PROPERTY_ADDRESS, 'Something street 2', 'Another street 3'],
 			[IAccountManager::PROPERTY_WEBSITE, 'https://examplesite1', 'https://examplesite2'],
@@ -1650,6 +1665,7 @@ class UsersControllerTest extends TestCase {
 			[IAccountManager::PROPERTY_DISPLAYNAME, IAccountManager::SCOPE_LOCAL, IAccountManager::SCOPE_FEDERATED],
 			[IAccountManager::PROPERTY_EMAIL, IAccountManager::SCOPE_LOCAL, IAccountManager::SCOPE_FEDERATED],
 			[IAccountManager::PROPERTY_TWITTER, IAccountManager::SCOPE_LOCAL, IAccountManager::SCOPE_FEDERATED],
+			[IAccountManager::PROPERTY_FEDIVERSE, IAccountManager::SCOPE_LOCAL, IAccountManager::SCOPE_FEDERATED],
 			[IAccountManager::PROPERTY_PHONE, IAccountManager::SCOPE_LOCAL, IAccountManager::SCOPE_FEDERATED],
 			[IAccountManager::PROPERTY_ADDRESS, IAccountManager::SCOPE_LOCAL, IAccountManager::SCOPE_FEDERATED],
 			[IAccountManager::PROPERTY_WEBSITE, IAccountManager::SCOPE_LOCAL, IAccountManager::SCOPE_FEDERATED],
@@ -3535,6 +3551,7 @@ class UsersControllerTest extends TestCase {
 					'address' => 'address',
 					'website' => 'website',
 					'twitter' => 'twitter',
+					'fediverse' => 'fediverse',
 					'organisation' => 'organisation',
 					'role' => 'role',
 					'headline' => 'headline',
@@ -3552,6 +3569,7 @@ class UsersControllerTest extends TestCase {
 			'address' => 'address',
 			'website' => 'website',
 			'twitter' => 'twitter',
+			'fediverse' => 'fediverse',
 			'organisation' => 'organisation',
 			'role' => 'role',
 			'headline' => 'headline',
@@ -3614,6 +3632,7 @@ class UsersControllerTest extends TestCase {
 			'address' => 'address',
 			'website' => 'website',
 			'twitter' => 'twitter',
+			'fediverse' => 'fediverse',
 			'displayname' => 'Demo User',
 			'organisation' => 'organisation',
 			'role' => 'role',
@@ -3622,11 +3641,12 @@ class UsersControllerTest extends TestCase {
 			'profile_enabled' => '1'
 		];
 
-		$api->expects($this->at(0))->method('getUserData')
-			->with('uid', false)
-			->willReturn($expected);
-		$api->expects($this->at(1))->method('getUserData')
-			->with('currentuser', true)
+		$api->expects($this->exactly(2))
+			->method('getUserData')
+			->withConsecutive(
+				['uid', false],
+				['currentuser', true],
+			)
 			->willReturn($expected);
 
 		$this->assertSame($expected, $api->getUser('uid')->getData());
@@ -3812,11 +3832,11 @@ class UsersControllerTest extends TestCase {
 			->willReturn('abc@example.org');
 		$emailTemplate = $this->createMock(IEMailTemplate::class);
 		$this->newUserMailHelper
-			->expects($this->at(0))
+			->expects($this->once())
 			->method('generateTemplate')
 			->willReturn($emailTemplate);
 		$this->newUserMailHelper
-			->expects($this->at(1))
+			->expects($this->once())
 			->method('sendMail')
 			->with($targetUser, $emailTemplate);
 
@@ -3863,11 +3883,11 @@ class UsersControllerTest extends TestCase {
 			->getMock();
 		$emailTemplate = $this->createMock(IEMailTemplate::class);
 		$this->newUserMailHelper
-			->expects($this->at(0))
+			->expects($this->once())
 			->method('generateTemplate')
 			->willReturn($emailTemplate);
 		$this->newUserMailHelper
-			->expects($this->at(1))
+			->expects($this->once())
 			->method('sendMail')
 			->with($targetUser, $emailTemplate);
 
@@ -3916,11 +3936,11 @@ class UsersControllerTest extends TestCase {
 			->willReturn('abc@example.org');
 		$emailTemplate = $this->createMock(IEMailTemplate::class);
 		$this->newUserMailHelper
-			->expects($this->at(0))
+			->expects($this->once())
 			->method('generateTemplate')
 			->willReturn($emailTemplate);
 		$this->newUserMailHelper
-			->expects($this->at(1))
+			->expects($this->once())
 			->method('sendMail')
 			->with($targetUser, $emailTemplate)
 			->willThrowException(new \Exception());
@@ -3937,6 +3957,7 @@ class UsersControllerTest extends TestCase {
 				IAccountManager::PROPERTY_ADDRESS,
 				IAccountManager::PROPERTY_WEBSITE,
 				IAccountManager::PROPERTY_TWITTER,
+				IAccountManager::PROPERTY_FEDIVERSE,
 				IAccountManager::PROPERTY_ORGANISATION,
 				IAccountManager::PROPERTY_ROLE,
 				IAccountManager::PROPERTY_HEADLINE,
@@ -3951,6 +3972,7 @@ class UsersControllerTest extends TestCase {
 				IAccountManager::PROPERTY_ADDRESS,
 				IAccountManager::PROPERTY_WEBSITE,
 				IAccountManager::PROPERTY_TWITTER,
+				IAccountManager::PROPERTY_FEDIVERSE,
 				IAccountManager::PROPERTY_ORGANISATION,
 				IAccountManager::PROPERTY_ROLE,
 				IAccountManager::PROPERTY_HEADLINE,
@@ -3964,6 +3986,7 @@ class UsersControllerTest extends TestCase {
 				IAccountManager::PROPERTY_ADDRESS,
 				IAccountManager::PROPERTY_WEBSITE,
 				IAccountManager::PROPERTY_TWITTER,
+				IAccountManager::PROPERTY_FEDIVERSE,
 				IAccountManager::PROPERTY_ORGANISATION,
 				IAccountManager::PROPERTY_ROLE,
 				IAccountManager::PROPERTY_HEADLINE,

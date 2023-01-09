@@ -4,7 +4,7 @@
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Vincent Petry <vincent@nextcloud.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -88,7 +88,7 @@ describe('OCA.Files.FavoritesPlugin tests', function() {
 
 			var setActiveViewStub = sinon.stub(OCA.Files.App, 'setActiveView');
 			// create dummy table so we can click the dom
-			var $table = '<table><thead></thead><tbody id="fileList"></tbody></table>';
+			var $table = '<table><thead></thead><tbody class="files-fileList"></tbody></table>';
 			$('#app-content-favorites').append($table);
 
 			Plugin.favoritesFileList = null;

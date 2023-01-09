@@ -2,6 +2,7 @@
 /**
  * @copyright 2013 Thomas Tanghus (thomas@tanghus.net)
  * @copyright 2016 Lukas Reschke lukas@owncloud.com
+ * @copyright 2022 Stanimir Bozhilov (stanimir@audriga.com)
  *
  * This file is licensed under the Affero General Public License version 3 or
  * later.
@@ -14,7 +15,7 @@ use OC\AppFramework\Http\Request;
 use OC\Security\CSRF\CsrfToken;
 use OC\Security\CSRF\CsrfTokenManager;
 use OCP\IConfig;
-use OCP\Security\ISecureRandom;
+use OCP\IRequestId;
 
 /**
  * Class RequestTest
@@ -24,8 +25,8 @@ use OCP\Security\ISecureRandom;
 class RequestTest extends \Test\TestCase {
 	/** @var string */
 	protected $stream = 'fakeinput://data';
-	/** @var ISecureRandom */
-	protected $secureRandom;
+	/** @var IRequestId */
+	protected $requestId;
 	/** @var IConfig */
 	protected $config;
 	/** @var CsrfTokenManager */
@@ -39,10 +40,11 @@ class RequestTest extends \Test\TestCase {
 		}
 		stream_wrapper_register('fakeinput', 'Test\AppFramework\Http\RequestStream');
 
-		$this->secureRandom = $this->getMockBuilder('\OCP\Security\ISecureRandom')->getMock();
-		$this->config = $this->getMockBuilder(IConfig::class)->getMock();
-		$this->csrfTokenManager = $this->getMockBuilder('\OC\Security\CSRF\CsrfTokenManager')
-			->disableOriginalConstructor()->getMock();
+		$this->requestId = $this->createMock(IRequestId::class);
+		$this->config = $this->createMock(IConfig::class);
+		$this->csrfTokenManager = $this->getMockBuilder(CsrfTokenManager::class)
+			->disableOriginalConstructor()
+			->getMock();
 	}
 
 	protected function tearDown(): void {
@@ -58,7 +60,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -90,7 +92,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -113,7 +115,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -133,7 +135,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -153,7 +155,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -170,7 +172,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -192,7 +194,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -206,9 +208,68 @@ class RequestTest extends \Test\TestCase {
 		$this->assertSame('Joey', $request['nickname']);
 	}
 
-	public function testNotJsonPost() {
+	public function testScimJsonPost() {
 		global $data;
-		$data = 'this is not valid json';
+		$data = '{"userName":"testusername", "displayName":"Example User"}';
+		$vars = [
+			'method' => 'POST',
+			'server' => ['CONTENT_TYPE' => 'application/scim+json; utf-8']
+		];
+
+		$request = new Request(
+			$vars,
+			$this->requestId,
+			$this->config,
+			$this->csrfTokenManager,
+			$this->stream
+		);
+
+		$this->assertSame('POST', $request->method);
+		$result = $request->post;
+		$this->assertSame('testusername', $result['userName']);
+		$this->assertSame('Example User', $result['displayName']);
+		$this->assertSame('Example User', $request->params['displayName']);
+		$this->assertSame('Example User', $request['displayName']);
+	}
+
+	public function testCustomJsonPost() {
+		global $data;
+		$data = '{"propertyA":"sometestvalue", "propertyB":"someothertestvalue"}';
+
+		// Note: the content type used here is fictional and intended to check if the regex for JSON content types works fine
+		$vars = [
+			'method' => 'POST',
+			'server' => ['CONTENT_TYPE' => 'application/custom-type+json; utf-8']
+		];
+
+		$request = new Request(
+			$vars,
+			$this->requestId,
+			$this->config,
+			$this->csrfTokenManager,
+			$this->stream
+		);
+
+		$this->assertSame('POST', $request->method);
+		$result = $request->post;
+		$this->assertSame('sometestvalue', $result['propertyA']);
+		$this->assertSame('someothertestvalue', $result['propertyB']);
+	}
+
+	public function notJsonDataProvider() {
+		return [
+			['this is not valid json'],
+			['"just a string"'],
+			['{"just a string"}'],
+		];
+	}
+
+	/**
+	 * @dataProvider notJsonDataProvider
+	 */
+	public function testNotJsonPost($testData) {
+		global $data;
+		$data = $testData;
 		$vars = [
 			'method' => 'POST',
 			'server' => ['CONTENT_TYPE' => 'application/json; utf-8']
@@ -216,7 +277,49 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
+			$this->config,
+			$this->csrfTokenManager,
+			$this->stream
+		);
+
+		$this->assertEquals('POST', $request->method);
+		$result = $request->post;
+		// ensure there's no error attempting to decode the content
+	}
+
+	public function testNotScimJsonPost() {
+		global $data;
+		$data = 'this is not valid scim json';
+		$vars = [
+			'method' => 'POST',
+			'server' => ['CONTENT_TYPE' => 'application/scim+json; utf-8']
+		];
+
+		$request = new Request(
+			$vars,
+			$this->requestId,
+			$this->config,
+			$this->csrfTokenManager,
+			$this->stream
+		);
+
+		$this->assertEquals('POST', $request->method);
+		$result = $request->post;
+		// ensure there's no error attempting to decode the content
+	}
+
+	public function testNotCustomJsonPost() {
+		global $data;
+		$data = 'this is not valid json';
+		$vars = [
+			'method' => 'POST',
+			'server' => ['CONTENT_TYPE' => 'application/custom-type+json; utf-8']
+		];
+
+		$request = new Request(
+			$vars,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -238,7 +341,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -263,7 +366,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -284,7 +387,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -295,6 +398,98 @@ class RequestTest extends \Test\TestCase {
 
 		$this->assertSame('John Q. Public', $result['name']);
 		$this->assertSame(null, $result['nickname']);
+	}
+
+	public function testScimJsonPatchAndPut() {
+		global $data;
+
+		// PUT content
+		$data = '{"userName": "sometestusername", "displayName": "Example User"}';
+		$vars = [
+			'method' => 'PUT',
+			'server' => ['CONTENT_TYPE' => 'application/scim+json; utf-8'],
+		];
+
+		$request = new Request(
+			$vars,
+			$this->requestId,
+			$this->config,
+			$this->csrfTokenManager,
+			$this->stream
+		);
+
+		$this->assertSame('PUT', $request->method);
+		$result = $request->put;
+
+		$this->assertSame('sometestusername', $result['userName']);
+		$this->assertSame('Example User', $result['displayName']);
+
+		// PATCH content
+		$data = '{"userName": "sometestusername", "displayName": null}';
+		$vars = [
+			'method' => 'PATCH',
+			'server' => ['CONTENT_TYPE' => 'application/scim+json; utf-8'],
+		];
+
+		$request = new Request(
+			$vars,
+			$this->requestId,
+			$this->config,
+			$this->csrfTokenManager,
+			$this->stream
+		);
+
+		$this->assertSame('PATCH', $request->method);
+		$result = $request->patch;
+
+		$this->assertSame('sometestusername', $result['userName']);
+		$this->assertSame(null, $result['displayName']);
+	}
+
+	public function testCustomJsonPatchAndPut() {
+		global $data;
+
+		// PUT content
+		$data = '{"propertyA": "sometestvalue", "propertyB": "someothertestvalue"}';
+		$vars = [
+			'method' => 'PUT',
+			'server' => ['CONTENT_TYPE' => 'application/custom-type+json; utf-8'],
+		];
+
+		$request = new Request(
+			$vars,
+			$this->requestId,
+			$this->config,
+			$this->csrfTokenManager,
+			$this->stream
+		);
+
+		$this->assertSame('PUT', $request->method);
+		$result = $request->put;
+
+		$this->assertSame('sometestvalue', $result['propertyA']);
+		$this->assertSame('someothertestvalue', $result['propertyB']);
+
+		// PATCH content
+		$data = '{"propertyA": "sometestvalue", "propertyB": null}';
+		$vars = [
+			'method' => 'PATCH',
+			'server' => ['CONTENT_TYPE' => 'application/custom-type+json; utf-8'],
+		];
+
+		$request = new Request(
+			$vars,
+			$this->requestId,
+			$this->config,
+			$this->csrfTokenManager,
+			$this->stream
+		);
+
+		$this->assertSame('PATCH', $request->method);
+		$result = $request->patch;
+
+		$this->assertSame('sometestvalue', $result['propertyA']);
+		$this->assertSame(null, $result['propertyB']);
 	}
 
 	public function testPutStream() {
@@ -312,7 +507,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -341,7 +536,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			$vars,
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -352,54 +547,6 @@ class RequestTest extends \Test\TestCase {
 		$this->assertSame('test2', $request->getParam('test'));
 		$this->assertEquals('3', $request->getParam('id'));
 		$this->assertEquals('3', $request->getParams()['id']);
-	}
-
-	public function testGetIdWithModUnique() {
-		$vars = [
-			'server' => [
-				'UNIQUE_ID' => 'GeneratedUniqueIdByModUnique'
-			],
-		];
-
-		$request = new Request(
-			$vars,
-			$this->secureRandom,
-			$this->config,
-			$this->csrfTokenManager,
-			$this->stream
-		);
-
-		$this->assertSame('GeneratedUniqueIdByModUnique', $request->getId());
-	}
-
-	public function testGetIdWithoutModUnique() {
-		$this->secureRandom->expects($this->once())
-			->method('generate')
-			->with('20')
-			->willReturn('GeneratedByOwnCloudItself');
-
-		$request = new Request(
-			[],
-			$this->secureRandom,
-			$this->config,
-			$this->csrfTokenManager,
-			$this->stream
-		);
-
-		$this->assertSame('GeneratedByOwnCloudItself', $request->getId());
-	}
-
-	public function testGetIdWithoutModUniqueStable() {
-		$request = new Request(
-			[],
-			\OC::$server->getSecureRandom(),
-			$this->config,
-			$this->csrfTokenManager,
-			$this->stream
-		);
-		$firstId = $request->getId();
-		$secondId = $request->getId();
-		$this->assertSame($firstId, $secondId);
 	}
 
 	public function testGetRemoteAddressWithoutTrustedRemote() {
@@ -417,7 +564,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTP_X_FORWARDED_FOR' => '192.168.0.233'
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -428,15 +575,15 @@ class RequestTest extends \Test\TestCase {
 
 	public function testGetRemoteAddressWithNoTrustedHeader() {
 		$this->config
-			->expects($this->at(0))
+			->expects($this->exactly(2))
 			->method('getSystemValue')
-			->with('trusted_proxies')
-			->willReturn(['10.0.0.2']);
-		$this->config
-			->expects($this->at(1))
-			->method('getSystemValue')
-			->with('forwarded_for_headers')
-			->willReturn([]);
+			->withConsecutive(
+				['trusted_proxies'],
+				['forwarded_for_headers'],
+			)->willReturnOnConsecutiveCalls(
+				['10.0.0.2'],
+				[]
+			);
 
 		$request = new Request(
 			[
@@ -446,7 +593,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTP_X_FORWARDED_FOR' => '192.168.0.233'
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -457,15 +604,15 @@ class RequestTest extends \Test\TestCase {
 
 	public function testGetRemoteAddressWithSingleTrustedRemote() {
 		$this->config
-			->expects($this->at(0))
+			->expects($this->exactly(2))
 			->method('getSystemValue')
-			->with('trusted_proxies')
-			->willReturn(['10.0.0.2']);
-		$this->config
-			->expects($this->at(1))
-			->method('getSystemValue')
-			->with('forwarded_for_headers')
-			->willReturn(['HTTP_X_FORWARDED']);
+			->withConsecutive(
+				['trusted_proxies'],
+				['forwarded_for_headers'],
+			)-> willReturnOnConsecutiveCalls(
+				['10.0.0.2'],
+				['HTTP_X_FORWARDED'],
+			);
 
 		$request = new Request(
 			[
@@ -475,7 +622,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTP_X_FORWARDED_FOR' => '192.168.0.233'
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -486,15 +633,15 @@ class RequestTest extends \Test\TestCase {
 
 	public function testGetRemoteAddressIPv6WithSingleTrustedRemote() {
 		$this->config
-			->expects($this->at(0))
+			->expects($this->exactly(2))
 			->method('getSystemValue')
-			->with('trusted_proxies')
-			->willReturn(['2001:db8:85a3:8d3:1319:8a2e:370:7348']);
-		$this->config
-			->expects($this->at(1))
-			->method('getSystemValue')
-			->with('forwarded_for_headers')
-			->willReturn(['HTTP_X_FORWARDED']);
+			->withConsecutive(
+				['trusted_proxies'],
+				['forwarded_for_headers'],
+			)-> willReturnOnConsecutiveCalls(
+				['2001:db8:85a3:8d3:1319:8a2e:370:7348'],
+				['HTTP_X_FORWARDED'],
+			);
 
 		$request = new Request(
 			[
@@ -504,7 +651,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTP_X_FORWARDED_FOR' => '192.168.0.233'
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -515,19 +662,19 @@ class RequestTest extends \Test\TestCase {
 
 	public function testGetRemoteAddressVerifyPriorityHeader() {
 		$this->config
-			->expects($this->at(0))
+			->expects($this->exactly(2))
 			->method('getSystemValue')
-			->with('trusted_proxies')
-			->willReturn(['10.0.0.2']);
-		$this->config
-			->expects($this->at(1))
-			->method('getSystemValue')
-			->with('forwarded_for_headers')
-			->willReturn([
-				'HTTP_CLIENT_IP',
-				'HTTP_X_FORWARDED_FOR',
-				'HTTP_X_FORWARDED'
-			]);
+			->withConsecutive(
+				['trusted_proxies'],
+				['forwarded_for_headers'],
+			)-> willReturnOnConsecutiveCalls(
+				['10.0.0.2'],
+				[
+					'HTTP_CLIENT_IP',
+					'HTTP_X_FORWARDED_FOR',
+					'HTTP_X_FORWARDED',
+				],
+			);
 
 		$request = new Request(
 			[
@@ -537,7 +684,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTP_X_FORWARDED_FOR' => '192.168.0.233'
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -548,19 +695,19 @@ class RequestTest extends \Test\TestCase {
 
 	public function testGetRemoteAddressIPv6VerifyPriorityHeader() {
 		$this->config
-			->expects($this->at(0))
+			->expects($this->exactly(2))
 			->method('getSystemValue')
-			->with('trusted_proxies')
-			->willReturn(['2001:db8:85a3:8d3:1319:8a2e:370:7348']);
-		$this->config
-			->expects($this->at(1))
-			->method('getSystemValue')
-			->with('forwarded_for_headers')
-			->willReturn([
-				'HTTP_CLIENT_IP',
-				'HTTP_X_FORWARDED_FOR',
-				'HTTP_X_FORWARDED'
-			]);
+			->withConsecutive(
+				['trusted_proxies'],
+				['forwarded_for_headers'],
+			)-> willReturnOnConsecutiveCalls(
+				['2001:db8:85a3:8d3:1319:8a2e:370:7348'],
+				[
+					'HTTP_CLIENT_IP',
+					'HTTP_X_FORWARDED_FOR',
+					'HTTP_X_FORWARDED'
+				],
+			);
 
 		$request = new Request(
 			[
@@ -570,7 +717,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTP_X_FORWARDED_FOR' => '192.168.0.233'
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -581,15 +728,15 @@ class RequestTest extends \Test\TestCase {
 
 	public function testGetRemoteAddressWithMatchingCidrTrustedRemote() {
 		$this->config
-			->expects($this->at(0))
+			->expects($this->exactly(2))
 			->method('getSystemValue')
-			->with('trusted_proxies')
-			->willReturn(['192.168.2.0/24']);
-		$this->config
-			->expects($this->at(1))
-			->method('getSystemValue')
-			->with('forwarded_for_headers')
-			->willReturn(['HTTP_X_FORWARDED_FOR']);
+			->withConsecutive(
+				['trusted_proxies'],
+				['forwarded_for_headers'],
+			)-> willReturnOnConsecutiveCalls(
+				['192.168.2.0/24'],
+				['HTTP_X_FORWARDED_FOR'],
+			);
 
 		$request = new Request(
 			[
@@ -599,7 +746,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTP_X_FORWARDED_FOR' => '192.168.0.233'
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -623,7 +770,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTP_X_FORWARDED_FOR' => '192.168.0.233'
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -632,17 +779,94 @@ class RequestTest extends \Test\TestCase {
 		$this->assertSame('192.168.3.99', $request->getRemoteAddress());
 	}
 
-	public function testGetRemoteAddressWithXForwardedForIPv6() {
+	public function testGetRemoteIpv6AddressWithMatchingIpv6CidrTrustedRemote() {
 		$this->config
-			->expects($this->at(0))
+			->expects($this->exactly(2))
+			->method('getSystemValue')
+			->withConsecutive(
+				['trusted_proxies'],
+				['forwarded_for_headers']
+			)->willReturnOnConsecutiveCalls(
+				['2001:db8:85a3:8d3:1319:8a20::/95'],
+				['HTTP_X_FORWARDED_FOR']
+			);
+
+		$request = new Request(
+			[
+				'server' => [
+					'REMOTE_ADDR' => '2001:db8:85a3:8d3:1319:8a21:370:7348',
+					'HTTP_X_FORWARDED' => '10.4.0.5, 10.4.0.4',
+					'HTTP_X_FORWARDED_FOR' => '192.168.0.233'
+				],
+			],
+			$this->requestId,
+			$this->config,
+			$this->csrfTokenManager,
+			$this->stream
+		);
+
+		$this->assertSame('192.168.0.233', $request->getRemoteAddress());
+	}
+
+	public function testGetRemoteAddressIpv6WithNotMatchingCidrTrustedRemote() {
+		$this->config
+			->expects($this->once())
 			->method('getSystemValue')
 			->with('trusted_proxies')
-			->willReturn(['192.168.2.0/24']);
+			->willReturn(['fd::/8']);
+
+		$request = new Request(
+			[
+				'server' => [
+					'REMOTE_ADDR' => '2001:db8:85a3:8d3:1319:8a2e:370:7348',
+					'HTTP_X_FORWARDED' => '10.4.0.5, 10.4.0.4',
+					'HTTP_X_FORWARDED_FOR' => '192.168.0.233'
+				],
+			],
+			$this->requestId,
+			$this->config,
+			$this->csrfTokenManager,
+			$this->stream
+		);
+
+		$this->assertSame('2001:db8:85a3:8d3:1319:8a2e:370:7348', $request->getRemoteAddress());
+	}
+
+	public function testGetRemoteAddressIpv6WithInvalidTrustedProxy() {
 		$this->config
-			->expects($this->at(1))
+			->expects($this->once())
 			->method('getSystemValue')
-			->with('forwarded_for_headers')
-			->willReturn(['HTTP_X_FORWARDED_FOR']);
+			->with('trusted_proxies')
+			->willReturn(['fx::/8']);
+
+		$request = new Request(
+			[
+				'server' => [
+					'REMOTE_ADDR' => '2001:db8:85a3:8d3:1319:8a2e:370:7348',
+					'HTTP_X_FORWARDED' => '10.4.0.5, 10.4.0.4',
+					'HTTP_X_FORWARDED_FOR' => '192.168.0.233'
+				],
+			],
+			$this->requestId,
+			$this->config,
+			$this->csrfTokenManager,
+			$this->stream
+		);
+
+		$this->assertSame('2001:db8:85a3:8d3:1319:8a2e:370:7348', $request->getRemoteAddress());
+	}
+
+	public function testGetRemoteAddressWithXForwardedForIPv6() {
+		$this->config
+			->expects($this->exactly(2))
+			->method('getSystemValue')
+			->withConsecutive(
+				['trusted_proxies'],
+				['forwarded_for_headers'],
+			)-> willReturnOnConsecutiveCalls(
+				['192.168.2.0/24'],
+				['HTTP_X_FORWARDED_FOR'],
+			);
 
 		$request = new Request(
 			[
@@ -651,7 +875,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTP_X_FORWARDED_FOR' => '[2001:db8:85a3:8d3:1319:8a2e:370:7348]',
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -702,7 +926,7 @@ class RequestTest extends \Test\TestCase {
 					'SERVER_PROTOCOL' => $input,
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -713,24 +937,16 @@ class RequestTest extends \Test\TestCase {
 
 	public function testGetServerProtocolWithOverride() {
 		$this->config
-			->expects($this->at(0))
+			->expects($this->exactly(3))
 			->method('getSystemValue')
-			->with('overwriteprotocol')
-			->willReturn('customProtocol');
-		$this->config
-			->expects($this->at(1))
-			->method('getSystemValue')
-			->with('overwritecondaddr')
-			->willReturn('');
-		$this->config
-			->expects($this->at(2))
-			->method('getSystemValue')
-			->with('overwriteprotocol')
-			->willReturn('customProtocol');
+			->willReturnMap([
+				['overwriteprotocol', '', 'customProtocol'],
+				['overwritecondaddr', '', ''],
+			]);
 
 		$request = new Request(
 			[],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -757,7 +973,7 @@ class RequestTest extends \Test\TestCase {
 					'REMOTE_ADDR' => '1.2.3.4',
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -769,7 +985,7 @@ class RequestTest extends \Test\TestCase {
 					'REMOTE_ADDR' => '1.2.3.4',
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -793,7 +1009,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTPS' => 'on'
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -814,7 +1030,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTPS' => 'off'
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -835,7 +1051,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTPS' => ''
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -852,7 +1068,7 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			[],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -878,7 +1094,7 @@ class RequestTest extends \Test\TestCase {
 					'REMOTE_ADDR' => '1.2.3.4',
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -900,7 +1116,7 @@ class RequestTest extends \Test\TestCase {
 					'HTTP_USER_AGENT' => $testAgent,
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -918,7 +1134,7 @@ class RequestTest extends \Test\TestCase {
 	public function testUndefinedUserAgent($testAgent, $userAgent, $matches) {
 		$request = new Request(
 			[],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -1056,13 +1272,13 @@ class RequestTest extends \Test\TestCase {
 					'SERVER_NAME' => 'from.server.name:8080',
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
 		);
 
-		$this->assertSame('from.server.name:8080',  $request->getInsecureServerHost());
+		$this->assertSame('from.server.name:8080', $request->getInsecureServerHost());
 	}
 
 	public function testInsecureServerHostHttpHostHeader() {
@@ -1073,13 +1289,13 @@ class RequestTest extends \Test\TestCase {
 					'HTTP_HOST' => 'from.host.header:8080',
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
 		);
 
-		$this->assertSame('from.host.header:8080',  $request->getInsecureServerHost());
+		$this->assertSame('from.host.header:8080', $request->getInsecureServerHost());
 	}
 
 	public function testInsecureServerHostHttpFromForwardedHeaderSingle() {
@@ -1102,13 +1318,13 @@ class RequestTest extends \Test\TestCase {
 					'REMOTE_ADDR' => '1.2.3.4',
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
 		);
 
-		$this->assertSame('from.forwarded.host:8080',  $request->getInsecureServerHost());
+		$this->assertSame('from.forwarded.host:8080', $request->getInsecureServerHost());
 	}
 
 	public function testInsecureServerHostHttpFromForwardedHeaderStacked() {
@@ -1131,13 +1347,13 @@ class RequestTest extends \Test\TestCase {
 					'REMOTE_ADDR' => '1.2.3.4',
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
 		);
 
-		$this->assertSame('from.forwarded.host2:8080',  $request->getInsecureServerHost());
+		$this->assertSame('from.forwarded.host2:8080', $request->getInsecureServerHost());
 	}
 
 	public function testGetServerHostWithOverwriteHost() {
@@ -1155,13 +1371,13 @@ class RequestTest extends \Test\TestCase {
 
 		$request = new Request(
 			[],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
 		);
 
-		$this->assertSame('my.overwritten.host',  $request->getServerHost());
+		$this->assertSame('my.overwritten.host', $request->getServerHost());
 	}
 
 	public function testGetServerHostWithTrustedDomain() {
@@ -1184,13 +1400,13 @@ class RequestTest extends \Test\TestCase {
 					'REMOTE_ADDR' => '1.2.3.4',
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
 		);
 
-		$this->assertSame('my.trusted.host',  $request->getServerHost());
+		$this->assertSame('my.trusted.host', $request->getServerHost());
 	}
 
 	public function testGetServerHostWithUntrustedDomain() {
@@ -1213,13 +1429,13 @@ class RequestTest extends \Test\TestCase {
 					'REMOTE_ADDR' => '1.2.3.4',
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
 		);
 
-		$this->assertSame('my.trusted.host',  $request->getServerHost());
+		$this->assertSame('my.trusted.host', $request->getServerHost());
 	}
 
 	public function testGetServerHostWithNoTrustedDomain() {
@@ -1239,13 +1455,13 @@ class RequestTest extends \Test\TestCase {
 					'REMOTE_ADDR' => '1.2.3.4',
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
 		);
 
-		$this->assertSame('',  $request->getServerHost());
+		$this->assertSame('', $request->getServerHost());
 	}
 
 	/**
@@ -1285,7 +1501,7 @@ class RequestTest extends \Test\TestCase {
 					'REMOTE_ADDR' => '1.2.3.4',
 				],
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -1302,7 +1518,7 @@ class RequestTest extends \Test\TestCase {
 			->willReturn('');
 		$request = new Request(
 			[],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -1313,24 +1529,16 @@ class RequestTest extends \Test\TestCase {
 
 	public function testGetOverwriteHostWithOverwrite() {
 		$this->config
-			->expects($this->at(0))
+			->expects($this->exactly(3))
 			->method('getSystemValue')
-			->with('overwritehost')
-			->willReturn('www.owncloud.org');
-		$this->config
-			->expects($this->at(1))
-			->method('getSystemValue')
-			->with('overwritecondaddr')
-			->willReturn('');
-		$this->config
-			->expects($this->at(2))
-			->method('getSystemValue')
-			->with('overwritehost')
-			->willReturn('www.owncloud.org');
+			->willReturnMap([
+				['overwritehost', '', 'www.owncloud.org'],
+				['overwritecondaddr', '', ''],
+			]);
 
 		$request = new Request(
 			[],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -1351,7 +1559,7 @@ class RequestTest extends \Test\TestCase {
 					'SCRIPT_NAME' => '/var/www/index.php',
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -1372,7 +1580,7 @@ class RequestTest extends \Test\TestCase {
 					'SCRIPT_NAME' => '/var/www/index.php',
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -1395,7 +1603,7 @@ class RequestTest extends \Test\TestCase {
 					'SCRIPT_NAME' => $scriptName,
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -1418,7 +1626,7 @@ class RequestTest extends \Test\TestCase {
 					'SCRIPT_NAME' => $scriptName,
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -1441,7 +1649,7 @@ class RequestTest extends \Test\TestCase {
 					'SCRIPT_NAME' => $scriptName,
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -1464,7 +1672,7 @@ class RequestTest extends \Test\TestCase {
 					'SCRIPT_NAME' => $scriptName,
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -1519,7 +1727,7 @@ class RequestTest extends \Test\TestCase {
 					'REQUEST_URI' => '/test.php'
 				]
 			],
-			$this->secureRandom,
+			$this->requestId,
 			$this->config,
 			$this->csrfTokenManager,
 			$this->stream
@@ -1540,15 +1748,12 @@ class RequestTest extends \Test\TestCase {
 	 */
 	public function testGetRequestUriWithOverwrite($expectedUri, $overwriteWebRoot, $overwriteCondAddr) {
 		$this->config
-			->expects($this->at(0))
+			->expects($this->exactly(2))
 			->method('getSystemValue')
-			->with('overwritewebroot')
-			->willReturn($overwriteWebRoot);
-		$this->config
-			->expects($this->at(1))
-			->method('getSystemValue')
-			->with('overwritecondaddr')
-			->willReturn($overwriteCondAddr);
+			->willReturnMap([
+				['overwritewebroot', '', $overwriteWebRoot],
+				['overwritecondaddr', '', $overwriteCondAddr],
+			]);
 
 		$request = $this->getMockBuilder('\OC\AppFramework\Http\Request')
 			->setMethods(['getScriptName'])
@@ -1559,7 +1764,7 @@ class RequestTest extends \Test\TestCase {
 						'SCRIPT_NAME' => '/test.php',
 					]
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1587,7 +1792,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_sameSiteCookielax' => 'true',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1617,7 +1822,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_sameSiteCookielax' => 'true',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1647,7 +1852,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_sameSiteCookielax' => 'true',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1673,7 +1878,7 @@ class RequestTest extends \Test\TestCase {
 						'requesttoken' => 'AAAHGxsTCTc3BgMQESAcNR0OAR0=:MyTotalSecretShareds',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1697,7 +1902,7 @@ class RequestTest extends \Test\TestCase {
 						'requesttoken' => 'AAAHGxsTCTc3BgMQESAcNR0OAR0=:MyTotalSecretShareds',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1721,7 +1926,7 @@ class RequestTest extends \Test\TestCase {
 						'HTTP_REQUESTTOKEN' => 'AAAHGxsTCTc3BgMQESAcNR0OAR0=:MyTotalSecretShareds',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1749,7 +1954,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_sameSiteCookiestrict' => 'true',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1777,7 +1982,7 @@ class RequestTest extends \Test\TestCase {
 						'__Host-nc_sameSiteCookielax' => 'true',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1809,7 +2014,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_sameSiteCookielax' => 'true',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1832,7 +2037,7 @@ class RequestTest extends \Test\TestCase {
 			->setMethods(['getScriptName'])
 			->setConstructorArgs([
 				[],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1857,7 +2062,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_sameSiteCookielax' => 'true',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1880,7 +2085,7 @@ class RequestTest extends \Test\TestCase {
 						'RandomCookie' => 'asdf',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1903,7 +2108,7 @@ class RequestTest extends \Test\TestCase {
 						session_name() => 'asdf',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1926,7 +2131,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_token' => 'asdf',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1950,7 +2155,7 @@ class RequestTest extends \Test\TestCase {
 						'foo' => 'bar',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -1977,7 +2182,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_sameSiteCookielax' => 'true',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -2001,7 +2206,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_sameSiteCookiestrict' => 'true',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -2025,7 +2230,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_sameSiteCookielax' => 'true',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -2049,7 +2254,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_sameSiteCookiestrict' => 'true',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -2074,7 +2279,7 @@ class RequestTest extends \Test\TestCase {
 						'nc_sameSiteCookiestrict' => 'false',
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -2109,7 +2314,7 @@ class RequestTest extends \Test\TestCase {
 						'HTTP_REQUESTTOKEN' => $invalidToken,
 					],
 				],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream
@@ -2132,7 +2337,7 @@ class RequestTest extends \Test\TestCase {
 			->setMethods(['getScriptName'])
 			->setConstructorArgs([
 				[],
-				$this->secureRandom,
+				$this->requestId,
 				$this->config,
 				$this->csrfTokenManager,
 				$this->stream

@@ -35,10 +35,10 @@ use OCA\DAV\Connector\Sabre\DavAclPlugin;
 use OCA\DAV\Events\SabrePluginAuthInitEvent;
 use OCA\DAV\RootCollection;
 use OCP\EventDispatcher\IEventDispatcher;
+use Psr\Log\LoggerInterface;
 use Sabre\VObject\ITip\Message;
 
 class InvitationResponseServer {
-
 	/** @var \OCA\DAV\Connector\Sabre\Server */
 	public $server;
 
@@ -47,7 +47,7 @@ class InvitationResponseServer {
 	 */
 	public function __construct(bool $public = true) {
 		$baseUri = \OC::$WEBROOT . '/remote.php/dav/';
-		$logger = \OC::$server->getLogger();
+		$logger = \OC::$server->get(LoggerInterface::class);
 		/** @var IEventDispatcher $dispatcher */
 		$dispatcher = \OC::$server->query(IEventDispatcher::class);
 
@@ -84,13 +84,12 @@ class InvitationResponseServer {
 		$acl->principalCollectionSet = [
 			'principals/users', 'principals/groups'
 		];
-		$acl->defaultUsernamePath = 'principals/users';
 		$this->server->addPlugin($acl);
 
 		// calendar plugins
 		$this->server->addPlugin(new \OCA\DAV\CalDAV\Plugin());
 		$this->server->addPlugin(new \Sabre\CalDAV\ICSExportPlugin());
-		$this->server->addPlugin(new \OCA\DAV\CalDAV\Schedule\Plugin(\OC::$server->getConfig()));
+		$this->server->addPlugin(new \OCA\DAV\CalDAV\Schedule\Plugin(\OC::$server->getConfig(), \OC::$server->get(LoggerInterface::class)));
 		$this->server->addPlugin(new \Sabre\CalDAV\Subscriptions\Plugin());
 		$this->server->addPlugin(new \Sabre\CalDAV\Notifications\Plugin());
 		//$this->server->addPlugin(new \OCA\DAV\DAV\Sharing\Plugin($authBackend, \OC::$server->getRequest()));
@@ -100,7 +99,7 @@ class InvitationResponseServer {
 		));
 
 		// wait with registering these until auth is handled and the filesystem is setup
-		$this->server->on('beforeMethod:*', function () use ($root) {
+		$this->server->on('beforeMethod:*', function () use ($root): void {
 			// register plugins from apps
 			$pluginManager = new PluginManager(
 				\OC::$server,
@@ -127,7 +126,11 @@ class InvitationResponseServer {
 
 	public function isExternalAttendee(string $principalUri): bool {
 		/** @var \Sabre\DAVACL\Plugin $aclPlugin */
-		$aclPlugin = $this->server->getPlugin('acl');
+		$aclPlugin = $this->getServer()->getPlugin('acl');
 		return $aclPlugin->getPrincipalByUri($principalUri) === null;
+	}
+
+	public function getServer(): \OCA\DAV\Connector\Sabre\Server {
+		return $this->server;
 	}
 }

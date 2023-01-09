@@ -15,9 +15,9 @@
 	 * @constructs FederationScopeMenu
 	 * @memberof OC.Settings
 	 * @param {object} options
-	 * @param {bool} [options.showFederatedScope=false] whether show the
+	 * @param {boolean} [options.showFederatedScope=false] whether show the
 	 *        "v2-federated" scope or not
-	 * @param {bool} [options.showPublishedScope=false] whether show the
+	 * @param {boolean} [options.showPublishedScope=false] whether show the
 	 *        "v2-published" scope or not
 	 */
 	var FederationSettingsView = OC.Backbone.View.extend({
@@ -106,6 +106,7 @@
 					self._onScopeChanged(field, scope);
 				});
 				$icon.append(scopeMenu.$el);
+				$icon.attr('aria-expanded', 'false');
 				$icon.on('click', _.bind(scopeMenu.show, scopeMenu));
 				$icon.on('keydown', function(e) {
 					if (e.keyCode === 32) {
@@ -128,7 +129,12 @@
 			_.each(this._inputFields, function(field) {
 				if (
 					field === 'avatar' ||
-					field === 'email'
+					field === 'email' ||
+					field === 'displayname' ||
+					field === 'twitter' ||
+					field === 'address' ||
+					field === 'website' ||
+					field === 'phone'
 				) {
 					return;
 				}

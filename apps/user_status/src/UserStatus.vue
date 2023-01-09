@@ -20,11 +20,10 @@
   -->
 
 <template>
-	<li>
+	<component :is="elementTag">
 		<div class="user-status-menu-item">
 			<!-- Username display -->
-			<a
-				v-if="!inline"
+			<a v-if="!inline"
 				class="user-status-menu-item__header"
 				:href="profilePageLink"
 				@click="loadProfilePage">
@@ -50,10 +49,9 @@
 		</div>
 
 		<!-- Status management modal -->
-		<SetStatusModal
-			v-if="isModalOpen"
+		<SetStatusModal v-if="isModalOpen"
 			@close="closeModal" />
-	</li>
+	</component>
 </template>
 
 <script>
@@ -96,10 +94,13 @@ export default {
 		}
 	},
 	computed: {
+		elementTag() {
+			return this.inline ? 'div' : 'li'
+		},
 		/**
 		 * The profile page link
 		 *
-		 * @returns {String|null}
+		 * @return {string | null}
 		 */
 		profilePageLink() {
 			if (this.profileEnabled) {
@@ -194,7 +195,7 @@ export default {
 		/**
 		 * Sends the status heartbeat to the server
 		 *
-		 * @returns {Promise<void>}
+		 * @return {Promise<void>}
 		 * @private
 		 */
 		async _backgroundHeartbeat() {
@@ -232,6 +233,11 @@ export default {
 		padding: 10px 12px 5px 12px !important;
 		align-items: flex-start !important;
 		color: var(--color-main-text) !important;
+
+		&:focus-visible {
+			padding: 6px 8px 1px 8px !important;
+			margin: 2px !important;
+		}
 
 		&:not([href]) {
 			height: var(--header-menu-item-height) !important;
@@ -277,6 +283,7 @@ export default {
 			margin-right: 10px;
 			opacity: 1 !important;
 			background-size: 16px;
+			vertical-align: middle !important;
 		}
 
 		// In dashboard
@@ -287,7 +294,7 @@ export default {
 			margin: 0;
 			border: 0;
 			border-radius: var(--border-radius-pill);
-			background-color: var(--color-background-translucent);
+			background-color: var(--color-main-background-blur);
 			font-size: inherit;
 			font-weight: normal;
 
@@ -298,6 +305,9 @@ export default {
 			&:hover,
 			&:focus {
 				background-color: var(--color-background-hover);
+			}
+			&:focus {
+				box-shadow: 0 0 0 2px var(--color-main-text) !important;
 			}
 		}
 	}

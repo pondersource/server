@@ -8,7 +8,7 @@
  * @author Robin Appelman <robin@icewind.nl>
  * @author Vincent Petry <vincent@nextcloud.com>
  *
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -54,7 +54,7 @@
 	 * @augments OCA.Files.FileList
 	 * @classdesc List of deleted files
 	 *
-	 * @param $el container element with existing markup for the #controls
+	 * @param $el container element with existing markup for the .files-controls
 	 * and a table
 	 * @param [options] map of options
 	 */
@@ -160,8 +160,8 @@
 
 			updateEmptyContent: function() {
 				var exists = this.$fileList.find('tr:first').exists()
-				this.$el.find('#emptycontent').toggleClass('hidden', exists)
-				this.$el.find('#filestable th').toggleClass('hidden', !exists)
+				this.$el.find('.emptyfilelist.emptycontent').toggleClass('hidden', exists)
+				this.$el.find('.files-filestable th').toggleClass('hidden', !exists)
 			},
 
 			_removeCallback: function(files) {
@@ -292,7 +292,7 @@
 				this._selectionSummary.clear()
 				this.$el.find('.select-all').prop('checked', false)
 				this.showMask()
-				if (this._reloadCall) {
+				if (this._reloadCall?.abort) {
 					this._reloadCall.abort()
 				}
 				this._reloadCall = this.client.getFolderContents(

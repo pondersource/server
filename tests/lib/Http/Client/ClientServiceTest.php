@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * Copyright (c) 2015 Lukas Reschke <lukas@owncloud.com>
  * This file is licensed under the Affero General Public License version 3 or
@@ -14,10 +17,9 @@ use GuzzleHttp\Handler\CurlHandler;
 use OC\Http\Client\Client;
 use OC\Http\Client\ClientService;
 use OC\Http\Client\DnsPinMiddleware;
-use OC\Http\Client\LocalAddressChecker;
 use OCP\ICertificateManager;
 use OCP\IConfig;
-use OCP\ILogger;
+use OCP\Security\IRemoteHostValidator;
 
 /**
  * Class ClientServiceTest
@@ -28,21 +30,19 @@ class ClientServiceTest extends \Test\TestCase {
 		$config = $this->createMock(IConfig::class);
 		/** @var ICertificateManager $certificateManager */
 		$certificateManager = $this->createMock(ICertificateManager::class);
-		$logger = $this->createMock(ILogger::class);
 		$dnsPinMiddleware = $this->createMock(DnsPinMiddleware::class);
 		$dnsPinMiddleware
 			->expects($this->atLeastOnce())
 			->method('addDnsPinning')
 			->willReturn(function () {
 			});
-		$localAddressChecker = $this->createMock(LocalAddressChecker::class);
+		$remoteHostValidator = $this->createMock(IRemoteHostValidator::class);
 
 		$clientService = new ClientService(
 			$config,
-			$logger,
 			$certificateManager,
 			$dnsPinMiddleware,
-			$localAddressChecker
+			$remoteHostValidator
 		);
 
 		$handler = new CurlHandler();
@@ -53,10 +53,9 @@ class ClientServiceTest extends \Test\TestCase {
 		$this->assertEquals(
 			new Client(
 				$config,
-				$logger,
 				$certificateManager,
 				$guzzleClient,
-				$localAddressChecker
+				$remoteHostValidator
 			),
 			$clientService->newClient()
 		);

@@ -46,6 +46,12 @@ namespace OCP;
  * @since 8.0.0
  */
 interface IUserManager {
+
+	/**
+	 * @since 26.0.0
+	 */
+	public const MAX_PASSWORD_LENGTH = 469;
+
 	/**
 	 * register a user backend
 	 *
@@ -85,6 +91,15 @@ interface IUserManager {
 	public function get($uid);
 
 	/**
+	 * Get the display name of a user
+	 *
+	 * @param string $uid
+	 * @return string|null
+	 * @since 25.0.0
+	 */
+	public function getDisplayName(string $uid): ?string;
+
+	/**
 	 * check if a user exists
 	 *
 	 * @param string $uid
@@ -98,7 +113,7 @@ interface IUserManager {
 	 *
 	 * @param string $loginName
 	 * @param string $password
-	 * @return mixed the User object on success, false otherwise
+	 * @return IUser|false the User object on success, false otherwise
 	 * @since 8.0.0
 	 */
 	public function checkPassword($loginName, $password);
@@ -141,7 +156,7 @@ interface IUserManager {
 	 * @param string $uid
 	 * @param string $password
 	 * @throws \InvalidArgumentException
-	 * @return bool|\OCP\IUser the created user or false
+	 * @return false|\OCP\IUser the created user or false
 	 * @since 8.0.0
 	 */
 	public function createUser($uid, $password);
@@ -157,9 +172,9 @@ interface IUserManager {
 	public function createUserFromBackend($uid, $password, UserInterface $backend);
 
 	/**
-	 * returns how many users per backend exist (if supported by backend)
+	 * Get how many users per backend exist (if supported by backend)
 	 *
-	 * @return array an array of backend class as key and count number as value
+	 * @return array<string, int> an array of backend class name as key and count number as value
 	 * @since 8.0.0
 	 */
 	public function countUsers();
@@ -203,4 +218,12 @@ interface IUserManager {
 	 * @since 9.1.0
 	 */
 	public function getByEmail($email);
+
+	/**
+	 * @param string $uid The user ID to validate
+	 * @param bool $checkDataDirectory Whether it should be checked if files for the ID exist inside the data directory
+	 * @throws \InvalidArgumentException Message is an already translated string with a reason why the ID is not valid
+	 * @since 26.0.0
+	 */
+	public function validateUserId(string $uid, bool $checkDataDirectory = false): void;
 }

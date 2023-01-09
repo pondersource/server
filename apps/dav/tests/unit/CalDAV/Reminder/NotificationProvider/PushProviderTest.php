@@ -10,6 +10,7 @@ declare(strict_types=1);
  * @author Georg Ehrke <oc.list@georgehrke.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Thomas Citharel <nextcloud@tcit.fr>
+ * @author Richard Steinmetz <richard@steinmetz.cloud>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -33,7 +34,6 @@ use OCA\DAV\CalDAV\Reminder\NotificationProvider\PushProvider;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\L10N\IFactory as L10NFactory;
@@ -41,21 +41,6 @@ use OCP\Notification\IManager;
 use OCP\Notification\INotification;
 
 class PushProviderTest extends AbstractNotificationProviderTest {
-
-	/** @var ILogger|\PHPUnit\Framework\MockObject\MockObject */
-	protected $logger;
-
-	/** @var L10NFactory|\PHPUnit\Framework\MockObject\MockObject */
-	protected $l10nFactory;
-
-	/** @var IL10N|\PHPUnit\Framework\MockObject\MockObject */
-	protected $l10n;
-
-	/** @var IURLGenerator|\PHPUnit\Framework\MockObject\MockObject */
-	protected $urlGenerator;
-
-	/** @var IConfig|\PHPUnit\Framework\MockObject\MockObject */
-	protected $config;
 
 	/** @var IManager|\PHPUnit\Framework\MockObject\MockObject */
 	private $manager;
@@ -66,7 +51,6 @@ class PushProviderTest extends AbstractNotificationProviderTest {
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->config = $this->createMock(IConfig::class);
 		$this->manager = $this->createMock(IManager::class);
 		$this->timeFactory = $this->createMock(ITimeFactory::class);
 
@@ -107,7 +91,7 @@ class PushProviderTest extends AbstractNotificationProviderTest {
 
 		$users = [$user1, $user2, $user3];
 
-		$this->provider->send($this->vcalendar->VEVENT, $this->calendarDisplayName, $users);
+		$this->provider->send($this->vcalendar->VEVENT, $this->calendarDisplayName, [], $users);
 	}
 
 	public function testSend(): void {
@@ -160,7 +144,7 @@ class PushProviderTest extends AbstractNotificationProviderTest {
 			->method('notify')
 			->with($notification3);
 
-		$this->provider->send($this->vcalendar->VEVENT, $this->calendarDisplayName, $users);
+		$this->provider->send($this->vcalendar->VEVENT, $this->calendarDisplayName, [], $users);
 	}
 
 	/**

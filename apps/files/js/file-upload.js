@@ -12,7 +12,7 @@
  * The file upload code uses several hooks to interact with blueimps jQuery file upload library:
  * 1. the core upload handling hooks are added when initializing the plugin,
  * 2. if the browser supports progress events they are added in a separate set after the initialization
- * 3. every app can add it's own triggers for fileupload
+ * 3. every app can add its own triggers for fileupload
  *    - files adds d'n'd handlers and also reacts to done events to add new rows to the filelist
  *    - TODO pictures upload button
  *    - TODO music upload button
@@ -74,6 +74,11 @@ OC.FileUpload.prototype = {
 	 * @type string
 	 */
 	id: null,
+
+	/**
+	 * Upload data structure
+	 */
+	data: null,
 
 	/**
 	 * Upload element
@@ -163,7 +168,7 @@ OC.FileUpload.prototype = {
 	/**
 	 * Returns conflict resolution mode.
 	 *
-	 * @return {int} conflict mode
+	 * @return {number} conflict mode
 	 */
 	getConflictMode: function() {
 		return this._conflictMode || OC.FileUpload.CONFLICT_MODE_DETECT;
@@ -173,7 +178,7 @@ OC.FileUpload.prototype = {
 	 * Set conflict resolution mode.
 	 * See CONFLICT_MODE_* constants.
 	 *
-	 * @param {int} mode conflict mode
+	 * @param {number} mode conflict mode
 	 */
 	setConflictMode: function(mode) {
 		this._conflictMode = mode;
@@ -322,26 +327,36 @@ OC.FileUpload.prototype = {
 		);
 	},
 
+	_delete: function() {
+		if (this.data.isChunked) {
+			this._deleteChunkFolder()
+		}
+		this.deleteUpload();
+	},
+
 	/**
 	 * Abort the upload
 	 */
 	abort: function() {
-		if (this.data.isChunked) {
-			this._deleteChunkFolder();
+		if (this.aborted) {
+			return
 		}
-		this.data.abort();
-		this.deleteUpload();
 		this.aborted = true;
+		if (this.data) {
+			// abort running XHR
+			this.data.abort();
+		}
+		this._delete();
 	},
 
 	/**
 	 * Fail the upload
 	 */
 	fail: function() {
-		this.deleteUpload();
-		if (this.data.isChunked) {
-			this._deleteChunkFolder();
+		if (this.aborted) {
+			return
 		}
+		this._delete();
 	},
 
 	/**
@@ -383,7 +398,7 @@ OC.FileUpload.prototype = {
 	/**
 	 * Returns the status code from the response
 	 *
-	 * @return {int} status code
+	 * @return {number} status code
 	 */
 	getResponseStatus: function() {
 		if (this.uploader.isXHRUpload()) {
@@ -515,7 +530,7 @@ OC.Uploader.prototype = _.extend({
 	/**
 	 * Returns whether an XHR upload will be used
 	 *
-	 * @return {bool} true if XHR upload will be used,
+	 * @return {boolean} true if XHR upload will be used,
 	 * false for iframe upload
 	 */
 	isXHRUpload: function () {
@@ -656,7 +671,7 @@ OC.Uploader.prototype = _.extend({
 	/**
 	 * Returns an upload by id
 	 *
-	 * @param {int} data uploadId
+	 * @param {number} data uploadId
 	 * @return {OC.FileUpload} file upload
 	 */
 	getUpload: function(data) {
@@ -679,7 +694,26 @@ OC.Uploader.prototype = _.extend({
 			return;
 		}
 
-		delete this._uploads[upload.data.uploadId];
+		// defer as some calls/chunks might still be busy failing, so we need
+		// the upload info there still
+		var self = this;
+		var uploadId = upload.data.uploadId;
+		// mark as deleted for the progress bar
+		this._uploads[uploadId].deleted = true;
+		window.setTimeout(function() {
+			delete self._uploads[uploadId];
+		}, 5000)
+	},
+
+	_activeUploadCount: function() {
+		var count = 0;
+		for (var key in this._uploads) {
+			if (!this._uploads[key].deleted) {
+				count++;
+			}
+		}
+
+		return count;
 	},
 
 	showUploadCancelMessage: _.debounce(function() {
@@ -860,7 +894,7 @@ OC.Uploader.prototype = _.extend({
 	 * Returns whether the given file is known to be a received shared file
 	 *
 	 * @param {Object} file file
-	 * @return {bool} true if the file is a shared file
+	 * @return {boolean} true if the file is a shared file
 	 */
 	_isReceivedSharedFile: function(file) {
 		if (!window.FileList) {
@@ -905,6 +939,7 @@ OC.Uploader.prototype = _.extend({
 		if ($uploadEl.exists()) {
 			this.progressBar.on('cancel', function() {
 				self.cancelUploads();
+				self.showUploadCancelMessage();
 			});
 
 			this.fileUploadParam = {
@@ -1004,7 +1039,7 @@ OC.Uploader.prototype = _.extend({
 					// check free space
 					if (!self.fileList || upload.getTargetFolder() === self.fileList.getCurrentDirectory()) {
 						// Use global free space if there is no file list to check or the current directory is the target
-						freeSpace = $('#free_space').val()
+						freeSpace = $('input[name=free_space]').val()
 					} else if (upload.getTargetFolder().indexOf(self.fileList.getCurrentDirectory()) === 0) {
 						// Check subdirectory free space if file is uploaded there
 						// Retrieve the folder destination name
@@ -1067,14 +1102,16 @@ OC.Uploader.prototype = _.extend({
 				 */
 				start: function(e) {
 					self.log('start', e, null);
-					//hide the tooltip otherwise it covers the progress bar
-					$('#upload').tooltip('hide');
 					self._uploading = true;
 				},
 				fail: function(e, data) {
 					var upload = self.getUpload(data);
 					var status = null;
 					if (upload) {
+						if (upload.aborted) {
+							// uploads might fail with errors from the server when aborted
+							return
+						}
 						status = upload.getResponseStatus();
 					}
 					self.log('fail', e, upload);
@@ -1082,7 +1119,7 @@ OC.Uploader.prototype = _.extend({
 					self.removeUpload(upload);
 
 					if (data.textStatus === 'abort' || data.errorThrown === 'abort') {
-						self.showUploadCancelMessage();
+						return
 					} else if (status === 412) {
 						// file already exists
 						self.showConflict(upload);
@@ -1104,7 +1141,7 @@ OC.Uploader.prototype = _.extend({
 							}
 						}
 						console.error(e, data, response)
-						OC.Notification.show(message || data.errorThrown, {type: 'error'});
+						OC.Notification.show(message || data.errorThrown || t('files', 'File could not be uploaded'), {type: 'error'});
 					}
 
 					if (upload) {
@@ -1236,7 +1273,7 @@ OC.Uploader.prototype = _.extend({
 				});
 				fileupload.on('fileuploaddragover', function(e){
 					$('#app-content').addClass('file-drag');
-					$('#emptycontent .icon-folder').addClass('icon-filetype-folder-drag-accept');
+					$('.emptyfilelist.emptycontent .icon-folder').addClass('icon-filetype-folder-drag-accept');
 
 					var filerow = $(e.delegatedEvent.target).closest('tr');
 
@@ -1283,6 +1320,10 @@ OC.Uploader.prototype = _.extend({
 				fileupload.on('fileuploadchunksend', function(e, data) {
 					// modify the request to adjust it to our own chunking
 					var upload = self.getUpload(data);
+					if (!upload) {
+						// likely cancelled
+						return
+					}
 					var range = data.contentRange.split(' ')[1];
 					var chunkId = range.split('/')[0].split('-')[0];
 					data.url = OC.getRootPath() +
@@ -1298,9 +1339,9 @@ OC.Uploader.prototype = _.extend({
 
 					self._pendingUploadDoneCount++;
 
-					upload.done().then(function() {
+					upload.done().always(function() {
 						self._pendingUploadDoneCount--;
-						if (Object.keys(self._uploads).length === 0 && self._pendingUploadDoneCount === 0) {
+						if (self._activeUploadCount() === 0 && self._pendingUploadDoneCount === 0) {
 							// All the uploads ended and there is no pending
 							// operation, so hide the progress bar.
 							// Note that this happens here only with chunked
@@ -1314,9 +1355,13 @@ OC.Uploader.prototype = _.extend({
 							// hides the progress bar in that case).
 							self._hideProgressBar();
 						}
-
+					}).done(function() {
 						self.trigger('done', e, upload);
 					}).fail(function(status, response) {
+						if (upload.aborted) {
+							return
+						}
+
 						var message = response.message;
 						if (status === 507) {
 							// not enough space

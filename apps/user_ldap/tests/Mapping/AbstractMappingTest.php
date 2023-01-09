@@ -82,7 +82,7 @@ abstract class AbstractMappingTest extends \Test\TestCase {
 	}
 
 	/**
-	 * initalizes environment for a test run and returns an array with
+	 * initializes environment for a test run and returns an array with
 	 * test objects. Preparing environment means that all mappings are cleared
 	 * first and then filled with test entries.
 	 * @return array 0 = \OCA\User_LDAP\Mapping\AbstractMapping, 1 = array of
@@ -276,7 +276,7 @@ abstract class AbstractMappingTest extends \Test\TestCase {
 		$this->assertSame(count($data) - 1, count($results));
 
 		// get first 2 entries by limit, but not offset
-		$results = $mapper->getList(null, 2);
+		$results = $mapper->getList(0, 2);
 		$this->assertSame(2, count($results));
 
 		// get 2nd entry by specifying both offset and limit

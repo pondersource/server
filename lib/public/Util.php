@@ -12,6 +12,7 @@
  * @author J0WI <J0WI@users.noreply.github.com>
  * @author Jens-Christian Fischer <jens-christian.fischer@switch.ch>
  * @author Joas Schilling <coding@schilljs.com>
+ * @author Jonas Meurer <jonas@freesources.org>
  * @author Julius Härtl <jus@bitgrid.net>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
@@ -45,38 +46,27 @@
 
 namespace OCP;
 
+use OC\AppScriptDependency;
+use OC\AppScriptSort;
+use bantu\IniGetWrapper\IniGetWrapper;
+
 /**
  * This class provides different helper functions to make the life of a developer easier
  *
  * @since 4.0.0
  */
 class Util {
-	/**
-	 * @deprecated 14.0.0 use \OCP\ILogger::DEBUG
-	 */
-	public const DEBUG = 0;
-	/**
-	 * @deprecated 14.0.0 use \OCP\ILogger::INFO
-	 */
-	public const INFO = 1;
-	/**
-	 * @deprecated 14.0.0 use \OCP\ILogger::WARN
-	 */
-	public const WARN = 2;
-	/**
-	 * @deprecated 14.0.0 use \OCP\ILogger::ERROR
-	 */
-	public const ERROR = 3;
-	/**
-	 * @deprecated 14.0.0 use \OCP\ILogger::FATAL
-	 */
-	public const FATAL = 4;
-
 	/** @var \OCP\Share\IManager */
 	private static $shareManager;
 
 	/** @var array */
 	private static $scripts = [];
+
+	/** @var array */
+	private static $scriptDeps = [];
+
+	/** @var array */
+	private static $sortedScriptDeps = [];
 
 	/**
 	 * get the current installed version of Nextcloud
@@ -174,12 +164,13 @@ class Util {
 
 	/**
 	 * add a javascript file
+	 *
 	 * @param string $application
-	 * @param string $file
+	 * @param string|null $file
 	 * @param string $afterAppId
 	 * @since 4.0.0
 	 */
-	public static function addScript($application, $file = null, $afterAppId = null) {
+	public static function addScript(string $application, string $file = null, string $afterAppId = 'core'): void {
 		if (!empty($application)) {
 			$path = "$application/js/$file";
 		} else {
@@ -195,56 +186,34 @@ class Util {
 			self::addTranslations($application);
 		}
 
-		// manage priorities if defined
-		// we store the data like this, then flatten everything
-		// [
-		// 	'core' => [
-		// 		'first' => [
-		// 			'/core/js/main.js',
-		// 		],
-		// 		'last' => [
-		// 			'/apps/viewer/js/viewer-main.js',
-		// 		]
-		// 	],
-		// 	'viewer' => [
-		// 		'first' => [
-		// 			'/apps/viewer/js/viewer-public.js',
-		// 		],
-		// 		'last' => [
-		// 			'/apps/files_pdfviewer/js/files_pdfviewer-main.js',
-		// 		]
-		// 	]
-		// ]
-		if (!empty($afterAppId)) {
-			// init afterAppId app array if it doesn't exists
-			if (!array_key_exists($afterAppId, self::$scripts)) {
-				self::$scripts[$afterAppId] = ['first' => [], 'last' => []];
-			}
-			self::$scripts[$afterAppId]['last'][] = $path;
+		// store app in dependency list
+		if (!array_key_exists($application, self::$scriptDeps)) {
+			self::$scriptDeps[$application] = new AppScriptDependency($application, [$afterAppId]);
 		} else {
-			// init app array if it doesn't exists
-			if (!array_key_exists($application, self::$scripts)) {
-				self::$scripts[$application] = ['first' => [], 'last' => []];
-			}
-			self::$scripts[$application]['first'][] = $path;
+			self::$scriptDeps[$application]->addDep($afterAppId);
 		}
+
+		self::$scripts[$application][] = $path;
 	}
 
 	/**
 	 * Return the list of scripts injected to the page
+	 *
 	 * @return array
 	 * @since 24.0.0
 	 */
 	public static function getScripts(): array {
-		// merging first and last data set
-		$mapFunc = function (array $scriptsArray): array {
-			return array_merge(...array_values($scriptsArray));
-		};
-		$appScripts = array_map($mapFunc, self::$scripts);
-		// sort core first
-		$scripts = array_merge(isset($appScripts['core']) ? $appScripts['core'] : [], ...array_values($appScripts));
-		// remove duplicates
-		return array_unique($scripts);
+		// Sort scriptDeps into sortedScriptDeps
+		$scriptSort = \OC::$server->get(AppScriptSort::class);
+		$sortedScripts = $scriptSort->sort(self::$scripts, self::$scriptDeps);
+
+		// Flatten array and remove duplicates
+		$sortedScripts = $sortedScripts ? array_merge(...array_values(($sortedScripts))) : [];
+
+		// Override core-common and core-main order
+		array_unshift($sortedScripts, 'core/js/common', 'core/js/main');
+
+		return array_unique($sortedScripts);
 	}
 
 	/**
@@ -262,7 +231,7 @@ class Util {
 		} else {
 			$path = "l10n/$languageCode";
 		}
-		self::$scripts[$application]['first'][] = $path;
+		self::$scripts[$application][] = $path;
 	}
 
 	/**
@@ -354,11 +323,11 @@ class Util {
 	 * is passed to this function
 	 * @since 5.0.0
 	 */
-	public static function getDefaultEmailAddress($user_part) {
+	public static function getDefaultEmailAddress(string $user_part): string {
 		$config = \OC::$server->getConfig();
-		$user_part = $config->getSystemValue('mail_from_address', $user_part);
+		$user_part = $config->getSystemValueString('mail_from_address', $user_part);
 		$host_name = self::getServerHostName();
-		$host_name = $config->getSystemValue('mail_domain', $host_name);
+		$host_name = $config->getSystemValueString('mail_domain', $host_name);
 		$defaultEmailAddress = $user_part.'@'.$host_name;
 
 		$mailer = \OC::$server->getMailer();
@@ -383,7 +352,7 @@ class Util {
 	/**
 	 * Make a computer file size (2 kB to 2048)
 	 * @param string $str file size in a fancy format
-	 * @return float a file size in bytes
+	 * @return float|false a file size in bytes
 	 *
 	 * Inspired by: https://www.php.net/manual/en/function.filesize.php#92418
 	 * @since 4.0.0
@@ -451,8 +420,8 @@ class Util {
 	 * This function is used to sanitize HTML and should be applied on any
 	 * string or array of strings before displaying it on a web page.
 	 *
-	 * @param string|array $value
-	 * @return string|array an array of sanitized strings or a single sanitized string, depends on the input parameter.
+	 * @param string|string[] $value
+	 * @return string|string[] an array of sanitized strings or a single sanitized string, depends on the input parameter.
 	 * @since 4.5.0
 	 */
 	public static function sanitizeHTML($value) {
@@ -558,12 +527,14 @@ class Util {
 	}
 
 	/**
-	 * check if a password is required for each public link
+	 * Check if a password is required for each public link
+	 *
+	 * @param bool $checkGroupMembership Check group membership exclusion
 	 * @return boolean
 	 * @since 7.0.0
 	 */
-	public static function isPublicLinkPasswordRequired() {
-		return \OC_Util::isPublicLinkPasswordRequired();
+	public static function isPublicLinkPasswordRequired(bool $checkGroupMembership = true) {
+		return \OC_Util::isPublicLinkPasswordRequired($checkGroupMembership);
 	}
 
 	/**
@@ -612,5 +583,28 @@ class Util {
 			$temp = mb_substr($temp, 0, -$accuracy);
 		}
 		return $temp;
+	}
+
+	/**
+	 * Check if a function is enabled in the php configuration
+	 *
+	 * @since 25.0.0
+	 */
+	public static function isFunctionEnabled(string $functionName): bool {
+		if (!function_exists($functionName)) {
+			return false;
+		}
+		$ini = \OCP\Server::get(IniGetWrapper::class);
+		$disabled = explode(',', $ini->get('disable_functions') ?: '');
+		$disabled = array_map('trim', $disabled);
+		if (in_array($functionName, $disabled)) {
+			return false;
+		}
+		$disabled = explode(',', $ini->get('suhosin.executor.func.blacklist') ?: '');
+		$disabled = array_map('trim', $disabled);
+		if (in_array($functionName, $disabled)) {
+			return false;
+		}
+		return true;
 	}
 }

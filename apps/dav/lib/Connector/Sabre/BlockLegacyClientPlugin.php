@@ -28,6 +28,7 @@ namespace OCA\DAV\Connector\Sabre;
 use OCP\IConfig;
 use Sabre\DAV\ServerPlugin;
 use Sabre\HTTP\RequestInterface;
+use Sabre\DAV\Server;
 
 /**
  * Class BlockLegacyClientPlugin is used to detect old legacy sync clients and
@@ -36,23 +37,17 @@ use Sabre\HTTP\RequestInterface;
  * @package OCA\DAV\Connector\Sabre
  */
 class BlockLegacyClientPlugin extends ServerPlugin {
-	/** @var \Sabre\DAV\Server */
-	protected $server;
-	/** @var IConfig */
-	protected $config;
+	protected ?Server $server = null;
+	protected IConfig $config;
 
-	/**
-	 * @param IConfig $config
-	 */
 	public function __construct(IConfig $config) {
 		$this->config = $config;
 	}
 
 	/**
-	 * @param \Sabre\DAV\Server $server
 	 * @return void
 	 */
-	public function initialize(\Sabre\DAV\Server $server) {
+	public function initialize(Server $server) {
 		$this->server = $server;
 		$this->server->on('beforeMethod:*', [$this, 'beforeHandler'], 200);
 	}
@@ -69,7 +64,7 @@ class BlockLegacyClientPlugin extends ServerPlugin {
 			return;
 		}
 
-		$minimumSupportedDesktopVersion = $this->config->getSystemValue('minimum.supported.desktop.version', '2.0.0');
+		$minimumSupportedDesktopVersion = $this->config->getSystemValue('minimum.supported.desktop.version', '2.3.0');
 
 		// Match on the mirall version which is in scheme "Mozilla/5.0 (%1) mirall/%2" or
 		// "mirall/%1" for older releases

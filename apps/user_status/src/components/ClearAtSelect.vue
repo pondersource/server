@@ -21,11 +21,10 @@
 
 <template>
 	<div class="clear-at-select">
-		<span
-			class="clear-at-select__label">
-			{{ $t('user_status', 'Clear status message after') }}
-		</span>
-		<Multiselect
+		<label class="clear-at-select__label" for="clearStatus">
+			{{ $t('user_status', 'Clear status after') }}
+		</label>
+		<NcMultiselect id="clearStatus"
 			label="label"
 			:value="option"
 			:options="options"
@@ -35,14 +34,14 @@
 </template>
 
 <script>
-import Multiselect from '@nextcloud/vue/dist/Components/Multiselect'
+import NcMultiselect from '@nextcloud/vue/dist/Components/NcMultiselect'
 import { getAllClearAtOptions } from '../services/clearAtOptionsService'
 import { clearAtFilter } from '../filters/clearAtFilter'
 
 export default {
 	name: 'ClearAtSelect',
 	components: {
-		Multiselect,
+		NcMultiselect,
 	},
 	props: {
 		clearAt: {
@@ -59,7 +58,7 @@ export default {
 		/**
 		 * Returns an object of the currently selected option
 		 *
-		 * @returns {Object}
+		 * @return {object}
 		 */
 		option() {
 			return {
@@ -72,14 +71,14 @@ export default {
 		/**
 		 * Triggered when the user selects a new option.
 		 *
-		 * @param {Object=} option The new selected option
+		 * @param {object=} option The new selected option
 		 */
 		select(option) {
 			if (!option) {
 				return
 			}
 
-			this.$emit('selectClearAt', option.clearAt)
+			this.$emit('select-clear-at', option.clearAt)
 		},
 	},
 }

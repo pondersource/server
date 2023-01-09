@@ -39,9 +39,9 @@ use Egulias\EmailValidator\EmailValidator;
 use Egulias\EmailValidator\Validation\RFCValidation;
 use OCP\Defaults;
 use OCP\EventDispatcher\IEventDispatcher;
+use OCP\IBinaryFinder;
 use OCP\IConfig;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IURLGenerator;
 use OCP\L10N\IFactory;
 use OCP\Mail\Events\BeforeMessageSent;
@@ -49,6 +49,7 @@ use OCP\Mail\IAttachment;
 use OCP\Mail\IEMailTemplate;
 use OCP\Mail\IMailer;
 use OCP\Mail\IMessage;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class Mailer provides some basic functions to create a mail message that can be used in combination with
@@ -71,31 +72,17 @@ use OCP\Mail\IMessage;
 class Mailer implements IMailer {
 	/** @var \Swift_Mailer Cached mailer */
 	private $instance = null;
-	/** @var IConfig */
-	private $config;
-	/** @var ILogger */
-	private $logger;
+	private IConfig $config;
+	private LoggerInterface $logger;
 	/** @var Defaults */
 	private $defaults;
-	/** @var IURLGenerator */
-	private $urlGenerator;
-	/** @var IL10N */
-	private $l10n;
-	/** @var IEventDispatcher */
-	private $dispatcher;
-	/** @var IFactory */
-	private $l10nFactory;
+	private IURLGenerator $urlGenerator;
+	private IL10N $l10n;
+	private IEventDispatcher $dispatcher;
+	private IFactory $l10nFactory;
 
-	/**
-	 * @param IConfig $config
-	 * @param ILogger $logger
-	 * @param Defaults $defaults
-	 * @param IURLGenerator $urlGenerator
-	 * @param IL10N $l10n
-	 * @param IEventDispatcher $dispatcher
-	 */
 	public function __construct(IConfig $config,
-						 ILogger $logger,
+						 LoggerInterface $logger,
 						 Defaults $defaults,
 						 IURLGenerator $urlGenerator,
 						 IL10N $l10n,
@@ -205,6 +192,9 @@ class Mailer implements IMailer {
 
 		// Debugging logging
 		$logMessage = sprintf('Sent mail to "%s" with subject "%s"', print_r($message->getTo(), true), $message->getSubject());
+		if (!empty($failedRecipients)) {
+			$logMessage .= sprintf(' (failed for "%s")', print_r($failedRecipients, true));
+		}
 		$this->logger->debug($logMessage, ['app' => 'core']);
 		if ($debugMode && isset($mailLogger)) {
 			$this->logger->debug($mailLogger->dump(), ['app' => 'core']);
@@ -244,7 +234,7 @@ class Mailer implements IMailer {
 		}
 
 		[$name, $domain] = explode('@', $email, 2);
-		$domain = idn_to_ascii($domain, 0,INTL_IDNA_VARIANT_UTS46);
+		$domain = idn_to_ascii($domain, 0, INTL_IDNA_VARIANT_UTS46);
 		return $name.'@'.$domain;
 	}
 
@@ -315,7 +305,7 @@ class Mailer implements IMailer {
 				$binaryPath = '/var/qmail/bin/sendmail';
 				break;
 			default:
-				$sendmail = \OC_Helper::findBinaryPath('sendmail');
+				$sendmail = \OCP\Server::get(IBinaryFinder::class)->findBinaryPath('sendmail');
 				if ($sendmail === null) {
 					$sendmail = '/usr/sbin/sendmail';
 				}

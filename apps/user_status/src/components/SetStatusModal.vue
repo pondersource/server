@@ -20,14 +20,13 @@
   -->
 
 <template>
-	<Modal
-		size="normal"
+	<NcModal size="normal"
 		:title="$t('user_status', 'Set status')"
 		@close="closeModal">
 		<div class="set-status-modal">
 			<!-- Status selector -->
 			<div class="set-status-modal__header">
-				<h3>{{ $t('user_status', 'Online status') }}</h3>
+				<h2>{{ $t('user_status', 'Online status') }}</h2>
 			</div>
 			<div class="set-status-modal__online-status">
 				<OnlineStatusSelect v-for="status in statuses"
@@ -39,49 +38,49 @@
 
 			<!-- Status message -->
 			<div class="set-status-modal__header">
-				<h3>{{ $t('user_status', 'Status message') }}</h3>
+				<h2>{{ $t('user_status', 'Status message') }}</h2>
 			</div>
 			<div class="set-status-modal__custom-input">
-				<EmojiPicker @select="setIcon">
-					<button
-						class="custom-input__emoji-button">
-						{{ visibleIcon }}
-					</button>
-				</EmojiPicker>
-				<CustomMessageInput
-					ref="customMessageInput"
+				<CustomMessageInput ref="customMessageInput"
+					:icon="icon"
 					:message="message"
 					@change="setMessage"
-					@submit="saveStatus" />
+					@submit="saveStatus"
+					@select-icon="setIcon" />
 			</div>
-			<PredefinedStatusesList
-				@selectStatus="selectPredefinedMessage" />
-			<ClearAtSelect
-				:clear-at="clearAt"
-				@selectClearAt="setClearAt" />
+			<PredefinedStatusesList @select-status="selectPredefinedMessage" />
+			<ClearAtSelect :clear-at="clearAt"
+				@select-clear-at="setClearAt" />
 			<div class="status-buttons">
-				<button class="status-buttons__select" :disabled="isSavingStatus" @click="clearStatus">
+				<NcButton :wide="true"
+					type="tertiary"
+					:text="$t('user_status', 'Clear status message')"
+					:disabled="isSavingStatus"
+					@click="clearStatus">
 					{{ $t('user_status', 'Clear status message') }}
-				</button>
-				<button class="status-buttons__primary primary" :disabled="isSavingStatus" @click="saveStatus">
+				</NcButton>
+				<NcButton :wide="true"
+					type="primary"
+					:text="$t('user_status', 'Set status message')"
+					:disabled="isSavingStatus"
+					@click="saveStatus">
 					{{ $t('user_status', 'Set status message') }}
-				</button>
+				</NcButton>
 			</div>
 		</div>
-	</Modal>
+	</NcModal>
 </template>
 
 <script>
 import { showError } from '@nextcloud/dialogs'
-import EmojiPicker from '@nextcloud/vue/dist/Components/EmojiPicker'
-import Modal from '@nextcloud/vue/dist/Components/Modal'
-
-import { getAllStatusOptions } from '../services/statusOptionsService'
-import OnlineStatusMixin from '../mixins/OnlineStatusMixin'
-import PredefinedStatusesList from './PredefinedStatusesList'
-import CustomMessageInput from './CustomMessageInput'
-import ClearAtSelect from './ClearAtSelect'
-import OnlineStatusSelect from './OnlineStatusSelect'
+import NcModal from '@nextcloud/vue/dist/Components/NcModal'
+import NcButton from '@nextcloud/vue/dist/Components/NcButton'
+import { getAllStatusOptions } from '../services/statusOptionsService.js'
+import OnlineStatusMixin from '../mixins/OnlineStatusMixin.js'
+import PredefinedStatusesList from './PredefinedStatusesList.vue'
+import CustomMessageInput from './CustomMessageInput.vue'
+import ClearAtSelect from './ClearAtSelect.vue'
+import OnlineStatusSelect from './OnlineStatusSelect.vue'
 
 export default {
 	name: 'SetStatusModal',
@@ -89,10 +88,10 @@ export default {
 	components: {
 		ClearAtSelect,
 		CustomMessageInput,
-		EmojiPicker,
-		Modal,
+		NcModal,
 		OnlineStatusSelect,
 		PredefinedStatusesList,
+		NcButton,
 	},
 	mixins: [OnlineStatusMixin],
 
@@ -105,16 +104,6 @@ export default {
 			isSavingStatus: false,
 			statuses: getAllStatusOptions(),
 		}
-	},
-	computed: {
-		/**
-		 * Returns the user-set icon or a smiley in case no icon is set
-		 *
-		 * @returns {String}
-		 */
-		visibleIcon() {
-			return this.icon || '😀'
-		},
 	},
 
 	/**
@@ -142,7 +131,7 @@ export default {
 		/**
 		 * Sets a new icon
 		 *
-		 * @param {String} icon The new icon
+		 * @param {string} icon The new icon
 		 */
 		setIcon(icon) {
 			this.messageId = null
@@ -154,7 +143,7 @@ export default {
 		/**
 		 * Sets a new message
 		 *
-		 * @param {String} message The new message
+		 * @param {string} message The new message
 		 */
 		setMessage(message) {
 			this.messageId = null
@@ -163,7 +152,7 @@ export default {
 		/**
 		 * Sets a new clearAt value
 		 *
-		 * @param {Object} clearAt The new clearAt object
+		 * @param {object} clearAt The new clearAt object
 		 */
 		setClearAt(clearAt) {
 			this.clearAt = clearAt
@@ -171,7 +160,7 @@ export default {
 		/**
 		 * Sets new icon/message/clearAt based on a predefined message
 		 *
-		 * @param {Object} status The predefined status object
+		 * @param {object} status The predefined status object
 		 */
 		selectPredefinedMessage(status) {
 			this.messageId = status.id
@@ -182,7 +171,7 @@ export default {
 		/**
 		 * Saves the status and closes the
 		 *
-		 * @returns {Promise<void>}
+		 * @return {Promise<void>}
 		 */
 		async saveStatus() {
 			if (this.isSavingStatus) {
@@ -216,7 +205,7 @@ export default {
 		},
 		/**
 		 *
-		 * @returns {Promise<void>}
+		 * @return {Promise<void>}
 		 */
 		async clearStatus() {
 			try {
@@ -238,22 +227,18 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+
 .set-status-modal {
-	min-height: 200px;
 	padding: 8px 20px 20px 20px;
-	// Enable scrollbar for too long content, same way as in Dashboard customize
-	max-height: 70vh;
-	overflow: auto;
 
 	&__header {
 		text-align: center;
 		font-weight: bold;
+		margin: 15px 0;
 	}
 
 	&__online-status {
 		display: grid;
-		// Space between the two sections
-		margin-bottom: 40px;
 		grid-template-columns: 1fr 1fr;
 	}
 
@@ -275,10 +260,9 @@ export default {
 
 	.status-buttons {
 		display: flex;
-
-		button {
-			flex-basis: 50%;
-		}
+		padding: 3px;
+		padding-left:0;
+		gap: 3px;
 	}
 }
 

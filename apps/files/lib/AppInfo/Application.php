@@ -39,6 +39,7 @@ use OCA\Files\Capabilities;
 use OCA\Files\Collaboration\Resources\Listener;
 use OCA\Files\Collaboration\Resources\ResourceProvider;
 use OCA\Files\Controller\ApiController;
+use OCA\Files\DirectEditingCapabilities;
 use OCA\Files\Event\LoadAdditionalScriptsEvent;
 use OCA\Files\Event\LoadSidebar;
 use OCA\Files\Listener\LegacyLoadAdditionalScriptsAdapter;
@@ -46,6 +47,7 @@ use OCA\Files\Listener\LoadSidebarListener;
 use OCA\Files\Notification\Notifier;
 use OCA\Files\Search\FilesSearchProvider;
 use OCA\Files\Service\TagService;
+use OCA\Files\Service\UserConfig;
 use OCP\Activity\IManager as IActivityManager;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
@@ -87,7 +89,8 @@ class Application extends App implements IBootstrap {
 				$c->get(IPreview::class),
 				$c->get(IShareManager::class),
 				$c->get(IConfig::class),
-				$server->getUserFolder()
+				$server->getUserFolder(),
+				$c->get(UserConfig::class),
 			);
 		});
 
@@ -111,6 +114,7 @@ class Application extends App implements IBootstrap {
 		 * Register capabilities
 		 */
 		$context->registerCapability(Capabilities::class);
+		$context->registerCapability(DirectEditingCapabilities::class);
 
 		$context->registerEventListener(LoadAdditionalScriptsEvent::class, LegacyLoadAdditionalScriptsAdapter::class);
 		$context->registerEventListener(LoadSidebar::class, LoadSidebarListener::class);
@@ -170,7 +174,6 @@ class Application extends App implements IBootstrap {
 				'script' => 'simplelist.php',
 				'order' => 5,
 				'name' => $l10n->t('Favorites'),
-				'expandedState' => 'show_Quick_Access'
 			];
 		});
 	}

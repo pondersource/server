@@ -34,30 +34,21 @@ use OCP\Files\IAppData;
 use OCP\Files\NotFoundException;
 use OCP\Files\SimpleFS\ISimpleFile;
 use OCP\IConfig;
-use ScssPhp\ScssPhp\Compiler;
+use OCP\IUserSession;
+use Mexitek\PHPColors\Color;
 
 class Util {
 
-	/** @var IConfig */
-	private $config;
+	private IConfig $config;
+	private IAppManager $appManager;
+	private IAppData $appData;
+	private ImageManager $imageManager;
 
-	/** @var IAppManager */
-	private $appManager;
-
-	/** @var IAppData */
-	private $appData;
-
-	/**
-	 * Util constructor.
-	 *
-	 * @param IConfig $config
-	 * @param IAppManager $appManager
-	 * @param IAppData $appData
-	 */
-	public function __construct(IConfig $config, IAppManager $appManager, IAppData $appData) {
+	public function __construct(IConfig $config, IAppManager $appManager, IAppData $appData, ImageManager $imageManager) {
 		$this->config = $config;
 		$this->appManager = $appManager;
 		$this->appData = $appData;
+		$this->imageManager = $imageManager;
 	}
 
 	/**
@@ -96,22 +87,52 @@ class Util {
 		return $color;
 	}
 
+	public function mix(string $color1, string $color2, int $factor): string {
+		$color = new Color($color1);
+		return '#' . $color->mix($color2, $factor);
+	}
+
+	public function lighten(string $color, int $factor): string {
+		$color = new Color($color);
+		return '#' . $color->lighten($factor);
+	}
+
+	public function darken(string $color, int $factor): string {
+		$color = new Color($color);
+		return '#' . $color->darken($factor);
+	}
+
 	/**
-	 * @param string $color rgb color value
-	 * @return float
+	 * Convert RGB to HSL
+	 *
+	 * Copied from cssphp, copyright Leaf Corcoran, licensed under MIT
+	 *
+	 * @param int $red
+	 * @param int $green
+	 * @param int $blue
+	 *
+	 * @return float[]
 	 */
-	public function calculateLuminance($color) {
-		[$red, $green, $blue] = $this->hexToRGB($color);
-		$compiler = new Compiler();
-		$hsl = $compiler->toHSL($red, $green, $blue);
-		return $hsl[3] / 100;
+	public function toHSL(int $red, int $green, int $blue): array {
+		$color = new Color(Color::rgbToHex(['R' => $red, 'G' => $green, 'B' => $blue]));
+		return array_values($color->getHsl());
 	}
 
 	/**
 	 * @param string $color rgb color value
 	 * @return float
 	 */
-	public function calculateLuma($color) {
+	public function calculateLuminance(string $color): float {
+		[$red, $green, $blue] = $this->hexToRGB($color);
+		$hsl = $this->toHSL($red, $green, $blue);
+		return $hsl[2];
+	}
+
+	/**
+	 * @param string $color rgb color value
+	 * @return float
+	 */
+	public function calculateLuma(string $color): float {
 		[$red, $green, $blue] = $this->hexToRGB($color);
 		return (0.2126 * $red + 0.7152 * $green + 0.0722 * $blue) / 255;
 	}
@@ -119,20 +140,11 @@ class Util {
 	/**
 	 * @param string $color rgb color value
 	 * @return int[]
+	 * @psalm-return array{0: int, 1: int, 2: int}
 	 */
-	public function hexToRGB($color) {
-		$hex = preg_replace("/[^0-9A-Fa-f]/", '', $color);
-		if (strlen($hex) === 3) {
-			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
-		}
-		if (strlen($hex) !== 6) {
-			return 0;
-		}
-		return [
-			hexdec(substr($hex, 0, 2)),
-			hexdec(substr($hex, 2, 2)),
-			hexdec(substr($hex, 4, 2))
-		];
+	public function hexToRGB(string $color): array {
+		$color = new Color($color);
+		return array_values($color->getRgb());
 	}
 
 	/**
@@ -169,9 +181,7 @@ class Util {
 			$logoFile = null;
 			try {
 				$folder = $this->appData->getFolder('images');
-				if ($folder !== null) {
-					return $folder->getFile('logo');
-				}
+				return $folder->getFile('logo');
 			} catch (NotFoundException $e) {
 			}
 		}
@@ -251,5 +261,26 @@ class Util {
 	public function isBackgroundThemed() {
 		$backgroundLogo = $this->config->getAppValue('theming', 'backgroundMime', '');
 		return $backgroundLogo !== '' && $backgroundLogo !== 'backgroundColor';
+	}
+
+	public function isLogoThemed() {
+		return $this->imageManager->hasImage('logo')
+			|| $this->imageManager->hasImage('logoheader');
+	}
+
+	public function getCacheBuster(): string {
+		$userSession = \OC::$server->get(IUserSession::class);
+		$userId = '';
+		$user = $userSession->getUser();
+		if (!is_null($user)) {
+			$userId = $user->getUID();
+		}
+		$userCacheBuster = '';
+		if ($userId) {
+			$userCacheBusterValue = (int)$this->config->getUserValue($userId, 'theming', 'userCacheBuster', '0');
+			$userCacheBuster = $userId . '_' . $userCacheBusterValue;
+		}
+		$systemCacheBuster = $this->config->getAppValue('theming', 'cachebuster', '0');
+		return substr(sha1($userCacheBuster . $systemCacheBuster), 0, 8);
 	}
 }

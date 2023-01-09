@@ -38,8 +38,7 @@
 			}"
 			:style="{
 				backgroundImage: isIconUrl ? `url(${icon})` : '',
-			}"
-			role="img">
+			}">
 
 			<img v-if="hasValidThumbnail"
 				v-show="loaded"
@@ -51,22 +50,22 @@
 
 		<!-- Title and sub-title -->
 		<span class="unified-search__result-content">
-			<h3 class="unified-search__result-line-one" :title="title">
-				<Highlight :text="title" :search="query" />
-			</h3>
-			<h4 v-if="subline" class="unified-search__result-line-two" :title="subline">{{ subline }}</h4>
+			<span class="unified-search__result-line-one" :title="title">
+				<NcHighlight :text="title" :search="query" />
+			</span>
+			<span v-if="subline" class="unified-search__result-line-two" :title="subline">{{ subline }}</span>
 		</span>
 	</a>
 </template>
 
 <script>
-import Highlight from '@nextcloud/vue/dist/Components/Highlight'
+import NcHighlight from '@nextcloud/vue/dist/Components/NcHighlight'
 
 export default {
 	name: 'SearchResult',
 
 	components: {
-		Highlight,
+		NcHighlight,
 	},
 
 	props: {
@@ -163,14 +162,18 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@use "sass:math";
+
 $clickable-area: 44px;
 $margin: 10px;
 
 .unified-search__result {
 	display: flex;
+	align-items: center;
 	height: $clickable-area;
 	padding: $margin;
 	border-bottom: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large) !important;
 
 	// Load more entry,
 	&:last-child {
@@ -197,7 +200,7 @@ $margin: 10px;
 		background-position: center center;
 		background-size: 32px;
 		&--rounded {
-			border-radius: $clickable-area / 2;
+			border-radius: math.div($clickable-area, 2);
 		}
 		&--no-preview {
 			background-size: 32px;

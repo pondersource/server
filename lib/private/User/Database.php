@@ -45,7 +45,7 @@ declare(strict_types=1);
  */
 namespace OC\User;
 
-use OC\Cache\CappedMemoryCache;
+use OCP\Cache\CappedMemoryCache;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IDBConnection;
 use OCP\Security\Events\ValidatePasswordPolicyEvent;
@@ -65,14 +65,14 @@ use OCP\User\Backend\ISetPasswordBackend;
  */
 class Database extends ABackend implements
 	ICreateUserBackend,
-			   ISetPasswordBackend,
-			   ISetDisplayNameBackend,
-			   IGetDisplayNameBackend,
-			   ICheckPasswordBackend,
-			   IGetHomeBackend,
-			   ICountUsersBackend,
-			   ISearchKnownUsersBackend,
-			   IGetRealUIDBackend {
+	ISetPasswordBackend,
+	ISetDisplayNameBackend,
+	IGetDisplayNameBackend,
+	ICheckPasswordBackend,
+	IGetHomeBackend,
+	ICountUsersBackend,
+	ISearchKnownUsersBackend,
+	IGetRealUIDBackend {
 	/** @var CappedMemoryCache */
 	private $cache;
 
@@ -193,7 +193,13 @@ class Database extends ABackend implements
 			$hasher = \OC::$server->getHasher();
 			$hashedPassword = $hasher->hash($password);
 
-			return $this->updatePassword($uid, $hashedPassword);
+			$return = $this->updatePassword($uid, $hashedPassword);
+
+			if ($return) {
+				$this->cache[$uid]['password'] = $hashedPassword;
+			}
+
+			return $return;
 		}
 
 		return false;
@@ -206,9 +212,15 @@ class Database extends ABackend implements
 	 * @param string $displayName The new display name
 	 * @return bool
 	 *
+	 * @throws \InvalidArgumentException
+	 *
 	 * Change the display name of a user
 	 */
 	public function setDisplayName(string $uid, string $displayName): bool {
+		if (mb_strlen($displayName) > 64) {
+			throw new \InvalidArgumentException('Invalid displayname');
+		}
+
 		$this->fixDI();
 
 		if ($this->userExists($uid)) {
@@ -269,7 +281,7 @@ class Database extends ABackend implements
 			->setMaxResults($limit)
 			->setFirstResult($offset);
 
-		$result = $query->execute();
+		$result = $query->executeQuery();
 		$displayNames = [];
 		while ($row = $result->fetch()) {
 			$displayNames[(string)$row['uid']] = (string)$row['displayname'];
@@ -329,28 +341,16 @@ class Database extends ABackend implements
 	 * returns the user id or false
 	 */
 	public function checkPassword(string $loginName, string $password) {
-		$this->fixDI();
+		$found = $this->loadUser($loginName);
 
-		$qb = $this->dbConn->getQueryBuilder();
-		$qb->select('uid', 'password')
-			->from($this->table)
-			->where(
-				$qb->expr()->eq(
-					'uid_lower', $qb->createNamedParameter(mb_strtolower($loginName))
-				)
-			);
-		$result = $qb->execute();
-		$row = $result->fetch();
-		$result->closeCursor();
-
-		if ($row) {
-			$storedHash = $row['password'];
+		if ($found && is_array($this->cache[$loginName])) {
+			$storedHash = $this->cache[$loginName]['password'];
 			$newHash = '';
 			if (\OC::$server->getHasher()->verify($password, $storedHash, $newHash)) {
 				if (!empty($newHash)) {
 					$this->updatePassword($loginName, $newHash);
 				}
-				return (string)$row['uid'];
+				return (string)$this->cache[$loginName]['uid'];
 			}
 		}
 
@@ -375,7 +375,7 @@ class Database extends ABackend implements
 			}
 
 			$qb = $this->dbConn->getQueryBuilder();
-			$qb->select('uid', 'displayname')
+			$qb->select('uid', 'displayname', 'password')
 				->from($this->table)
 				->where(
 					$qb->expr()->eq(
@@ -391,6 +391,7 @@ class Database extends ABackend implements
 				$this->cache[$uid] = [
 					'uid' => (string)$row['uid'],
 					'displayname' => (string)$row['displayname'],
+					'password' => (string)$row['password'],
 				];
 			} else {
 				$this->cache[$uid] = false;
@@ -455,7 +456,7 @@ class Database extends ABackend implements
 	/**
 	 * counts the users in the database
 	 *
-	 * @return int|bool
+	 * @return int|false
 	 */
 	public function countUsers() {
 		$this->fixDI();
@@ -463,7 +464,7 @@ class Database extends ABackend implements
 		$query = $this->dbConn->getQueryBuilder();
 		$query->select($query->func()->count('uid'))
 			->from($this->table);
-		$result = $query->execute();
+		$result = $query->executeQuery();
 
 		return $result->fetchOne();
 	}
