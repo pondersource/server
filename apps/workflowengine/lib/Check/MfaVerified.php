@@ -65,7 +65,7 @@ class MfaVerified implements ICheck, IFileCheck {
 	 */
 	public function executeCheck($operator, $value): bool {
 		$mfaVerified = $this->session->get('user_saml.samlUserData')["mfa_verified"][0];
-		if (strtolower($value) == 'true') {
+		if ($operator === 'is') {
 			return $mfaVerified == '1'; //Mfa verified must not have access
 		} else {
 			return $mfaVerified != '1';
@@ -78,12 +78,12 @@ class MfaVerified implements ICheck, IFileCheck {
 	 * @throws \UnexpectedValueException
 	 */
 	public function validateCheck($operator, $value): void {
-		if (!in_array($operator, ['is'])) {
+		if (!in_array($operator, ['is', '!is'])) {
 			throw new \UnexpectedValueException($this->l->t('The given operator is invalid'), 1);
 		}
 
-		if (!in_array($value, ['true', 'false'])) {
-			throw new \UnexpectedValueException($this->l->t('The given value is invalid, must be one of ("true", "false")'), 1);
+		if (!in_array($value, ['Verified'])) {
+			throw new \UnexpectedValueException($this->l->t('The given value is invalid, must be "Verified"'), 1);
 		}
 	}
 
