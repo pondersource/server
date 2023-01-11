@@ -38,6 +38,11 @@ use OCP\ISession;
 class MfaVerified implements ICheck, IFileCheck {
 	use TFileCheck;
 
+	/** @var array */
+	/** @psalm-suppress PropertyNotSetInConstructor */
+	/** @psalm-suppress MissingPropertyType */
+	protected $fileIds;
+
 	/** @var IL10N */
 	protected $l;
 
@@ -59,11 +64,11 @@ class MfaVerified implements ICheck, IFileCheck {
 	 * @return bool
 	 */
 	public function executeCheck($operator, $value): bool {
-		$mfaVerified = $this->session->get('user_saml.samlUserData')["mfa_verified"][0] ?? false;
-		if (strtolower($value) === 'true') {
-			return $mfaVerified === '1'; // checking whether the current user is MFA-verified
+		$mfaVerified = $this->session->get('user_saml.samlUserData')["mfa_verified"][0];
+		if ($operator === 'is') {
+			return $mfaVerified == '1'; //Mfa verified must not have access
 		} else {
-			return $mfaVerified !== '1'; // checking whether the current user is not MFA-verified
+			return $mfaVerified != '1';
 		}
 	}
 
@@ -73,12 +78,12 @@ class MfaVerified implements ICheck, IFileCheck {
 	 * @throws \UnexpectedValueException
 	 */
 	public function validateCheck($operator, $value): void {
-		if (!in_array($operator, ['is'])) {
+		if (!in_array($operator, ['is', '!is'])) {
 			throw new \UnexpectedValueException($this->l->t('The given operator is invalid'), 1);
 		}
 
-		if (!in_array($value, ['true', 'false'])) {
-			throw new \UnexpectedValueException($this->l->t('The given value is invalid, must be one of ("true", "false")'), 1);
+		if (!in_array($value, ['Verified'])) {
+			throw new \UnexpectedValueException($this->l->t('The given value is invalid, must be "Verified"'), 1);
 		}
 	}
 

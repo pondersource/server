@@ -24,6 +24,7 @@
 import { stringValidator, validateIPv4, validateIPv6 } from '../../helpers/validators'
 import FileMimeType from './FileMimeType'
 import FileSystemTag from './FileSystemTag'
+import MfaVerifiedValue from './MfaVerifiedValue'
 
 const stringOrRegexOperators = () => {
 	return [
@@ -105,11 +106,10 @@ const FileChecks = [
 		class: 'OCA\\WorkflowEngine\\Check\\MfaVerified',
 		name: t('workflowengine', 'MFA Verified'),
 		operators: [
-			{ operator: 'is', name: t('workflowengine', 'is verified?') },
+			{ operator: 'is', name: t('workflowengine', 'is') },
+			{ operator: '!is', name: t('workflowengine', 'is not') },
 		],
-		placeholder: (check) => {
-			return 'true'
-		},
+		component: MfaVerifiedValue,
 	},
 ]
 
