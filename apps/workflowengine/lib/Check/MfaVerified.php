@@ -38,11 +38,6 @@ use OCP\ISession;
 class MfaVerified implements ICheck, IFileCheck {
 	use TFileCheck;
 
-	/** @var array */
-	/** @psalm-suppress PropertyNotSetInConstructor */
-	/** @psalm-suppress MissingPropertyType */
-	protected $fileIds;
-
 	/** @var IL10N */
 	protected $l;
 
@@ -64,11 +59,11 @@ class MfaVerified implements ICheck, IFileCheck {
 	 * @return bool
 	 */
 	public function executeCheck($operator, $value): bool {
-		$mfaVerified = $this->session->get('user_saml.samlUserData')["mfa_verified"][0];
+		$mfaVerified = $this->session->get('user_saml.samlUserData')["mfa_verified"][0] ?? false;
 		if ($operator === 'is') {
-			return $mfaVerified == '1'; //Mfa verified must not have access
+			return $mfaVerified === '1'; // checking whether the current user is MFA-verified
 		} else {
-			return $mfaVerified != '1';
+			return $mfaVerified !== '1'; // checking whether the current user is not MFA-verified
 		}
 	}
 
