@@ -81,10 +81,6 @@ class MfaVerified implements ICheck, IFileCheck {
 		if (!in_array($operator, ['is', '!is'])) {
 			throw new \UnexpectedValueException($this->l->t('The given operator is invalid'), 1);
 		}
-
-		if (!in_array($value, ['Verified'])) {
-			throw new \UnexpectedValueException($this->l->t('The given value is invalid, must be "Verified"'), 1);
-		}
 	}
 
 	/**
