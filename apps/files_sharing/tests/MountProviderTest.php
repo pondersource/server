@@ -176,12 +176,14 @@ class MountProviderTest extends \Test\TestCase {
 				['user1', IShare::TYPE_CIRCLE, null, -1],
 				['user1', IShare::TYPE_ROOM, null, -1],
 				['user1', IShare::TYPE_DECK, null, -1],
+				['user1', IShare::TYPE_SCIENCEMESH, null, -1],
 			)->willReturnOnConsecutiveCalls(
 				$userShares,
 				$groupShares,
 				$circleShares,
 				$roomShares,
 				$deckShares,
+				$sciencemeshShares
 			);
 		$this->shareManager->expects($this->any())
 			->method('newShare')
@@ -386,6 +388,7 @@ class MountProviderTest extends \Test\TestCase {
 		$circleShares = [];
 		$roomShares = [];
 		$deckShares = [];
+		$sciencemeshShares = [];
 		$this->shareManager->expects($this->exactly(5))
 			->method('getSharedWith')
 			->withConsecutive(
@@ -394,12 +397,14 @@ class MountProviderTest extends \Test\TestCase {
 				['user1', IShare::TYPE_CIRCLE, null, -1],
 				['user1', IShare::TYPE_ROOM, null, -1],
 				['user1', IShare::TYPE_DECK, null, -1],
+				['user1', IShare::TYPE_SCIENCEMESH, null, -1],
 			)->willReturnOnConsecutiveCalls(
 				$userShares,
 				$groupShares,
 				$circleShares,
 				$roomShares,
 				$deckShares,
+				$sciencemeshShares
 			);
 		$this->shareManager->expects($this->any())
 			->method('newShare')
