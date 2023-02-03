@@ -191,6 +191,10 @@ class ShareesAPIController extends OCSController {
 			if ($this->shareManager->shareProviderExists(IShare::TYPE_DECK)) {
 				$shareTypes[] = IShare::TYPE_DECK;
 			}
+
+			if ($this->shareManager->shareProviderExists(IShare::TYPE_SCIENCEMESH)) {
+				$shareTypes[] = IShare::TYPE_SCIENCEMESH;
+			}
 		} else {
 			if ($this->shareManager->allowGroupSharing()) {
 				$shareTypes[] = IShare::TYPE_GROUP;
@@ -205,6 +209,9 @@ class ShareesAPIController extends OCSController {
 
 		if ($this->shareManager->shareProviderExists(IShare::TYPE_DECK)) {
 			$shareTypes[] = IShare::TYPE_DECK;
+		}
+		if ($this->shareManager->shareProviderExists(IShare::TYPE_SCIENCEMESH)) {
+			$shareTypes[] = IShare::TYPE_SCIENCEMESH;
 		}
 
 		if ($shareType !== null && is_array($shareType)) {
