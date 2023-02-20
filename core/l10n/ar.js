@@ -27,6 +27,7 @@ OC.L10N.register(
     "Could not complete login" : "لا يمكن إكمال عملية تسجيل الدخول",
     "Your login token is invalid or has expired" : "معلومات الجلسة غير صالحة أو منتهية",
     "Login" : "الدخول",
+    "Please try again" : "يرجى إعادة المحاولة",
     "Password reset is disabled" : "تم تعطيل إعادة تعيين كلمة المرور",
     "Could not reset password because the token is expired" : "لا يمكن إعادة تعيين كلمة المرور بسبب انتهاء صلاحية الجلسة.",
     "Could not reset password because the token is invalid" : "لا يمكن إعادة تعيين كلمة المرور بسبب خطأ في تكوين الجلسة",
@@ -129,7 +130,9 @@ OC.L10N.register(
     "Please contact your administrator." : "يرجى التواصل مع مسؤول النظام.",
     "An internal error occurred." : "حدث خطأ داخلي.",
     "Please try again or contact your administrator." : "حاول مجددا أو تواصل مع مسؤول النظام.",
+    "Account name or email" : "اسم الحساب أو البريد الالكتروني",
     "Password" : "كلمة المرور",
+    "Log in to {productName}" : "الولوج إلى {productName}",
     "Wrong username or password." : "اسم المستخدم أو كلمة المرور خاطئة.",
     "User disabled" : "المستخدم معطّل",
     "We have detected multiple invalid login attempts from your IP. Therefore your next login is throttled up to 30 seconds." : "لقد اكتشفنا عدة محاولات تسجيل دخول غير صالحة من عنوان IP الخاص بك. لذلك تم تقييد تسجيل الدخول التالي الخاص بك حتى 30 ثانية.",
@@ -180,6 +183,7 @@ OC.L10N.register(
     "Search" : "البحث",
     "An error occurred while searching for {type}" : "حدث خطأ أثناء البحث عن {type}",
     "_Please enter {minSearchLength} character or more to search_::_Please enter {minSearchLength} characters or more to search_" : ["من فضلك ادخل أحرف {minSearchLength} أو أكثر للبحث","من فضلك ادخل أحرف {minSearchLength} أو أكثر للبحث","من فضلك ادخل أحرف {minSearchLength} أو أكثر للبحث","من فضلك ادخل أحرف {minSearchLength} أو أكثر للبحث","من فضلك ادخل أحرف {minSearchLength} أو أكثر للبحث","من فضلك ادخل أحرف {minSearchLength}  أو أكثر للبحث"],
+    "Settings menu" : "قائمة الإعدادات",
     "Search {types} …" : "بحث {types} …",
     "Settings" : "الإعدادات",
     "Could not load your contacts" : "تعذر تحميل جهات الإتصال",
@@ -376,7 +380,6 @@ OC.L10N.register(
     "More apps menu" : "المزيد من قائمة التطبيقات",
     "Contacts" : "جهات الإتصال",
     "Contacts menu" : "قائمة جهات الإتصال",
-    "Settings menu" : "قائمة الإعدادات",
     "Setup two-factor authentication" : "تعيين المصادقة بخطوتين"
 },
 "nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;");

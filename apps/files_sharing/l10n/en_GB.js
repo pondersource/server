@@ -219,6 +219,12 @@ OC.L10N.register(
     "Searching …" : "Searching …",
     "No elements found." : "No elements found.",
     "Search globally" : "Search globally",
+    "Guest" : "Guest",
+    "Group" : "Group",
+    "Email" : "Email",
+    "Circle" : "Circle",
+    "Talk conversation" : "Talk conversation",
+    "Deck board" : "Deck board",
     "on {server}" : "on {server}",
     "Others with access" : "Others with access",
     "No other users with access found" : "No other users with access found",
@@ -269,9 +275,6 @@ OC.L10N.register(
     "Copy to clipboard" : "Copy to clipboard",
     "Sorry, this link doesn’t seem to work anymore." : "Sorry, this link doesn’t seem to work any more.",
     "Toggle grid view" : "Toggle grid view",
-    "Copy public link to clipboard" : "Copy public link to clipboard",
-    "Share label saved" : "Share label saved",
-    "Share password saved" : "Share password saved",
-    "Share note saved" : "Share note saved"
+    "Error generating password from password_policy" : "Error generating password from password policy"
 },
 "nplurals=2; plural=(n != 1);");

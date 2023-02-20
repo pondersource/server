@@ -178,7 +178,7 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 	 * This method is called before any HTTP method and validates there is enough free space to store the file
 	 *
 	 * @param string $path relative to the users home
-	 * @param int $length
+	 * @param int|float|null $length
 	 * @throws InsufficientStorage
 	 * @return bool
 	 */
@@ -193,29 +193,12 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 				$parentPath = '';
 			}
 			$req = $this->server->httpRequest;
-			if ($req->getHeader('OC-Chunked')) {
-				$info = \OC_FileChunking::decodeName($newName);
-				$chunkHandler = $this->getFileChunking($info);
-				// subtract the already uploaded size to see whether
-				// there is still enough space for the remaining chunks
-				$length -= $chunkHandler->getCurrentSize();
-				// use target file name for free space check in case of shared files
-				$path = rtrim($parentPath, '/') . '/' . $info['name'];
-			}
 			$freeSpace = $this->getFreeSpace($path);
 			if ($freeSpace >= 0 && $length > $freeSpace) {
-				if (isset($chunkHandler)) {
-					$chunkHandler->cleanup();
-				}
 				throw new InsufficientStorage("Insufficient space in $path, $length required, $freeSpace available");
 			}
 		}
 		return true;
-	}
-
-	public function getFileChunking($info) {
-		// FIXME: need a factory for better mocking support
-		return new \OC_FileChunking($info);
 	}
 
 	public function getLength() {

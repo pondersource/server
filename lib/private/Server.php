@@ -86,6 +86,7 @@ use OC\EventDispatcher\SymfonyAdapter;
 use OC\Federation\CloudFederationFactory;
 use OC\Federation\CloudFederationProviderManager;
 use OC\Federation\CloudIdManager;
+use OC\Files\Config\MountProviderCollection;
 use OC\Files\Config\UserMountCache;
 use OC\Files\Config\UserMountCacheListener;
 use OC\Files\Lock\LockManager;
@@ -126,9 +127,11 @@ use OC\Metadata\MetadataManager;
 use OC\Notification\Manager;
 use OC\OCS\DiscoveryService;
 use OC\Preview\GeneratorHelper;
+use OC\Preview\IMagickSupport;
 use OC\Remote\Api\ApiFactory;
 use OC\Remote\InstanceFactory;
 use OC\RichObjectStrings\Validator;
+use OC\Route\CachingRouter;
 use OC\Route\Router;
 use OC\Security\Bruteforce\Throttler;
 use OC\Security\CertificateManager;
@@ -275,7 +278,6 @@ use OC\Profiler\Profiler;
  * TODO: hookup all manager classes
  */
 class Server extends ServerContainer implements IServerContainer {
-
 	/** @var string */
 	private $webRoot;
 
@@ -337,7 +339,8 @@ class Server extends ServerContainer implements IServerContainer {
 				$c->get(ISession::class)->get('user_id'),
 				$c->get(Coordinator::class),
 				$c->get(IServerContainer::class),
-				$c->get(IBinaryFinder::class)
+				$c->get(IBinaryFinder::class),
+				$c->get(IMagickSupport::class)
 			);
 		});
 		/** @deprecated 19.0.0 */
@@ -705,6 +708,7 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerService(ICache::class, function ($c) {
 			return new Cache\File();
 		});
+
 		/** @deprecated 19.0.0 */
 		$this->registerDeprecatedAlias('UserCache', ICache::class);
 
@@ -820,11 +824,10 @@ class Server extends ServerContainer implements IServerContainer {
 
 		$this->registerService(Router::class, function (Server $c) {
 			$cacheFactory = $c->get(ICacheFactory::class);
-			$logger = $c->get(LoggerInterface::class);
 			if ($cacheFactory->isLocalCacheAvailable()) {
-				$router = new \OC\Route\CachingRouter($cacheFactory->createLocal('route'), $logger);
+				$router = $c->resolve(CachingRouter::class);
 			} else {
-				$router = new \OC\Route\Router($logger);
+				$router = $c->resolve(Router::class);
 			}
 			return $router;
 		});
@@ -947,11 +950,7 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerDeprecatedAlias('DateTimeFormatter', IDateTimeFormatter::class);
 
 		$this->registerService(IUserMountCache::class, function (ContainerInterface $c) {
-			$mountCache = new UserMountCache(
-				$c->get(IDBConnection::class),
-				$c->get(IUserManager::class),
-				$c->get(LoggerInterface::class)
-			);
+			$mountCache = $c->get(UserMountCache::class);
 			$listener = new UserMountCacheListener($mountCache);
 			$listener->listen($c->get(IUserManager::class));
 			return $mountCache;
@@ -960,9 +959,10 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerDeprecatedAlias('UserMountCache', IUserMountCache::class);
 
 		$this->registerService(IMountProviderCollection::class, function (ContainerInterface $c) {
-			$loader = \OC\Files\Filesystem::getLoader();
+			$loader = $c->get(IStorageFactory::class);
 			$mountCache = $c->get(IUserMountCache::class);
-			$manager = new \OC\Files\Config\MountProviderCollection($loader, $mountCache);
+			$eventLogger = $c->get(IEventLogger::class);
+			$manager = new MountProviderCollection($loader, $mountCache, $eventLogger);
 
 			// builtin providers
 
@@ -1451,6 +1451,8 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerAlias(\OCP\Files\AppData\IAppDataFactory::class, \OC\Files\AppData\Factory::class);
 
 		$this->registerAlias(IBinaryFinder::class, BinaryFinder::class);
+
+		$this->registerAlias(\OCP\Share\IPublicShareTemplateFactory::class, \OC\Share20\PublicShareTemplateFactory::class);
 
 		$this->connectDispatcher();
 	}

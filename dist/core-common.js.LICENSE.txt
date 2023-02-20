@@ -26,18 +26,6 @@ object-assign
 */
 
 /*!
-  * Bootstrap tooltip.js v4.6.1 (https://getbootstrap.com/)
-  * Copyright 2011-2021 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
-  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
-  */
-
-/*!
-  * Bootstrap util.js v4.6.1 (https://getbootstrap.com/)
-  * Copyright 2011-2021 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
-  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
-  */
-
-/*!
   * vue-router v3.5.3
   * (c) 2021 Evan You
   * @license MIT
@@ -340,6 +328,11 @@ object-assign
 */
 
 /*!
+* focus-trap 7.2.0
+* @license MIT, https://github.com/focus-trap/focus-trap/blob/master/LICENSE
+*/
+
+/*!
 * tabbable 6.0.1
 * @license MIT, https://github.com/focus-trap/tabbable/blob/master/LICENSE
 */
@@ -368,6 +361,8 @@ object-assign
 
 /*! For license information please see NcAppSidebarTab.js.LICENSE.txt */
 
+/*! For license information please see NcButton.js.LICENSE.txt */
+
 /*! For license information please see NcCheckboxRadioSwitch.js.LICENSE.txt */
 
 /*! For license information please see NcColorPicker.js.LICENSE.txt */
@@ -378,7 +373,7 @@ object-assign
 
 /*! For license information please see NcEmojiPicker.js.LICENSE.txt */
 
-/*! For license information please see NcListItem.js.LICENSE.txt */
+/*! For license information please see NcLoadingIcon.js.LICENSE.txt */
 
 /*! For license information please see NcModal.js.LICENSE.txt */
 
@@ -391,8 +386,6 @@ object-assign
 /*! For license information please see NcSettingsSection.js.LICENSE.txt */
 
 /*! For license information please see NcTextField.js.LICENSE.txt */
-
-/*! For license information please see excludeClickOutsideClasses.js.LICENSE.txt */
 
 /*! For license information please see index.module.js.LICENSE.txt */
 

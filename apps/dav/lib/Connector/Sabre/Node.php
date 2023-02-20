@@ -38,20 +38,19 @@ namespace OCA\DAV\Connector\Sabre;
 use OC\Files\Mount\MoveableMount;
 use OC\Files\Node\File;
 use OC\Files\Node\Folder;
+use OC\Files\Node\LazyFolder;
 use OC\Files\View;
 use OCA\DAV\Connector\Sabre\Exception\InvalidPath;
 use OCP\Files\DavUtil;
 use OCP\Files\FileInfo;
 use OCP\Files\IRootFolder;
 use OCP\Files\StorageNotAvailableException;
-use OCP\Share\IShare;
 use OCP\Share\Exceptions\ShareNotFound;
 use OCP\Share\IManager;
 
 abstract class Node implements \Sabre\DAV\INode {
-
 	/**
-	 * @var \OC\Files\View
+	 * @var View
 	 */
 	protected $fileView;
 
@@ -69,10 +68,7 @@ abstract class Node implements \Sabre\DAV\INode {
 	 */
 	protected $property_cache = null;
 
-	/**
-	 * @var \OCP\Files\FileInfo
-	 */
-	protected $info;
+	protected FileInfo $info;
 
 	/**
 	 * @var IManager
@@ -83,10 +79,6 @@ abstract class Node implements \Sabre\DAV\INode {
 
 	/**
 	 * Sets up the node, expects a full path name
-	 *
-	 * @param \OC\Files\View $view
-	 * @param \OCP\Files\FileInfo $info
-	 * @param IManager $shareManager
 	 */
 	public function __construct(View $view, FileInfo $info, IManager $shareManager = null) {
 		$this->fileView = $view;
@@ -97,7 +89,7 @@ abstract class Node implements \Sabre\DAV\INode {
 		} else {
 			$this->shareManager = \OC::$server->getShareManager();
 		}
-		if ($info instanceof Folder || $info instanceof File) {
+		if ($info instanceof Folder || $info instanceof File || $info instanceof LazyFolder) {
 			$this->node = $info;
 		} else {
 			$root = \OC::$server->get(IRootFolder::class);
@@ -109,8 +101,12 @@ abstract class Node implements \Sabre\DAV\INode {
 		}
 	}
 
-	protected function refreshInfo() {
-		$this->info = $this->fileView->getFileInfo($this->path);
+	protected function refreshInfo(): void {
+		$info = $this->fileView->getFileInfo($this->path);
+		if ($info === false) {
+			throw new \Sabre\DAV\Exception('Failed to get fileinfo for '. $this->path);
+		}
+		$this->info = $info;
 		$root = \OC::$server->get(IRootFolder::class);
 		if ($this->info->getType() === FileInfo::TYPE_FOLDER) {
 			$this->node = new Folder($root, $this->fileView, $this->path, $this->info);
@@ -145,7 +141,6 @@ abstract class Node implements \Sabre\DAV\INode {
 	 * @throws \Sabre\DAV\Exception\Forbidden
 	 */
 	public function setName($name) {
-
 		// rename is only allowed if the update privilege is granted
 		if (!($this->info->isUpdateable() || ($this->info->getMountPoint() instanceof MoveableMount && $this->info->getInternalPath() === ''))) {
 			throw new \Sabre\DAV\Exception\Forbidden();
@@ -233,9 +228,10 @@ abstract class Node implements \Sabre\DAV\INode {
 	/**
 	 * Returns the size of the node, in bytes
 	 *
-	 * @return integer
+	 * @psalm-suppress ImplementedReturnTypeMismatch \Sabre\DAV\IFile::getSize signature does not support 32bit
+	 * @return int|float
 	 */
-	public function getSize() {
+	public function getSize(): int|float {
 		return $this->info->getSize();
 	}
 
@@ -271,7 +267,6 @@ abstract class Node implements \Sabre\DAV\INode {
 	 * @return int
 	 */
 	public function getSharePermissions($user) {
-
 		// check of we access a federated share
 		if ($user !== null) {
 			try {

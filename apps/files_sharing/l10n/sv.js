@@ -219,6 +219,12 @@ OC.L10N.register(
     "Searching …" : "Söker ...",
     "No elements found." : "Inga element hittades.",
     "Search globally" : "Sök globalt",
+    "Guest" : "Gäst",
+    "Group" : "Grupp",
+    "Email" : "E-post",
+    "Circle" : "Cirkel",
+    "Talk conversation" : "Talk-konversation",
+    "Deck board" : "Deck-plank",
     "on {server}" : "på {server}",
     "Others with access" : "Andra med åtkomst",
     "No other users with access found" : "Inga andra användare med åtkomst hittades",
@@ -269,9 +275,6 @@ OC.L10N.register(
     "Copy to clipboard" : "Kopiera till urklipp",
     "Sorry, this link doesn’t seem to work anymore." : "Tyvärr, denna länk verkar inte fungera längre.",
     "Toggle grid view" : "Växla rutnätsvy",
-    "Copy public link to clipboard" : "Kopiera publik länk till urklipp",
-    "Share label saved" : "Delningsetikett sparad",
-    "Share password saved" : "Lösenord för delning sparad",
-    "Share note saved" : "Notering för delning sparad"
+    "Error generating password from password_policy" : "Fel vid generering av lösenord från lösenordspolicy"
 },
 "nplurals=2; plural=(n != 1);");

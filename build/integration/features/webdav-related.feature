@@ -53,7 +53,7 @@ Feature: webdav-related
 		And User "user0" moves file "/textfile0.txt" to "/testshare/textfile0.txt"
 		And the HTTP status code should be "403"
 		When Downloading file "/testshare/textfile0.txt"
- 		Then the HTTP status code should be "404"
+		Then the HTTP status code should be "404"
 
 	Scenario: Moving a file to overwrite a file in a folder with no permissions
 		Given using old dav path
@@ -251,7 +251,7 @@ Feature: webdav-related
 			|X-Content-Type-Options |nosniff|
 			|X-Frame-Options|SAMEORIGIN|
 			|X-Permitted-Cross-Domain-Policies|none|
-			|X-Robots-Tag|none|
+			|X-Robots-Tag|noindex, nofollow|
 			|X-XSS-Protection|1; mode=block|
 		And Downloaded content should start with "Welcome to your Nextcloud account!"
 
@@ -276,33 +276,6 @@ Feature: webdav-related
 		Given Logging in using web as "admin"
 		When Sending a "PROPFIND" to "/remote.php/webdav/welcome.txt" with requesttoken
 		Then the HTTP status code should be "207"
-
-	Scenario: Upload chunked file asc
-		Given user "user0" exists
-		And user "user0" uploads chunk file "1" of "3" with "AAAAA" to "/myChunkedFile.txt"
-		And user "user0" uploads chunk file "2" of "3" with "BBBBB" to "/myChunkedFile.txt"
-		And user "user0" uploads chunk file "3" of "3" with "CCCCC" to "/myChunkedFile.txt"
-		When As an "user0"
-		And Downloading file "/myChunkedFile.txt"
-		Then Downloaded content should be "AAAAABBBBBCCCCC"
-
-	Scenario: Upload chunked file desc
-		Given user "user0" exists
-		And user "user0" uploads chunk file "3" of "3" with "CCCCC" to "/myChunkedFile.txt"
-		And user "user0" uploads chunk file "2" of "3" with "BBBBB" to "/myChunkedFile.txt"
-		And user "user0" uploads chunk file "1" of "3" with "AAAAA" to "/myChunkedFile.txt"
-		When As an "user0"
-		And Downloading file "/myChunkedFile.txt"
-		Then Downloaded content should be "AAAAABBBBBCCCCC"
-
-	Scenario: Upload chunked file random
-		Given user "user0" exists
-		And user "user0" uploads chunk file "2" of "3" with "BBBBB" to "/myChunkedFile.txt"
-		And user "user0" uploads chunk file "3" of "3" with "CCCCC" to "/myChunkedFile.txt"
-		And user "user0" uploads chunk file "1" of "3" with "AAAAA" to "/myChunkedFile.txt"
-		When As an "user0"
-		And Downloading file "/myChunkedFile.txt"
-		Then Downloaded content should be "AAAAABBBBBCCCCC"
 
 	Scenario: A file that is not shared does not have a share-types property
 		Given user "user0" exists

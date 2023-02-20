@@ -82,7 +82,6 @@ use Symfony\Component\EventDispatcher\GenericEvent;
  * This class is the communication hub for all sharing related operations.
  */
 class Manager implements IManager {
-
 	/** @var IProviderFactory */
 	private $factory;
 	private LoggerInterface $logger;
@@ -245,6 +244,7 @@ class Manager implements IManager {
 			}
 		} elseif ($share->getShareType() === IShare::TYPE_ROOM) {
 		} elseif ($share->getShareType() === IShare::TYPE_DECK) {
+		} elseif ($share->getShareType() === IShare::TYPE_SCIENCEMESH) {
 		} else {
 			// We cannot handle other types yet
 			throw new \InvalidArgumentException('unknown share type');
@@ -668,7 +668,6 @@ class Manager implements IManager {
 	 * @param IShare $share
 	 */
 	protected function setLinkParent(IShare $share) {
-
 		// No sense in checking if the method is not there.
 		if (method_exists($share, 'setParent')) {
 			$storage = $share->getNode()->getStorage();
