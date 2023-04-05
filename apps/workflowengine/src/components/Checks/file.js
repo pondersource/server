@@ -111,6 +111,16 @@ const FileChecks = [
 		],
 		component: MfaVerifiedValue,
 	},
+
+	{
+		class: 'OCA\\WorkflowEngine\\Check\\MfaVerified',
+		name: t('workflowengine', 'multi-factor authentication'),
+		operators: [
+			{ operator: 'is', name: t('workflowengine', 'is verified') },
+			{ operator: '!is', name: t('workflowengine', 'is not verified') },
+		],
+		component: MfaVerifiedValue,
+	},
 ]
 
 export default FileChecks
