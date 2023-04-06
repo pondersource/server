@@ -265,7 +265,6 @@
     "Change password" : "修改密码",
     "Your profile picture" : "您的个人资料图片",
     "Upload profile picture" : "上传个人资料图片",
-    "Choose profile picture from files" : "从文件中选择个人资料图片",
     "Remove profile picture" : "移除个人资料图片",
     "png or jpg, max. 20 MB" : "png 或 jpg 格式，最大 20MB",
     "Picture provided by original account" : "初始账号提供的图片",
@@ -427,6 +426,7 @@
     "An error occurred during the request. Unable to proceed." : "请求期间发生错误。无法继续。",
     "The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds." : "该应用已启用，但是需要更新。5秒后将跳转到更新页面。",
     "Error: This app cannot be enabled because it makes the server unstable" : "错误:这个应用程序不能被启用，因为它使服务器不稳定 ",
+    "There were too many requests from your network. Retry later or contact your administrator if this is an error." : "您的网络请求过多。如果出现错误，请稍后重试或与您的管理员联系。",
     "Documentation" : "文档",
     "Forum" : "论坛",
     "Login" : "登录",
@@ -551,6 +551,7 @@
     "It can take up to 24 hours before the account is displayed as verified." : "在账号显示为已验证之前最多可能需要 24 小时。",
     "Link https://…" : "链接 https://…",
     "Change privacy level of Twitter profile" : "更改推特资料的隐私权限",
-    "Twitter handle @…" : "Twitter 用户名 @…"
+    "Twitter handle @…" : "Twitter 用户名 @…",
+    "Choose profile picture from files" : "从文件中选择个人资料图片"
 },"pluralForm" :"nplurals=1; plural=0;"
 }

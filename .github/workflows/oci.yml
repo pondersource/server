@@ -1,4 +1,4 @@
-name: PHPUnit
+name: PHPUnit oci
 
 on: pull_request
 
@@ -12,6 +12,8 @@ concurrency:
 jobs:
   phpunit-oci:
     runs-on: ubuntu-20.04
+
+    if: ${{ github.repository_owner != 'nextcloud-gmbh' }}
 
     strategy:
       matrix:

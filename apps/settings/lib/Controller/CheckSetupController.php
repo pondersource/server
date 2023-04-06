@@ -632,7 +632,7 @@ Raw output
 	}
 
 	protected function getLastCronInfo(): array {
-		$lastCronRun = $this->config->getAppValue('core', 'lastcron', 0);
+		$lastCronRun = (int)$this->config->getAppValue('core', 'lastcron', '0');
 		return [
 			'diffInSeconds' => time() - $lastCronRun,
 			'relativeTime' => $this->dateTimeFormatter->formatTimeSpan($lastCronRun),
@@ -722,6 +722,12 @@ Raw output
 		if (!extension_loaded('sysvsem')) {
 			// used to limit the usage of resources by preview generator
 			$recommendedPHPModules[] = 'sysvsem';
+		}
+
+		if (!extension_loaded('exif')) {
+			// used to extract metadata from images
+			// required for correct orientation of preview images
+			$recommendedPHPModules[] = 'exif';
 		}
 
 		if (!defined('PASSWORD_ARGON2I')) {

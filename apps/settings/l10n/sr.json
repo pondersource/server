@@ -266,9 +266,10 @@
     "Current password" : "Тренутна лозинка",
     "New password" : "Нова лозинка",
     "Change password" : "Измени лозинку",
+    "Your profile information" : "Информације о вашем профилу",
     "Your profile picture" : "Ваша слика профила",
     "Upload profile picture" : "Отпреми слику профила",
-    "Choose profile picture from files" : "Изабери слику профила међу фајловима",
+    "Choose profile picture from Files" : "Изабери слику профила из Фајлова",
     "Remove profile picture" : "Уклони слику профила",
     "png or jpg, max. 20 MB" : "„png“ или „jpg“, макс. 20 МБ",
     "Picture provided by original account" : "Слика оригиналног налога",
@@ -432,6 +433,7 @@
     "An error occurred during the request. Unable to proceed." : "Током захтева је дошло до грешке. Не може да се настави.",
     "The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds." : "Апликација је укључена, али треба да се ажурира. Бићете преусмерени на страну са ажурирањем за 5 секунди.",
     "Error: This app cannot be enabled because it makes the server unstable" : "Грешка: Ова апликација не може да се обрише јер ће сервер постати нестабилан",
+    "There were too many requests from your network. Retry later or contact your administrator if this is an error." : "Са ваше мреже долази превише захтева. Покушајте поново касније или контактирајте администратора уколико је ово нека грешка.",
     "Documentation" : "Документација",
     "Forum" : "Форум",
     "Login" : "Пријава",
@@ -557,6 +559,7 @@
     "It can take up to 24 hours before the account is displayed as verified." : "Може да прође и до 24h пре него што налог буде потврђен.",
     "Link https://…" : "Веза https://…",
     "Change privacy level of Twitter profile" : "Измена нивоа приватности Twitter профила",
-    "Twitter handle @…" : "Твитер надимак @…"
+    "Twitter handle @…" : "Твитер надимак @…",
+    "Choose profile picture from files" : "Изабери слику профила међу фајловима"
 },"pluralForm" :"nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);"
 }

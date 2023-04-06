@@ -270,7 +270,6 @@ OC.L10N.register(
     "Change password" : "Canvia la contrasenya",
     "Your profile picture" : "La vostra imatge de perfil",
     "Upload profile picture" : "Pujar la imatge de perfil",
-    "Choose profile picture from files" : "Trieu una imatge de perfil als fitxers",
     "Remove profile picture" : "Treu la imatge de perfil",
     "png or jpg, max. 20 MB" : "png o jpg, màx. 20 MB",
     "Picture provided by original account" : "Imatge proporcionada pel compte original",
@@ -434,6 +433,7 @@ OC.L10N.register(
     "An error occurred during the request. Unable to proceed." : "S'ha produït un error durant la sol·licitud. No es pot continuar.",
     "The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds." : "L'aplicació s'ha habilitat però ha de ser actualitzada. Sereu redirigits a la pàgina d’actualització d'aquí 5 segons.",
     "Error: This app cannot be enabled because it makes the server unstable" : "Error: aquesta aplicació no es pot habilitar perquè fa que el servidor sigui inestable",
+    "There were too many requests from your network. Retry later or contact your administrator if this is an error." : "Hi havia massa sol·licituds de la seva xarxa. Reintentar més tard o contactar amb l'administrador si això és un error.",
     "Documentation" : "Documentació",
     "Forum" : "Fòrum",
     "Login" : "Inici de sessió",
@@ -559,6 +559,7 @@ OC.L10N.register(
     "It can take up to 24 hours before the account is displayed as verified." : "Pot trigar fins a 24 hores abans que el compte es mostri com a verificat.",
     "Link https://…" : "Enllaç https://…",
     "Change privacy level of Twitter profile" : "Canvia el nivell de privadesa del perfil de Twitter",
-    "Twitter handle @…" : "Compte Twitter @…"
+    "Twitter handle @…" : "Compte Twitter @…",
+    "Choose profile picture from files" : "Trieu una imatge de perfil als fitxers"
 },
 "nplurals=2; plural=(n != 1);");

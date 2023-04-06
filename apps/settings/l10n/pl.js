@@ -268,9 +268,10 @@ OC.L10N.register(
     "Current password" : "Bieżące hasło",
     "New password" : "Nowe hasło",
     "Change password" : "Zmień hasło",
+    "Your profile information" : "Informacje o Twoim profilu",
     "Your profile picture" : "Twoje zdjęcie profilowe",
     "Upload profile picture" : "Wyślij zdjęcie profilowe",
-    "Choose profile picture from files" : "Wybierz zdjęcie profilowe z Plików",
+    "Choose profile picture from Files" : "Wybierz zdjęcie profilowe z Plików",
     "Remove profile picture" : "Usuń zdjęcie profilowe",
     "png or jpg, max. 20 MB" : "png lub jpg, maks. 20 MB",
     "Picture provided by original account" : "Zdjęcie dostarczone przez oryginalne konto",
@@ -434,6 +435,7 @@ OC.L10N.register(
     "An error occurred during the request. Unable to proceed." : "Wystąpił błąd podczas żądania. Nie można kontynuować.",
     "The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds." : "Aplikacja została włączona, ponieważ wymaga aktualizacji. Za 5 sekund nastąpi przekierowanie do strony aktualizacji.",
     "Error: This app cannot be enabled because it makes the server unstable" : "Błąd: Ta aplikacja nie zostanie włączona ze względu na możliwość niestabilnej pracy serwera",
+    "There were too many requests from your network. Retry later or contact your administrator if this is an error." : "Zbyt wiele żądań z Twojej sieci. Spróbuj ponownie później lub skontaktuj się z administratorem, jeśli jest to błąd.",
     "Documentation" : "Dokumentacja",
     "Forum" : "Forum",
     "Login" : "Login",
@@ -559,6 +561,7 @@ OC.L10N.register(
     "It can take up to 24 hours before the account is displayed as verified." : "Do 24 godzin konto będzie widoczne jako zweryfikowane.",
     "Link https://…" : "Link https://…",
     "Change privacy level of Twitter profile" : "Zmień poziom prywatności profilu Twitter",
-    "Twitter handle @…" : "Twitter @…"
+    "Twitter handle @…" : "Twitter @…",
+    "Choose profile picture from files" : "Wybierz zdjęcie profilowe z Plików"
 },
 "nplurals=4; plural=(n==1 ? 0 : (n%10>=2 && n%10<=4) && (n%100<12 || n%100>14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);");

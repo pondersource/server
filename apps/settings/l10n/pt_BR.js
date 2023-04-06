@@ -268,9 +268,10 @@ OC.L10N.register(
     "Current password" : "Senha atual",
     "New password" : "Nova senha",
     "Change password" : "Alterar senha",
+    "Your profile information" : "Suas informações de perfil",
     "Your profile picture" : "Sua foto de perfil",
     "Upload profile picture" : "Carregar foto do perfil",
-    "Choose profile picture from files" : "Escolha a foto do perfil dos arquivos",
+    "Choose profile picture from Files" : "Choose profile picture from Files",
     "Remove profile picture" : "Remover foto do perfil",
     "png or jpg, max. 20 MB" : "png ou jpg, max. 20 MB",
     "Picture provided by original account" : "Imagem fornecida pela conta original",
@@ -434,6 +435,7 @@ OC.L10N.register(
     "An error occurred during the request. Unable to proceed." : "Ocorreu um erro durante a solicitação. Não foi possível prosseguir.",
     "The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds." : "O aplicativo foi ativado, mas precisa ser atualizado. Você será redirecionado para a página de atualização em 5 segundos.",
     "Error: This app cannot be enabled because it makes the server unstable" : "Erro: Este aplicativo não pode ser habilitado pois torna o servidor instável.",
+    "There were too many requests from your network. Retry later or contact your administrator if this is an error." : "Houve muitas solicitações de sua rede. Tente novamente mais tarde ou entre em contato com o administrador se isso for um erro.",
     "Documentation" : "Documentação",
     "Forum" : "Fórum",
     "Login" : "Login",
@@ -447,6 +449,7 @@ OC.L10N.register(
     "Server address" : "Endereço do servidor",
     "Port" : "Porta",
     "Authentication method" : "Método de autenticação",
+    "Only applies when authentication is required" : "Only applies when authentication is required",
     "Authentication required" : "Autenticação é necessária",
     "Credentials" : "Credenciais",
     "SMTP Username" : "Nome do Usuário SMTP",
@@ -558,6 +561,7 @@ OC.L10N.register(
     "It can take up to 24 hours before the account is displayed as verified." : "Pode levar até 24 horas para que a conta seja mostrada como verificada.",
     "Link https://…" : "Link https://…",
     "Change privacy level of Twitter profile" : "Alterar o nível de privacidade do perfil do Twitter ",
-    "Twitter handle @…" : "Twitter handle @…"
+    "Twitter handle @…" : "Twitter handle @…",
+    "Choose profile picture from files" : "Escolha a foto do perfil dos arquivos"
 },
 "nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;");

@@ -268,9 +268,10 @@ OC.L10N.register(
     "Current password" : "Текуща парола",
     "New password" : "Нова парола",
     "Change password" : "Промени паролата",
+    "Your profile information" : "Информация за вашия профил",
     "Your profile picture" : "Вашата профилна снимка",
     "Upload profile picture" : "Качване на профилна снимка",
-    "Choose profile picture from files" : "Избор на профилна снимка от файлове",
+    "Choose profile picture from Files" : "Избор на профилна снимка от Файлове",
     "Remove profile picture" : "Премахване на профилна снимка",
     "png or jpg, max. 20 MB" : "png или jpg, макс. 20 MB",
     "Picture provided by original account" : "Снимката е предоставена от оригиналния профил",
@@ -434,6 +435,7 @@ OC.L10N.register(
     "An error occurred during the request. Unable to proceed." : "Възникна грешка по време на заявката. Не може да се продължи.",
     "The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds." : "Приложението е активирано, но трябва да бъде актуализирано. Ще бъдете пренасочени към страницата за актуализация след 5 секунди.",
     "Error: This app cannot be enabled because it makes the server unstable" : "Грешка: Това приложение не може да бъде активирано, защото прави сървъра нестабилен",
+    "There were too many requests from your network. Retry later or contact your administrator if this is an error." : "Имаше твърде много заявки от вашата мрежа. Опитайте отново по-късно или се свържете с вашия администратор, ако това е грешка.",
     "Documentation" : "Документация",
     "Forum" : "Форум",
     "Login" : "Вписване",
@@ -447,6 +449,7 @@ OC.L10N.register(
     "Server address" : "Адрес на сървъра",
     "Port" : "Порт",
     "Authentication method" : "Метод за удостоверяване",
+    "Only applies when authentication is required" : "Прилага се само когато е необходимо удостоверяване",
     "Authentication required" : "Нужно е удостоверяване",
     "Credentials" : "Потребител и парола",
     "SMTP Username" : "SMTP потребител",
@@ -558,6 +561,7 @@ OC.L10N.register(
     "It can take up to 24 hours before the account is displayed as verified." : "Може да отнеме до 24 часа, преди профилът да се покаже като потвърден.",
     "Link https://…" : "Връзка https://…",
     "Change privacy level of Twitter profile" : "Промяна на нивото на поверителност на профила в Twitter",
-    "Twitter handle @…" : "Twitter манипулатор @…"
+    "Twitter handle @…" : "Twitter манипулатор @…",
+    "Choose profile picture from files" : "Избор на профилна снимка от файлове"
 },
 "nplurals=2; plural=(n != 1);");

@@ -43,6 +43,7 @@ namespace OC\Files\Cache;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use OC\Files\Search\SearchComparison;
 use OC\Files\Search\SearchQuery;
+use OC\Files\Storage\Wrapper\Encryption;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\Cache\CacheEntryInsertedEvent;
@@ -575,7 +576,7 @@ class Cache implements ICache {
 	}
 
 	/**
-	 * Recursively remove all children of a folder
+	 * Remove all children of a folder
 	 *
 	 * @param ICacheEntry $entry the cache entry of the folder to remove the children of
 	 * @throws \OC\DatabaseException
@@ -583,6 +584,8 @@ class Cache implements ICache {
 	private function removeChildren(ICacheEntry $entry) {
 		$parentIds = [$entry->getId()];
 		$queue = [$entry->getId()];
+		$deletedIds = [];
+		$deletedPaths = [];
 
 		// we walk depth first through the file tree, removing all filecache_extended attributes while we walk
 		// and collecting all folder ids to later use to delete the filecache entries
@@ -591,6 +594,12 @@ class Cache implements ICache {
 			$childIds = array_map(function (ICacheEntry $cacheEntry) {
 				return $cacheEntry->getId();
 			}, $children);
+			$childPaths = array_map(function (ICacheEntry $cacheEntry) {
+				return $cacheEntry->getPath();
+			}, $children);
+
+			$deletedIds = array_merge($deletedIds, $childIds);
+			$deletedPaths = array_merge($deletedPaths, $childPaths);
 
 			$query = $this->getQueryBuilder();
 			$query->delete('filecache_extended')
@@ -619,6 +628,16 @@ class Cache implements ICache {
 			$query->setParameter('parentIds', $parentIdChunk, IQueryBuilder::PARAM_INT_ARRAY);
 			$query->execute();
 		}
+
+		foreach (array_combine($deletedIds, $deletedPaths) as $fileId => $filePath) {
+			$cacheEntryRemovedEvent = new CacheEntryRemovedEvent(
+				$this->storage,
+				$filePath,
+				$fileId,
+				$this->getNumericStorageId()
+			);
+			$this->eventDispatcher->dispatchTyped($cacheEntryRemovedEvent);
+		}
 	}
 
 	/**
@@ -639,6 +658,10 @@ class Cache implements ICache {
 	 */
 	protected function getMoveInfo($path) {
 		return [$this->getNumericStorageId(), $path];
+	}
+
+	protected function hasEncryptionWrapper(): bool {
+		return $this->storage->instanceOfStorage(Encryption::class);
 	}
 
 	/**
@@ -692,6 +715,11 @@ class Cache implements ICache {
 					->where($query->expr()->eq('storage', $query->createNamedParameter($sourceStorageId, IQueryBuilder::PARAM_INT)))
 					->andWhere($query->expr()->like('path', $query->createNamedParameter($this->connection->escapeLikeParameter($sourcePath) . '/%')));
 
+				// when moving from an encrypted storage to a non-encrypted storage remove the `encrypted` mark
+				if ($sourceCache->hasEncryptionWrapper() && !$this->hasEncryptionWrapper()) {
+					$query->set('encrypted', $query->createNamedParameter(0, IQueryBuilder::PARAM_INT));
+				}
+
 				try {
 					$query->execute();
 				} catch (\OC\DatabaseException $e) {
@@ -708,6 +736,12 @@ class Cache implements ICache {
 				->set('name', $query->createNamedParameter(basename($targetPath)))
 				->set('parent', $query->createNamedParameter($newParentId, IQueryBuilder::PARAM_INT))
 				->whereFileId($sourceId);
+
+			// when moving from an encrypted storage to a non-encrypted storage remove the `encrypted` mark
+			if ($sourceCache->hasEncryptionWrapper() && !$this->hasEncryptionWrapper()) {
+				$query->set('encrypted', $query->createNamedParameter(0, IQueryBuilder::PARAM_INT));
+			}
+
 			$query->execute();
 
 			$this->connection->commit();
@@ -1067,6 +1101,12 @@ class Cache implements ICache {
 			throw new \RuntimeException("Invalid source cache entry on copyFromCache");
 		}
 		$data = $this->cacheEntryToArray($sourceEntry);
+
+		// when moving from an encrypted storage to a non-encrypted storage remove the `encrypted` mark
+		if ($sourceCache instanceof Cache && $sourceCache->hasEncryptionWrapper() && !$this->hasEncryptionWrapper()) {
+			$data['encrypted'] = 0;
+		}
+
 		$fileId = $this->put($targetPath, $data);
 		if ($fileId <= 0) {
 			throw new \RuntimeException("Failed to copy to " . $targetPath . " from cache with source data " . json_encode($data) . " ");

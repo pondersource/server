@@ -250,7 +250,6 @@ OC.L10N.register(
     "Change password" : "Spremeni geslo",
     "Your profile picture" : "Slika profila",
     "Upload profile picture" : "Pošlji sliko profila",
-    "Choose profile picture from files" : "Izbor slike profila med datotekami",
     "Remove profile picture" : "Odstrani sliko profila",
     "png or jpg, max. 20 MB" : "png ali jpg, največ. 20 MB",
     "Picture provided by original account" : "Slika iz izvornega računa",
@@ -397,6 +396,7 @@ OC.L10N.register(
     "Never" : "Nikoli",
     "The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds." : "Program je omogočen, vendar zahteva posodobitev. Po nekaj sekundah boste preusmerjeni na stran za posodobitev.",
     "Error: This app cannot be enabled because it makes the server unstable" : "Napaka: tega programa ni mogoče namestiti, ker povzroča nestabilnost strežnika.",
+    "There were too many requests from your network. Retry later or contact your administrator if this is an error." : "Iz omrežja je bilo prejetih preveč zahtev. Če je to napaka, stopite v stik s skrbnikom, sicer pa poskusite spet kasneje.",
     "Documentation" : "Dokumentacija",
     "Forum" : "Forum",
     "Login" : "Prijava",
@@ -510,6 +510,7 @@ OC.L10N.register(
     "It can take up to 24 hours before the account is displayed as verified." : "Dokončno overjanje računa lahko traja tudi do 24 ur.",
     "Link https://…" : "Povezava https:// …",
     "Change privacy level of Twitter profile" : "Spremeni pravila zasebnosti za profil Twitter",
-    "Twitter handle @…" : "Twitter @ …"
+    "Twitter handle @…" : "Twitter @ …",
+    "Choose profile picture from files" : "Izbor slike profila med datotekami"
 },
 "nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || n%100==4 ? 2 : 3);");

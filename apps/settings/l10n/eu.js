@@ -269,7 +269,6 @@ OC.L10N.register(
     "Change password" : "Aldatu pasahitza",
     "Your profile picture" : "Zure profil-irudia",
     "Upload profile picture" : "Kargatu profil-irudia",
-    "Choose profile picture from files" : "Aukeratu profil-irudia fitxategietatik",
     "Remove profile picture" : "Kendu profil-irudia",
     "png or jpg, max. 20 MB" : "png edo jpg, gehienez 20MB",
     "Picture provided by original account" : "Irudia jatorrizko kontutik hartuta",
@@ -433,6 +432,7 @@ OC.L10N.register(
     "An error occurred during the request. Unable to proceed." : "Errorea gertatu da eskaeran. Ezin da jarraitu.",
     "The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds." : "Aplikazioa gaitu da baina eguneratu behar da. Eguneratze orrira joango zara 5 segundotan.",
     "Error: This app cannot be enabled because it makes the server unstable" : "Errorea: aplikazio hau ezin da gaitu zerbitzaria ezegonkorra izatea eragiten duelako",
+    "There were too many requests from your network. Retry later or contact your administrator if this is an error." : "Eskaera gehiegi zeuden zure saretik. Saiatu beranduago edo kontaktatu zure administrailearekin hau errorea bada.",
     "Documentation" : "Dokumentazioa",
     "Forum" : "Foroa",
     "Login" : "Saio hasiera",
@@ -557,6 +557,7 @@ OC.L10N.register(
     "It can take up to 24 hours before the account is displayed as verified." : "24 ordu pasa daitezke kontua ziurtatua bezala agertu baino lehen",
     "Link https://…" : "https://... esteka",
     "Change privacy level of Twitter profile" : "Aldatu Twitter profilaren pribatutasun maila",
-    "Twitter handle @…" : "Twitter heldulekua @..."
+    "Twitter handle @…" : "Twitter heldulekua @...",
+    "Choose profile picture from files" : "Aukeratu profil-irudia fitxategietatik"
 },
 "nplurals=2; plural=(n != 1);");

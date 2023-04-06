@@ -244,7 +244,6 @@ OC.L10N.register(
     "Change password" : "Endre passord",
     "Your profile picture" : "Ditt profilbilde",
     "Upload profile picture" : "Last opp profilbilde",
-    "Choose profile picture from files" : "Velg profilbilde blant filer",
     "Remove profile picture" : "Fjern profilbilde",
     "png or jpg, max. 20 MB" : "png eller jpg, maks. 20 MB",
     "Picture provided by original account" : "Bilde kommer fra opprinnelig konto",
@@ -383,6 +382,7 @@ OC.L10N.register(
     "The app will be downloaded from the App Store" : "Appen vil bli lastet ned fra app-butikken",
     "Never" : "Aldri",
     "The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds." : "Appen er aktivert men må oppdateres. Du vil bli videresendt til oppdateringssiden om 5 sekunder.",
+    "There were too many requests from your network. Retry later or contact your administrator if this is an error." : "Det var for mange forespørsler fra ditt nettverk. Prøv igjen senere eller kontakt din administrator hvis dette er en feil.",
     "Documentation" : "Dokumentasjon",
     "Forum" : "Forum",
     "Login" : "Innlogging",
@@ -492,6 +492,7 @@ OC.L10N.register(
     "It can take up to 24 hours before the account is displayed as verified." : "Det kan ta opptil ett døgn før kontoen vises som bekreftet.",
     "Link https://…" : "Lenke https://…",
     "Change privacy level of Twitter profile" : "Endre personvernnivået for Twitter-profil",
-    "Twitter handle @…" : "Twitter-konto @ …"
+    "Twitter handle @…" : "Twitter-konto @ …",
+    "Choose profile picture from files" : "Velg profilbilde blant filer"
 },
 "nplurals=2; plural=(n != 1);");

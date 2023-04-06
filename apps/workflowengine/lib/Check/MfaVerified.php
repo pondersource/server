@@ -26,17 +26,12 @@
  */
 namespace OCA\WorkflowEngine\Check;
 
-use OCA\WorkflowEngine\Entity\File;
-use OCP\Files\Cache\ICache;
 use OCP\IL10N;
 use OCP\WorkflowEngine\ICheck;
-use OCP\WorkflowEngine\IFileCheck;
-use OC\Files\Storage\Wrapper\Wrapper;
 use OCP\ISession;
 
 /** @psalm-suppress PropertyNotSetInConstructor */
-class MfaVerified implements ICheck, IFileCheck {
-	use TFileCheck;
+class MfaVerified implements ICheck{
 
 	/** @var IL10N */
 	protected $l;
@@ -59,7 +54,19 @@ class MfaVerified implements ICheck, IFileCheck {
 	 * @return bool
 	 */
 	public function executeCheck($operator, $value): bool {
-		$mfaVerified = $this->session->get('user_saml.samlUserData')['mfa_verified'][0] ?? false;
+		$mfaVerified = false;
+		if (!empty($this->session->get('globalScale.userData'))) {
+			$attr = $this->session->get('globalScale.userData')["userData"];
+			$mfaVerified = $attr["mfaVerified"];
+		}
+		if (!empty($this->session->get('user_saml.samlUserData'))) {
+			$attr = $this->session->get('user_saml.samlUserData');
+			$mfaVerified = $attr["mfa_verified"][0];
+		}
+		if (!empty($this->session->get("two_factor_auth_passed"))){
+			$mfaVerified = true;
+		}
+		
 		if ($operator === 'is') {
 			return $mfaVerified === '1'; // checking whether the current user is MFA-verified
 		} else {
@@ -78,17 +85,8 @@ class MfaVerified implements ICheck, IFileCheck {
 		}
 	}
 
-	/**
-	 * @param string $path
-	 * @return string
-	 */
-	protected function dirname(string $path): string {
-		$dir = dirname($path);
-		return $dir === '.' ? '' : $dir;
-	}
-
 	public function supportedEntities(): array {
-		return [ File::class ];
+		return [];
 	}
 
 	public function isAvailableForScope(int $scope): bool {

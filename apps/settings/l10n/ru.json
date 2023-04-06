@@ -36,6 +36,8 @@
     "{actor} changed your email address" : "{actor} изменил(а) ваш адрес электронной почты",
     "You changed your email address" : "Вы изменили свой адрес электронной почты",
     "Your email address was changed by an administrator" : "Ваш адрес электронной почты был изменён администратором",
+    "You created an app password for a session named \"{token}\"" : "Вы создали пароль приложения для сеанса «{token}»",
+    "An administrator created an app password for a session named \"{token}\"" : "Администратор создал пароль приложения для сеанса «{token}»",
     "You deleted app password \"{token}\"" : "Вы удалили пароль приложения «{token}»",
     "You renamed app password \"{token}\" to \"{newToken}\"" : "Вы переименовали пароль приложения  «{token}» в «{newToken}»",
     "You granted filesystem access to app password \"{token}\"" : "Вы разрешили доступ к файлам приложению «{token}»",
@@ -265,7 +267,6 @@
     "Change password" : "Сменить пароль",
     "Your profile picture" : "Изображение профиля",
     "Upload profile picture" : "Загрузить изображение профиля",
-    "Choose profile picture from files" : "Выбрать изображение профиля из загруженных файлов",
     "Remove profile picture" : "Удалить изображение профиля",
     "png or jpg, max. 20 MB" : "png или jpg, макс. 20 МБ",
     "Picture provided by original account" : "Изображение получено из исходной учётной записи",
@@ -422,6 +423,7 @@
     "Never" : "Никогда",
     "The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds." : "Приложение было включено, но нуждается в обновлении. В течении 5 секунд будет выполнено перенаправление на страницу обновления.",
     "Error: This app cannot be enabled because it makes the server unstable" : "Ошибка: это приложение не может быть включено, так как оно сделает сервер нестабильным",
+    "There were too many requests from your network. Retry later or contact your administrator if this is an error." : "Превышено количество запросов из вашей сети. Попробуйте позднее или сообщите администратору об этой ошибке.",
     "Documentation" : "Документация",
     "Forum" : "Форум",
     "Login" : "Логин",
@@ -546,6 +548,7 @@
     "It can take up to 24 hours before the account is displayed as verified." : "До момента подтверждения аккаунта может пройти до 24 часов.",
     "Link https://…" : "Ссылка https://…",
     "Change privacy level of Twitter profile" : "Изменить уровень конфиденциальности профиля Twitter",
-    "Twitter handle @…" : "Имя в Twitter @…"
+    "Twitter handle @…" : "Имя в Twitter @…",
+    "Choose profile picture from files" : "Выбрать изображение профиля из загруженных файлов"
 },"pluralForm" :"nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || (n%100>=11 && n%100<=14)? 2 : 3);"
 }

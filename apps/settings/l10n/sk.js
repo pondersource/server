@@ -267,7 +267,6 @@ OC.L10N.register(
     "Change password" : "Zmeniť heslo",
     "Your profile picture" : "Váš profilový obrázok",
     "Upload profile picture" : "Nahrať profilový obrázok",
-    "Choose profile picture from files" : "Vybrať profilový obrázok zo súborov",
     "Remove profile picture" : "Odstrániť profilový obrázok",
     "png or jpg, max. 20 MB" : "png alebo jpg, max. 20 MB",
     "Picture provided by original account" : "Obrázok poskytnutý originálnym účtom",
@@ -429,6 +428,7 @@ OC.L10N.register(
     "An error occurred during the request. Unable to proceed." : "Počas vykonania požiadavky nastala chyba.  Nie je možné pokračovať.",
     "The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds." : "Aplikácia bola povolená, ale vyžaduje sa aktualizácia. Presmerovanie na stránku aktualizácie o 5 sekúnd.",
     "Error: This app cannot be enabled because it makes the server unstable" : "Chyba: aplikáciu nie je možné povoliť, lebo naruší stabilitu servera",
+    "There were too many requests from your network. Retry later or contact your administrator if this is an error." : "Príliš mnoho požiadaviek z vašej siete. Skúste to znovu neskôr alebo kontaktujte svojho administrátora ak je toto chyba.",
     "Documentation" : "Dokumentácia",
     "Forum" : "Fórum",
     "Login" : "Prihlásenie",
@@ -553,6 +553,7 @@ OC.L10N.register(
     "It can take up to 24 hours before the account is displayed as verified." : "Môže trvať až 24 hodín než sa účet zobrazí ako overený.",
     "Link https://…" : "Linka https://…",
     "Change privacy level of Twitter profile" : "Zmeniť úroveň súkromia pre Twitterový profil",
-    "Twitter handle @…" : "Prezývka na Twitteri @…"
+    "Twitter handle @…" : "Prezývka na Twitteri @…",
+    "Choose profile picture from files" : "Vybrať profilový obrázok zo súborov"
 },
 "nplurals=4; plural=(n % 1 == 0 && n == 1 ? 0 : n % 1 == 0 && n >= 2 && n <= 4 ? 1 : n % 1 != 0 ? 2: 3);");

@@ -21,10 +21,10 @@
  *
  */
 
-import { stringValidator, validateIPv4, validateIPv6 } from '../../helpers/validators'
-import FileMimeType from './FileMimeType'
-import FileSystemTag from './FileSystemTag'
-import MfaVerifiedValue from './MfaVerifiedValue'
+import { stringValidator, validateIPv4, validateIPv6 } from '../../helpers/validators.js'
+import FileMimeType from './FileMimeType.vue'
+import FileSystemTag from './FileSystemTag.vue'
+import MfaVerifiedValue from './MfaVerifiedValue.vue'
 
 const stringOrRegexOperators = () => {
 	return [

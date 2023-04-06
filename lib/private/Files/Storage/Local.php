@@ -249,7 +249,7 @@ class Local extends \OC\Files\Storage\Common {
 		$fullPath = $this->getSourcePath($path);
 		if (PHP_INT_SIZE === 4) {
 			$helper = new \OC\LargeFileHelper;
-			return $helper->getFileSize($fullPath) ?? false;
+			return $helper->getFileSize($fullPath);
 		}
 		return filesize($fullPath);
 	}
@@ -433,10 +433,6 @@ class Local extends \OC\Files\Storage\Common {
 		return $this->getSourcePath($path);
 	}
 
-	public function getLocalFolder($path) {
-		return $this->getSourcePath($path);
-	}
-
 	/**
 	 * @param string $query
 	 * @param string $dir
@@ -617,6 +613,7 @@ class Local extends \OC\Files\Storage\Common {
 	}
 
 	public function writeStream(string $path, $stream, int $size = null): int {
+		/** @var int|false $result We consider here that returned size will never be a float because we write less than 4GB */
 		$result = $this->file_put_contents($path, $stream);
 		if (is_resource($stream)) {
 			fclose($stream);

@@ -494,7 +494,7 @@ class Manager implements IManager {
 			$expirationDate = new \DateTime();
 			$expirationDate->setTime(0, 0, 0);
 
-			$days = (int)$this->config->getAppValue('core', 'link_defaultExpDays', $this->shareApiLinkDefaultExpireDays());
+			$days = (int)$this->config->getAppValue('core', 'link_defaultExpDays', (string)$this->shareApiLinkDefaultExpireDays());
 			if ($days > $this->shareApiLinkDefaultExpireDays()) {
 				$days = $this->shareApiLinkDefaultExpireDays();
 			}
@@ -825,7 +825,11 @@ class Manager implements IManager {
 			}
 		} catch (AlreadySharedException $e) {
 			// if a share for the same target already exists, dont create a new one, but do trigger the hooks and notifications again
+			$oldShare = $share;
+
+			// Reuse the node we already have
 			$share = $e->getExistingShare();
+			$share->setNode($oldShare->getNode());
 		}
 
 		// Post share event
