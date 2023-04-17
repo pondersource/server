@@ -1,7 +1,7 @@
 /**
- * @copyright Copyright (c) 2016 Roeland Jago Douma <roeland@famdouma.nl>
+ * @copyright Copyright (c) 2023 John Molakvoæ <skjnldsv@protonmail.com>
  *
- * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author John Molakvoæ <skjnldsv@protonmail.com>
  *
  * @license AGPL-3.0-or-later
  *
@@ -19,9 +19,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
+/* eslint-disable */
+import { defineStore } from 'pinia'
+import type { ActionsMenuStore } from '../types'
 
-import './app.js'
-import './filelist.js'
-import './trash.scss'
-
-window.OCA.Trashbin = OCA.Trashbin
+export const useActionsMenuStore = defineStore('actionsmenu', {
+	state: () => ({
+		opened: null,
+	} as ActionsMenuStore),
+})
