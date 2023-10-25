@@ -78,7 +78,7 @@ class Admin implements ISettings {
 	}
 
 	public function getForm(): TemplateResponse {
-		$lastUpdateCheckTimestamp = (int)$this->config->getAppValue('core', 'lastupdatedat');
+		$lastUpdateCheckTimestamp = $this->config->getAppValue('core', 'lastupdatedat');
 		$lastUpdateCheck = $this->dateTimeFormatter->formatDateTime($lastUpdateCheckTimestamp);
 
 		$channels = [

@@ -56,12 +56,13 @@ use function preg_match;
 use function preg_quote;
 
 class ConvertType extends Command implements CompletionAwareInterface {
-	protected array $columnTypes = [];
+	protected IConfig $config;
+	protected ConnectionFactory $connectionFactory;
+	protected array $columnTypes;
 
-	public function __construct(
-		protected IConfig $config,
-		protected ConnectionFactory $connectionFactory,
-	) {
+	public function __construct(IConfig $config, ConnectionFactory $connectionFactory) {
+		$this->config = $config;
+		$this->connectionFactory = $connectionFactory;
 		parent::__construct();
 	}
 

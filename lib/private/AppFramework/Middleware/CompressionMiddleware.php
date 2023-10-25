@@ -57,7 +57,7 @@ class CompressionMiddleware extends Middleware {
 
 		// Check if we are even asked for gzip
 		$header = $this->request->getHeader('Accept-Encoding');
-		if (!str_contains($header, 'gzip')) {
+		if (strpos($header, 'gzip') === false) {
 			return $response;
 		}
 

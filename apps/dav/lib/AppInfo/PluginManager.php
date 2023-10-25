@@ -29,7 +29,6 @@ declare(strict_types=1);
 namespace OCA\DAV\AppInfo;
 
 use OC\ServerContainer;
-use OCA\DAV\CalDAV\AppCalendar\AppCalendarPlugin;
 use OCA\DAV\CalDAV\Integration\ICalendarProvider;
 use OCA\DAV\CardDAV\Integration\IAddressBookProvider;
 use OCP\App\IAppManager;
@@ -145,8 +144,6 @@ class PluginManager {
 		}
 		$this->populated = true;
 
-		$this->calendarPlugins[] = $this->container->get(AppCalendarPlugin::class);
-
 		foreach ($this->appManager->getInstalledApps() as $app) {
 			// load plugins and collections from info.xml
 			$info = $this->appManager->getAppInfo($app);
@@ -256,7 +253,7 @@ class PluginManager {
 
 	private function createClass(string $className): object {
 		try {
-			return $this->container->get($className);
+			return $this->container->query($className);
 		} catch (QueryException $e) {
 			if (class_exists($className)) {
 				return new $className();

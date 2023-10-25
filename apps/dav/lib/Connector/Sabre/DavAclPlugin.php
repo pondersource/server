@@ -75,11 +75,6 @@ class DavAclPlugin extends \Sabre\DAVACL\Plugin {
 	}
 
 	public function propFind(PropFind $propFind, INode $node) {
-		if ($node instanceof Node) {
-			// files don't use dav acls
-			return;
-		}
-
 		// If the node is neither readable nor writable then fail unless its of
 		// the standard user-principal
 		if (!($node instanceof User)) {

@@ -68,6 +68,7 @@ use bantu\IniGetWrapper\IniGetWrapper;
 use OC\Files\SetupManager;
 use OCP\Files\Template\ITemplateManager;
 use OCP\IConfig;
+use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IURLGenerator;
 use OCP\IUser;
@@ -183,7 +184,7 @@ class OC_Util {
 		/** @var LoggerInterface $logger */
 		$logger = \OC::$server->get(LoggerInterface::class);
 
-		$plainSkeletonDirectory = \OC::$server->getConfig()->getSystemValueString('skeletondirectory', \OC::$SERVERROOT . '/core/skeleton');
+		$plainSkeletonDirectory = \OC::$server->getConfig()->getSystemValue('skeletondirectory', \OC::$SERVERROOT . '/core/skeleton');
 		$userLang = \OC::$server->getL10NFactory()->findLanguage();
 		$skeletonDirectory = str_replace('{lang}', $userLang, $plainSkeletonDirectory);
 
@@ -304,7 +305,7 @@ class OC_Util {
 	 */
 	public static function getChannel() {
 		OC_Util::loadVersion();
-		return \OC::$server->getConfig()->getSystemValueString('updater.release.channel', self::$versionCache['OC_Channel']);
+		return \OC::$server->getConfig()->getSystemValue('updater.release.channel', self::$versionCache['OC_Channel']);
 	}
 
 	/**
@@ -691,6 +692,20 @@ class OC_Util {
 			];
 		}
 
+		if (function_exists('xml_parser_create') &&
+			LIBXML_LOADED_VERSION < 20700) {
+			$version = LIBXML_LOADED_VERSION;
+			$major = floor($version / 10000);
+			$version -= ($major * 10000);
+			$minor = floor($version / 100);
+			$version -= ($minor * 100);
+			$patch = $version;
+			$errors[] = [
+				'error' => $l->t('libxml2 2.7.0 is at least required. Currently %s is installed.', [$major . '.' . $minor . '.' . $patch]),
+				'hint' => $l->t('To fix this issue update your libxml2 version and restart your web server.')
+			];
+		}
+
 		if (!self::isAnnotationsWorking()) {
 			$errors[] = [
 				'error' => $l->t('PHP is apparently set up to strip inline doc blocks. This will make several core apps inaccessible.'),
@@ -714,9 +729,48 @@ class OC_Util {
 			}
 		}
 
+		$errors = array_merge($errors, self::checkDatabaseVersion());
+
 		// Cache the result of this function
 		\OC::$server->getSession()->set('checkServer_succeeded', count($errors) == 0);
 
+		return $errors;
+	}
+
+	/**
+	 * Check the database version
+	 *
+	 * @return array errors array
+	 */
+	public static function checkDatabaseVersion() {
+		$l = \OC::$server->getL10N('lib');
+		$errors = [];
+		$dbType = \OC::$server->getSystemConfig()->getValue('dbtype', 'sqlite');
+		if ($dbType === 'pgsql') {
+			// check PostgreSQL version
+			// TODO latest postgresql 8 released was 8 years ago, maybe remove the
+			// check completely?
+			try {
+				/** @var IDBConnection $connection */
+				$connection = \OC::$server->get(IDBConnection::class);
+				$result = $connection->executeQuery('SHOW SERVER_VERSION');
+				$data = $result->fetch();
+				$result->closeCursor();
+				if (isset($data['server_version'])) {
+					$version = $data['server_version'];
+					if (version_compare($version, '9.0.0', '<')) {
+						$errors[] = [
+							'error' => $l->t('PostgreSQL >= 9 required.'),
+							'hint' => $l->t('Please upgrade your database version.')
+						];
+					}
+				}
+			} catch (\Doctrine\DBAL\Exception $e) {
+				$logger = \OC::$server->getLogger();
+				$logger->warning('Error occurred while checking PostgreSQL version, assuming >= 9');
+				$logger->logException($e);
+			}
+		}
 		return $errors;
 	}
 
@@ -727,7 +781,7 @@ class OC_Util {
 	 * @return array arrays with error messages and hints
 	 */
 	public static function checkDataDirectoryPermissions($dataDirectory) {
-		if (!\OC::$server->getConfig()->getSystemValueBool('check_data_directory_permissions', true)) {
+		if (\OC::$server->getConfig()->getSystemValue('check_data_directory_permissions', true) === false) {
 			return  [];
 		}
 
@@ -901,7 +955,7 @@ class OC_Util {
 		$testContent = 'This is used for testing whether htaccess is properly enabled to disallow access from the outside. This file can be safely removed.';
 
 		// creating a test file
-		$testFile = $config->getSystemValueString('datadirectory', OC::$SERVERROOT . '/data') . '/' . $fileName;
+		$testFile = $config->getSystemValue('datadirectory', OC::$SERVERROOT . '/data') . '/' . $fileName;
 
 		if (file_exists($testFile)) {// already running this test, possible recursive call
 			return false;
@@ -927,7 +981,7 @@ class OC_Util {
 	 * @throws \OCP\HintException If the test file can't get written.
 	 */
 	public function isHtaccessWorking(\OCP\IConfig $config) {
-		if (\OC::$CLI || !$config->getSystemValueBool('check_for_working_htaccess', true)) {
+		if (\OC::$CLI || !$config->getSystemValue('check_for_working_htaccess', true)) {
 			return true;
 		}
 
@@ -937,7 +991,7 @@ class OC_Util {
 		}
 
 		$fileName = '/htaccesstest.txt';
-		$testFile = $config->getSystemValueString('datadirectory', OC::$SERVERROOT . '/data') . '/' . $fileName;
+		$testFile = $config->getSystemValue('datadirectory', OC::$SERVERROOT . '/data') . '/' . $fileName;
 
 		// accessing the file via http
 		$url = \OC::$server->getURLGenerator()->getAbsoluteURL(OC::$WEBROOT . '/data' . $fileName);
@@ -947,7 +1001,7 @@ class OC_Util {
 			$content = false;
 		}
 
-		if (str_starts_with($url, 'https:')) {
+		if (strpos($url, 'https:') === 0) {
 			$url = 'http:' . substr($url, 6);
 		} else {
 			$url = 'https:' . substr($url, 5);
@@ -1120,7 +1174,7 @@ class OC_Util {
 		}
 
 		foreach (str_split($trimmed) as $char) {
-			if (str_contains(\OCP\Constants::FILENAME_INVALID_CHARS, $char)) {
+			if (strpos(\OCP\Constants::FILENAME_INVALID_CHARS, $char) !== false) {
 				return false;
 			}
 		}

@@ -28,6 +28,7 @@ namespace OCA\Comments\AppInfo;
 
 use Closure;
 use OCA\Comments\Capabilities;
+use OCA\Comments\Controller\Notifications;
 use OCA\Comments\EventHandler;
 use OCA\Comments\Listener\CommentsEntityEventListener;
 use OCA\Comments\Listener\LoadAdditionalScripts;
@@ -57,6 +58,8 @@ class Application extends App implements IBootstrap {
 	public function register(IRegistrationContext $context): void {
 		$context->registerCapability(Capabilities::class);
 
+		$context->registerServiceAlias('NotificationsController', Notifications::class);
+
 		$context->registerEventListener(
 			LoadAdditionalScriptsEvent::class,
 			LoadAdditionalScripts::class
@@ -66,7 +69,7 @@ class Application extends App implements IBootstrap {
 			LoadSidebarScripts::class
 		);
 		$context->registerEventListener(
-			CommentsEntityEvent::class,
+			CommentsEntityEvent::EVENT_ENTITY,
 			CommentsEntityEventListener::class
 		);
 		$context->registerSearchProvider(CommentsSearchProvider::class);

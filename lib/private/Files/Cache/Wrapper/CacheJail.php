@@ -239,7 +239,7 @@ class CacheJail extends CacheWrapper {
 	 * get the size of a folder and set it in the cache
 	 *
 	 * @param string $path
-	 * @param array|null|ICacheEntry $entry (optional) meta data of the folder
+	 * @param array $entry (optional) meta data of the folder
 	 * @return int|float
 	 */
 	public function calculateFolderSize($path, $entry = null) {
@@ -328,7 +328,7 @@ class CacheJail extends CacheWrapper {
 	}
 
 	public function getCacheEntryFromSearchResult(ICacheEntry $rawEntry): ?ICacheEntry {
-		if ($this->getGetUnjailedRoot() === '' || str_starts_with($rawEntry->getPath(), $this->getGetUnjailedRoot())) {
+		if ($this->getGetUnjailedRoot() === '' || strpos($rawEntry->getPath(), $this->getGetUnjailedRoot()) === 0) {
 			$rawEntry = $this->getCache()->getCacheEntryFromSearchResult($rawEntry);
 			if ($rawEntry) {
 				$jailedPath = $this->getJailedPath($rawEntry->getPath());

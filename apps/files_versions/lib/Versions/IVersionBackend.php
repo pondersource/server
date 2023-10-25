@@ -78,7 +78,7 @@ interface IVersionBackend {
 	 * Open the file for reading
 	 *
 	 * @param IVersion $version
-	 * @return resource|false
+	 * @return resource
 	 * @throws NotFoundException
 	 * @since 15.0.0
 	 */

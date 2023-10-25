@@ -39,9 +39,9 @@ use OCP\AppFramework\Http\DataResponse;
 use OCP\IConfig;
 use OCP\IGroupManager;
 use OCP\IL10N;
+use OCP\ILogger;
 use OCP\IRequest;
 use OCP\IUserSession;
-use Psr\Log\LoggerInterface;
 
 /**
  * User global storages controller
@@ -54,7 +54,7 @@ class UserGlobalStoragesController extends StoragesController {
 	 * @param IRequest $request request object
 	 * @param IL10N $l10n l10n service
 	 * @param UserGlobalStoragesService $userGlobalStoragesService storage service
-	 * @param LoggerInterface $logger
+	 * @param ILogger $logger
 	 * @param IUserSession $userSession
 	 * @param IGroupManager $groupManager
 	 */
@@ -63,7 +63,7 @@ class UserGlobalStoragesController extends StoragesController {
 		IRequest $request,
 		IL10N $l10n,
 		UserGlobalStoragesService $userGlobalStoragesService,
-		LoggerInterface $logger,
+		ILogger $logger,
 		IUserSession $userSession,
 		IGroupManager $groupManager,
 		IConfig $config
@@ -88,13 +88,12 @@ class UserGlobalStoragesController extends StoragesController {
 	 * @NoAdminRequired
 	 */
 	public function index() {
-		/** @var UserGlobalStoragesService */
-		$service = $this->service;
-		$storages = array_map(function ($storage) {
-			// remove configuration data, this must be kept private
+		$storages = $this->formatStoragesForUI($this->service->getUniqueStorages());
+
+		// remove configuration data, this must be kept private
+		foreach ($storages as $storage) {
 			$this->sanitizeStorage($storage);
-			return $storage->jsonSerialize(true);
-		}, $service->getUniqueStorages());
+		}
 
 		return new DataResponse(
 			$storages,
@@ -136,7 +135,7 @@ class UserGlobalStoragesController extends StoragesController {
 
 		$this->sanitizeStorage($storage);
 
-		$data = $storage->jsonSerialize(true);
+		$data = $this->formatStorageForUI($storage)->jsonSerialize();
 		$isAdmin = $this->groupManager->isAdmin($this->userSession->getUser()->getUID());
 		$data['can_edit'] = $storage->getType() === StorageConfig::MOUNT_TYPE_PERSONAl || $isAdmin;
 
@@ -190,7 +189,7 @@ class UserGlobalStoragesController extends StoragesController {
 		$this->sanitizeStorage($storage);
 
 		return new DataResponse(
-			$storage->jsonSerialize(true),
+			$this->formatStorageForUI($storage),
 			Http::STATUS_OK
 		);
 	}

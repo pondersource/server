@@ -59,7 +59,7 @@ class MoveAvatars implements IRepairStep {
 			$output->info('Repair step already executed');
 			return;
 		}
-		if (!$this->config->getSystemValueBool('enable_avatars', true)) {
+		if ($this->config->getSystemValue('enable_avatars', true) === false) {
 			$output->info('Avatars are disabled');
 		} else {
 			$output->info('Add background job');

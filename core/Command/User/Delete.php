@@ -33,9 +33,14 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Delete extends Base {
-	public function __construct(
-		protected IUserManager $userManager,
-	) {
+	/** @var IUserManager */
+	protected $userManager;
+
+	/**
+	 * @param IUserManager $userManager
+	 */
+	public function __construct(IUserManager $userManager) {
+		$this->userManager = $userManager;
 		parent::__construct();
 	}
 

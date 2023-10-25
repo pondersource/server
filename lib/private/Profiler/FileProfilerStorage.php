@@ -66,7 +66,7 @@ class FileProfilerStorage {
 			[$csvToken, $csvMethod, $csvUrl, $csvTime, $csvParent, $csvStatusCode] = $values;
 			$csvTime = (int) $csvTime;
 
-			if ($url && !str_contains($csvUrl, $url) || $method && !str_contains($csvMethod, $method) || $statusCode && !str_contains($csvStatusCode, $statusCode)) {
+			if ($url && false === strpos($csvUrl, $url) || $method && false === strpos($csvMethod, $method) || $statusCode && false === strpos($csvStatusCode, $statusCode)) {
 				continue;
 			}
 

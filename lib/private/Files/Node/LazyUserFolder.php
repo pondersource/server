@@ -26,40 +26,26 @@ namespace OC\Files\Node;
 use OCP\Files\FileInfo;
 use OCP\Constants;
 use OCP\Files\IRootFolder;
-use OCP\Files\Mount\IMountManager;
 use OCP\Files\NotFoundException;
-use OCP\Files\Folder;
-use OCP\Files\File;
 use OCP\IUser;
-use Psr\Log\LoggerInterface;
 
 class LazyUserFolder extends LazyFolder {
 	private IRootFolder $root;
 	private IUser $user;
 	private string $path;
-	private IMountManager $mountManager;
 
-	public function __construct(IRootFolder $rootFolder, IUser $user, IMountManager $mountManager) {
+	public function __construct(IRootFolder $rootFolder, IUser $user) {
 		$this->root = $rootFolder;
 		$this->user = $user;
-		$this->mountManager = $mountManager;
 		$this->path = '/' . $user->getUID() . '/files';
-		parent::__construct(function () use ($user): Folder {
+		parent::__construct(function () use ($user) {
 			try {
-				$node = $this->root->get($this->path);
-				if ($node instanceof File) {
-					$e = new \RuntimeException();
-					\OCP\Server::get(LoggerInterface::class)->error('User root storage is not a folder: ' . $this->path, [
-						'exception' => $e,
-					]);
-					throw $e;
-				}
-				return $node;
+				return $this->root->get('/' . $user->getUID() . '/files');
 			} catch (NotFoundException $e) {
 				if (!$this->root->nodeExists('/' . $user->getUID())) {
 					$this->root->newFolder('/' . $user->getUID());
 				}
-				return $this->root->newFolder($this->path);
+				return $this->root->newFolder('/' . $user->getUID() . '/files');
 			}
 		}, [
 			'path' => $this->path,
@@ -76,20 +62,9 @@ class LazyUserFolder extends LazyFolder {
 
 	/**
 	 * @param int $id
-	 * @return \OCP\Files\Node[]
+	 * @return \OC\Files\Node\Node[]
 	 */
 	public function getById($id) {
 		return $this->root->getByIdInPath((int)$id, $this->getPath());
-	}
-
-	public function getMountPoint() {
-		if ($this->folder !== null) {
-			return $this->folder->getMountPoint();
-		}
-		$mountPoint = $this->mountManager->find('/' . $this->user->getUID());
-		if (is_null($mountPoint)) {
-			throw new \Exception("No mountpoint for user folder");
-		}
-		return $mountPoint;
 	}
 }

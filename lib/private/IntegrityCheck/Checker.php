@@ -116,9 +116,9 @@ class Checker {
 		 */
 		$isIntegrityCheckDisabled = false;
 		if ($this->config !== null) {
-			$isIntegrityCheckDisabled = $this->config->getSystemValueBool('integrity.check.disabled', false);
+			$isIntegrityCheckDisabled = $this->config->getSystemValue('integrity.check.disabled', false);
 		}
-		if ($isIntegrityCheckDisabled) {
+		if ($isIntegrityCheckDisabled === true) {
 			return false;
 		}
 
@@ -379,7 +379,7 @@ class Checker {
 		// integrity check.
 		if ($basePath === $this->environmentHelper->getServerRoot()) {
 			foreach ($expectedHashes as $fileName => $hash) {
-				if (str_starts_with($fileName, 'updater/')) {
+				if (strpos($fileName, 'updater/') === 0) {
 					unset($expectedHashes[$fileName]);
 				}
 			}

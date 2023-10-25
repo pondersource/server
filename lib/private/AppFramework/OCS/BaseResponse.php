@@ -7,7 +7,6 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -31,13 +30,6 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\Response;
 
-/**
- * @psalm-import-type DataResponseType from DataResponse
- * @template S of int
- * @template-covariant T of DataResponseType
- * @template H of array<string, mixed>
- * @template-extends Response<int, array<string, mixed>>
- */
 abstract class BaseResponse extends Response {
 	/** @var array */
 	protected $data;
@@ -57,7 +49,7 @@ abstract class BaseResponse extends Response {
 	/**
 	 * BaseResponse constructor.
 	 *
-	 * @param DataResponse<S, T, H> $dataResponse
+	 * @param DataResponse $dataResponse
 	 * @param string $format
 	 * @param string|null $statusMessage
 	 * @param int|null $itemsCount
@@ -142,17 +134,13 @@ abstract class BaseResponse extends Response {
 				continue;
 			}
 
-			if (\is_string($k) && str_starts_with($k, '@')) {
+			if (\is_string($k) && strpos($k, '@') === 0) {
 				$writer->writeAttribute(substr($k, 1), $v);
 				continue;
 			}
 
 			if (\is_numeric($k)) {
 				$k = 'element';
-			}
-
-			if ($v instanceof \stdClass) {
-				$v = [];
 			}
 
 			if (\is_array($v)) {

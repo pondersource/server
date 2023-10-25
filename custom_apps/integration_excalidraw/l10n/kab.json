@@ -1,0 +1,13 @@
+{ "translations": {
+    "Copy to clipboard" : "Copier dans le presse-papiers",
+    "Enabled" : "Yermed",
+    "Disabled" : "Ittwarermed",
+    "Delete" : "Kkes",
+    "Cancel" : "Sefsex",
+    "Create" : "Snulfu-d",
+    "Conversations" : "Idiwenniyen",
+    "Users" : "Iseqdacen",
+    "Groups" : "Igrawen",
+    "Send" : "Tuzna"
+},"pluralForm" :"nplurals=2; plural=(n != 1);"
+}

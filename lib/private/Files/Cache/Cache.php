@@ -125,7 +125,7 @@ class Cache implements ICache {
 		$this->mimetypeLoader = \OC::$server->getMimeTypeLoader();
 		$this->connection = \OC::$server->getDatabaseConnection();
 		$this->eventDispatcher = \OC::$server->get(IEventDispatcher::class);
-		$this->querySearchHelper = \OCP\Server::get(QuerySearchHelper::class);
+		$this->querySearchHelper = \OC::$server->query(QuerySearchHelper::class);
 	}
 
 	protected function getQueryBuilder() {
@@ -564,7 +564,20 @@ class Cache implements ICache {
 	}
 
 	/**
-	 * Remove all children of a folder
+	 * Get all sub folders of a folder
+	 *
+	 * @param ICacheEntry $entry the cache entry of the folder to get the subfolders for
+	 * @return ICacheEntry[] the cache entries for the subfolders
+	 */
+	private function getSubFolders(ICacheEntry $entry) {
+		$children = $this->getFolderContentsById($entry->getId());
+		return array_filter($children, function ($child) {
+			return $child->getMimeType() == FileInfo::MIMETYPE_FOLDER;
+		});
+	}
+
+	/**
+	 * Recursively remove all children of a folder
 	 *
 	 * @param ICacheEntry $entry the cache entry of the folder to remove the children of
 	 * @throws \OC\DatabaseException
@@ -572,8 +585,6 @@ class Cache implements ICache {
 	private function removeChildren(ICacheEntry $entry) {
 		$parentIds = [$entry->getId()];
 		$queue = [$entry->getId()];
-		$deletedIds = [];
-		$deletedPaths = [];
 
 		// we walk depth first through the file tree, removing all filecache_extended attributes while we walk
 		// and collecting all folder ids to later use to delete the filecache entries
@@ -582,12 +593,6 @@ class Cache implements ICache {
 			$childIds = array_map(function (ICacheEntry $cacheEntry) {
 				return $cacheEntry->getId();
 			}, $children);
-			$childPaths = array_map(function (ICacheEntry $cacheEntry) {
-				return $cacheEntry->getPath();
-			}, $children);
-
-			$deletedIds = array_merge($deletedIds, $childIds);
-			$deletedPaths = array_merge($deletedPaths, $childPaths);
 
 			$query = $this->getQueryBuilder();
 			$query->delete('filecache_extended')
@@ -615,16 +620,6 @@ class Cache implements ICache {
 		foreach (array_chunk($parentIds, 1000) as $parentIdChunk) {
 			$query->setParameter('parentIds', $parentIdChunk, IQueryBuilder::PARAM_INT_ARRAY);
 			$query->execute();
-		}
-
-		foreach (array_combine($deletedIds, $deletedPaths) as $fileId => $filePath) {
-			$cacheEntryRemovedEvent = new CacheEntryRemovedEvent(
-				$this->storage,
-				$filePath,
-				$fileId,
-				$this->getNumericStorageId()
-			);
-			$this->eventDispatcher->dispatchTyped($cacheEntryRemovedEvent);
 		}
 	}
 
@@ -824,7 +819,7 @@ class Cache implements ICache {
 	 * @return ICacheEntry[] an array of cache entries where the mimetype matches the search
 	 */
 	public function searchByMime($mimetype) {
-		if (!str_contains($mimetype, '/')) {
+		if (strpos($mimetype, '/') === false) {
 			$operator = new SearchComparison(ISearchComparison::COMPARE_LIKE, 'mimetype', $mimetype . '/%');
 		} else {
 			$operator = new SearchComparison(ISearchComparison::COMPARE_EQUAL, 'mimetype', $mimetype);
@@ -887,23 +882,10 @@ class Cache implements ICache {
 	 * calculate the size of a folder and set it in the cache
 	 *
 	 * @param string $path
-	 * @param array|null|ICacheEntry $entry (optional) meta data of the folder
+	 * @param array $entry (optional) meta data of the folder
 	 * @return int|float
 	 */
 	public function calculateFolderSize($path, $entry = null) {
-		return $this->calculateFolderSizeInner($path, $entry);
-	}
-
-
-	/**
-	 * inner function because we can't add new params to the public function without breaking any child classes
-	 *
-	 * @param string $path
-	 * @param array|null|ICacheEntry $entry (optional) meta data of the folder
-	 * @param bool $ignoreUnknown don't mark the folder size as unknown if any of it's children are unknown
-	 * @return int|float
-	 */
-	protected function calculateFolderSizeInner(string $path, $entry = null, bool $ignoreUnknown = false) {
 		$totalSize = 0;
 		if (is_null($entry) || !isset($entry['fileid'])) {
 			$entry = $this->get($path);
@@ -915,9 +897,6 @@ class Cache implements ICache {
 			$query->select('size', 'unencrypted_size')
 				->from('filecache')
 				->whereParent($id);
-			if ($ignoreUnknown) {
-				$query->andWhere($query->expr()->gte('size', $query->createNamedParameter(0)));
-			}
 
 			$result = $query->execute();
 			$rows = $result->fetchAll();
@@ -958,16 +937,9 @@ class Cache implements ICache {
 				$unencryptedTotal = 0;
 				$unencryptedMax = 0;
 			}
-
-			// only set unencrypted size for a folder if any child entries have it set, or the folder is empty
-			$shouldWriteUnEncryptedSize = $unencryptedMax > 0 || $totalSize === 0 || $entry['unencrypted_size'] > 0;
-			if ($entry['size'] !== $totalSize || ($entry['unencrypted_size'] !== $unencryptedTotal && $shouldWriteUnEncryptedSize)) {
-				if ($shouldWriteUnEncryptedSize) {
-					// if all children have an unencrypted size of 0, just set the folder unencrypted size to 0 instead of summing the sizes
-					if ($unencryptedMax === 0) {
-						$unencryptedTotal = 0;
-					}
-
+			if ($entry['size'] !== $totalSize) {
+				// only set unencrypted size for a folder if any child entries have it set, or the folder is empty
+				if ($unencryptedMax > 0 || $totalSize === 0) {
 					$this->update($id, [
 						'size' => $totalSize,
 						'unencrypted_size' => $unencryptedTotal,

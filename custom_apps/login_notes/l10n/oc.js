@@ -1,0 +1,14 @@
+OC.L10N.register(
+    "login_notes",
+    {
+    "Login notes" : "Nòtas de connexion",
+    "Enter the text for the updated login note here. Markdown supported." : "Dintratz lo tèxt per la nòta actualizada sus la pagina de connexion. Markdown suportat.",
+    "Where to show this note?" : "Ont afichar aquesta nòta ?",
+    "Show on login page" : "Afichar per la pagina de connexion",
+    "Create note" : "Crear la nòta",
+    "Cancel" : "Anullar",
+    "Edit note" : "Modificar la nòta",
+    "Edit" : "Modificar",
+    "Delete" : "Suprimir"
+},
+"nplurals=2; plural=n > 1;");

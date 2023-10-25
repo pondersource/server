@@ -98,7 +98,7 @@ class TrustedDomainHelper implements ITrustedDomainHelper {
 			return true;
 		}
 		// Reject malformed domains in any case
-		if (str_starts_with($domain, '-') || str_contains($domain, '..')) {
+		if (strpos($domain, '-') === 0 || strpos($domain, '..') !== false) {
 			return false;
 		}
 		// Match, allowing for * wildcards

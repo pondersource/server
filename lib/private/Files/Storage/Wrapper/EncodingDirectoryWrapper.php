@@ -46,7 +46,7 @@ class EncodingDirectoryWrapper extends DirectoryWrapper {
 	/**
 	 * @param resource $source
 	 * @param callable $filter
-	 * @return resource|false
+	 * @return resource|bool
 	 */
 	public static function wrap($source) {
 		return self::wrapSource($source, [

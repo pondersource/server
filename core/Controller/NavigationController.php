@@ -3,7 +3,6 @@
  * @copyright Copyright (c) 2018 Julius Härtl <jus@bitgrid.net>
  *
  * @author Julius Härtl <jus@bitgrid.net>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -23,7 +22,6 @@
  */
 namespace OC\Core\Controller;
 
-use OCA\Core\ResponseDefinitions;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
@@ -31,30 +29,19 @@ use OCP\INavigationManager;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 
-/**
- * @psalm-import-type CoreNavigationEntry from ResponseDefinitions
- */
 class NavigationController extends OCSController {
-	public function __construct(
-		string $appName,
-		IRequest $request,
-		private INavigationManager $navigationManager,
-		private IURLGenerator $urlGenerator,
-	) {
+	private INavigationManager $navigationManager;
+	private IURLGenerator $urlGenerator;
+
+	public function __construct(string $appName, IRequest $request, INavigationManager $navigationManager, IURLGenerator $urlGenerator) {
 		parent::__construct($appName, $request);
+		$this->navigationManager = $navigationManager;
+		$this->urlGenerator = $urlGenerator;
 	}
 
 	/**
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
-	 *
-	 * Get the apps navigation
-	 *
-	 * @param bool $absolute Rewrite URLs to absolute ones
-	 * @return DataResponse<Http::STATUS_OK, CoreNavigationEntry[], array{}>|DataResponse<Http::STATUS_NOT_MODIFIED, array<empty>, array{}>
-	 *
-	 * 200: Apps navigation returned
-	 * 304: No apps navigation changed
 	 */
 	public function getAppsNavigation(bool $absolute = false): DataResponse {
 		$navigation = $this->navigationManager->getAll();
@@ -74,14 +61,6 @@ class NavigationController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
-	 *
-	 * Get the settings navigation
-	 *
-	 * @param bool $absolute Rewrite URLs to absolute ones
-	 * @return DataResponse<Http::STATUS_OK, CoreNavigationEntry[], array{}>|DataResponse<Http::STATUS_NOT_MODIFIED, array<empty>, array{}>
-	 *
-	 * 200: Apps navigation returned
-	 * 304: No apps navigation changed
 	 */
 	public function getSettingsNavigation(bool $absolute = false): DataResponse {
 		$navigation = $this->navigationManager->getAll('settings');
@@ -115,10 +94,10 @@ class NavigationController extends OCSController {
 	 */
 	private function rewriteToAbsoluteUrls(array $navigation): array {
 		foreach ($navigation as &$entry) {
-			if (!str_starts_with($entry['href'], $this->urlGenerator->getBaseUrl())) {
+			if (0 !== strpos($entry['href'], $this->urlGenerator->getBaseUrl())) {
 				$entry['href'] = $this->urlGenerator->getAbsoluteURL($entry['href']);
 			}
-			if (!str_starts_with($entry['icon'], $this->urlGenerator->getBaseUrl())) {
+			if (0 !== strpos($entry['icon'], $this->urlGenerator->getBaseUrl())) {
 				$entry['icon'] = $this->urlGenerator->getAbsoluteURL($entry['icon']);
 			}
 		}

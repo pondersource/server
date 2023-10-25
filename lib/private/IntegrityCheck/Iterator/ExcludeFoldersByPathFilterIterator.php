@@ -51,7 +51,7 @@ class ExcludeFoldersByPathFilterIterator extends \RecursiveFilterIterator {
 			rtrim($root . '/updater', '/'),
 			rtrim($root . '/_oc_upgrade', '/'),
 		];
-		$customDataDir = \OC::$server->getConfig()->getSystemValueString('datadirectory', '');
+		$customDataDir = \OC::$server->getConfig()->getSystemValue('datadirectory', '');
 		if ($customDataDir !== '') {
 			$excludedFolders[] = rtrim($customDataDir, '/');
 		}

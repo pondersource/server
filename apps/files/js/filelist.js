@@ -666,7 +666,7 @@
 		 * @param {string} [tabId] optional tab id to select
 		 */
 		showDetailsView: function(fileName, tabId) {
-			OC.debug && console.warn('showDetailsView is deprecated! Use OCA.Files.Sidebar.activeTab. It will be removed in nextcloud 20.');
+			console.warn('showDetailsView is deprecated! Use OCA.Files.Sidebar.activeTab. It will be removed in nextcloud 20.');
 			this._updateDetailsView(fileName);
 			if (tabId) {
 				OCA.Files.Sidebar.setActiveTab(tabId);
@@ -707,10 +707,8 @@
 			tr.addClass('highlighted');
 			this._currentFileModel = model;
 
-			const secondaryActionsOpen = Boolean(tr.find('.actions-secondary-vue').length)
-
 			// open sidebar and set file
-			if (!secondaryActionsOpen && (typeof show === 'undefined' || !!show || (OCA.Files.Sidebar.file !== ''))) {
+			if (typeof show === 'undefined' || !!show || (OCA.Files.Sidebar.file !== '')) {
 				OCA.Files.Sidebar.open(path.replace('//', '/'))
 			}
 		},
@@ -2186,10 +2184,8 @@
 
 			if (persist && OC.getCurrentUser().uid) {
 				$.post(OC.generateUrl('/apps/files/api/v1/sorting'), {
-					// Compatibility with new files-to-vue API
-					mode: sort === 'name' ? 'basename' : sort,
-					direction: direction,
-					view: 'files'
+					mode: sort,
+					direction: direction
 				});
 			}
 		},
@@ -3846,8 +3842,7 @@
 				return;
 			}
 			var $newButton = $(OCA.Files.Templates['template_addbutton']({
-				addText: t('files', 'New'),
-				addLongText: t('files', 'New file/folder menu'),
+				addText: t('files', 'New file/folder menu'),
 				iconClass: 'icon-add',
 			}));
 
@@ -3882,7 +3877,7 @@
 		 * Register a tab view to be added to all views
 		 */
 		registerTabView: function(tabView) {
-			OC.debug && console.warn('registerTabView is deprecated! It will be removed in nextcloud 20.');
+			console.warn('registerTabView is deprecated! It will be removed in nextcloud 20.');
 			const enabled = tabView.canDisplay || undefined
 			if (tabView.id) {
 				OCA.Files.Sidebar.registerTab(new OCA.Files.Sidebar.Tab({
@@ -3908,7 +3903,7 @@
 		 * Register a detail view to be added to all views
 		 */
 		registerDetailView: function(detailView) {
-			OC.debug && console.warn('registerDetailView is deprecated! It will be removed in nextcloud 20.');
+			console.warn('registerDetailView is deprecated! It will be removed in nextcloud 20.');
 			if (detailView.el) {
 				OCA.Files.Sidebar.registerSecondaryView(detailView)
 			}

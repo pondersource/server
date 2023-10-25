@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 /**
- * @copyright Copyright (c) 2023 Joas Schilling <coding@schilljs.com>
- * @copyright Copyright (c) 2023 Julius Härtl <jus@bitgrid.net>
+ * @copyright Copyright (c) 2023 Julius Härtl <jus@bitgrid.net
  *
- * @author Joas Schilling <coding@schilljs.com>
- * @author Julius Härtl <jus@bitgrid.net>
+ * @author Julius Härtl <jus@bitgrid.net
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -36,41 +34,24 @@ namespace OCP\DB\Events;
  * @since 28.0.0
  */
 class AddMissingIndicesEvent extends \OCP\EventDispatcher\Event {
-	/** @var array<array-key, array{tableName: string, indexName: string, columns: string[], options: array{}, dropUnnamedIndex: bool, uniqueIndex: bool}> */
+	/** @var array<array-key, array{tableName: string, indexName: string, columns: string[]}> */
 	private array $missingIndices = [];
 
 	/**
 	 * @param string[] $columns
 	 * @since 28.0.0
 	 */
-	public function addMissingIndex(string $tableName, string $indexName, array $columns, array $options = [], bool $dropUnnamedIndex = false): void {
+	public function addMissingIndex(string $tableName, string $indexName, array $columns): void {
 		$this->missingIndices[] = [
 			'tableName' => $tableName,
 			'indexName' => $indexName,
-			'columns' => $columns,
-			'options' => $options,
-			'dropUnnamedIndex' => $dropUnnamedIndex,
-			'uniqueIndex' => false,
-		];
-	}
-	/**
-	 * @param string[] $columns
-	 * @since 28.0.0
-	 */
-	public function addMissingUniqueIndex(string $tableName, string $indexName, array $columns, array $options = [], bool $dropUnnamedIndex = false): void {
-		$this->missingIndices[] = [
-			'tableName' => $tableName,
-			'indexName' => $indexName,
-			'columns' => $columns,
-			'options' => $options,
-			'dropUnnamedIndex' => $dropUnnamedIndex,
-			'uniqueIndex' => true,
+			'columns' => $columns
 		];
 	}
 
 	/**
 	 * @since 28.0.0
-	 * @return array<array-key, array{tableName: string, indexName: string, columns: string[], options: array{}, dropUnnamedIndex: bool, uniqueIndex: bool}>
+	 * @return array<array-key, array{tableName: string, indexName: string, columns: string[]}>
 	 */
 	public function getMissingIndices(): array {
 		return $this->missingIndices;

@@ -91,7 +91,7 @@ class Redis extends Cache implements IMemcacheTTL {
 	}
 
 	public function remove($key) {
-		if ($this->getCache()->unlink($this->getPrefix() . $key)) {
+		if ($this->getCache()->del($this->getPrefix() . $key)) {
 			return true;
 		} else {
 			return false;

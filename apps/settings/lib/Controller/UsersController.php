@@ -16,7 +16,6 @@ declare(strict_types=1);
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Vincent Petry <vincent@nextcloud.com>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license AGPL-3.0
  *
@@ -55,7 +54,6 @@ use OCP\Accounts\IAccountManager;
 use OCP\Accounts\PropertyDoesNotExistException;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Controller;
-use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\TemplateResponse;
@@ -73,7 +71,6 @@ use OCP\L10N\IFactory;
 use OCP\Mail\IMailer;
 use function in_array;
 
-#[IgnoreOpenAPI]
 class UsersController extends Controller {
 	/** @var UserManager */
 	private $userManager;

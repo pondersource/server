@@ -31,9 +31,6 @@ use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
-/**
- * @template-extends QBMapper<Changes>
- */
 class ChangesMapper extends QBMapper {
 	public const TABLE_NAME = 'whats_new';
 
@@ -44,7 +41,7 @@ class ChangesMapper extends QBMapper {
 	/**
 	 * @throws DoesNotExistException
 	 */
-	public function getChanges(string $version): Changes {
+	public function getChanges(string $version): ChangesResult {
 		/* @var $qb IQueryBuilder */
 		$qb = $this->db->getQueryBuilder();
 		$result = $qb->select('*')
@@ -57,6 +54,6 @@ class ChangesMapper extends QBMapper {
 		if ($data === false) {
 			throw new DoesNotExistException('Changes info is not present');
 		}
-		return Changes::fromRow($data);
+		return ChangesResult::fromRow($data);
 	}
 }

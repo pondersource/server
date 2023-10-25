@@ -30,30 +30,32 @@ declare(strict_types=1);
 namespace OCA\Files_External\Controller;
 
 use OCA\Files_External\Lib\StorageConfig;
-use OCA\Files_External\ResponseDefinitions;
 use OCA\Files_External\Service\UserGlobalStoragesService;
 use OCA\Files_External\Service\UserStoragesService;
-use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
 use OCP\IRequest;
+use OCP\IUserSession;
 
-/**
- * @psalm-import-type FilesExternalMount from ResponseDefinitions
- */
 class ApiController extends OCSController {
 
-	private UserGlobalStoragesService $userGlobalStoragesService;
-	private UserStoragesService $userStoragesService;
+	/** @var IUserSession */
+	private $userSession;
+	/** @var UserGlobalStoragesService */
+	private $userGlobalStoragesService;
+	/** @var UserStoragesService */
+	private $userStoragesService;
 
 	public function __construct(
 		string $appName,
 		IRequest $request,
+		IUserSession $userSession,
 		UserGlobalStoragesService $userGlobalStorageService,
 		UserStoragesService $userStorageService
 	) {
 		parent::__construct($appName, $request);
+
+		$this->userSession = $userSession;
 		$this->userGlobalStoragesService = $userGlobalStorageService;
 		$this->userStoragesService = $userStorageService;
 	}
@@ -64,7 +66,7 @@ class ApiController extends OCSController {
 	 * @param string $mountPoint mount point name, relative to the data dir
 	 * @param StorageConfig $mountConfig mount config to format
 	 *
-	 * @return FilesExternalMount
+	 * @return array entry
 	 */
 	private function formatMount(string $mountPoint, StorageConfig $mountConfig): array {
 		// split path from mount point
@@ -82,15 +84,14 @@ class ApiController extends OCSController {
 		}
 
 		$entry = [
-			'id' => $mountConfig->getId(),
-			'type' => 'dir',
 			'name' => basename($mountPoint),
 			'path' => $path,
-			'permissions' => $permissions,
-			'scope' => $isSystemMount ? 'system' : 'personal',
+			'type' => 'dir',
 			'backend' => $mountConfig->getBackend()->getText(),
+			'scope' => $isSystemMount ? 'system' : 'personal',
+			'permissions' => $permissions,
+			'id' => $mountConfig->getId(),
 			'class' => $mountConfig->getBackend()->getIdentifier(),
-			'config' => $mountConfig->jsonSerialize(true),
 		];
 		return $entry;
 	}
@@ -98,9 +99,9 @@ class ApiController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 *
-	 * Get the mount points visible for this user
+	 * Returns the mount points visible for this user.
 	 *
-	 * @return DataResponse<Http::STATUS_OK, FilesExternalMount[], array{}>
+	 * @return DataResponse share information
 	 */
 	public function getUserMounts(): DataResponse {
 		$entries = [];
@@ -120,33 +121,5 @@ class ApiController extends OCSController {
 		}
 
 		return new DataResponse($entries);
-	}
-
-	/**
-	 * @NoAdminRequired
-	 *
-	 * Ask for credentials using a browser's native basic auth prompt
-	 * Then returns it if provided
-	 */
-	#[IgnoreOpenAPI]
-	public function askNativeAuth(): DataResponse {
-		if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_PW'])) {
-			$response = new DataResponse([], Http::STATUS_UNAUTHORIZED);
-			$response->addHeader('WWW-Authenticate', 'Basic realm="Storage authentification needed"');
-			return $response;
-		}
-
-		$user = $_SERVER['PHP_AUTH_USER'];
-		$password = $_SERVER['PHP_AUTH_PW'];
-
-		// Reset auth
-		unset($_SERVER['PHP_AUTH_USER']);
-		unset($_SERVER['PHP_AUTH_PW']);
-
-		// Using 401 again to ensure we clear any cached Authorization
-		return new DataResponse([
-			'user' => $user,
-			'password' => $password,
-		], Http::STATUS_UNAUTHORIZED);
 	}
 }

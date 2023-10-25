@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 /**
- * @copyright Copyright (c) 2022, Joas Schilling <coding@schilljs.com>
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
@@ -31,23 +30,11 @@ namespace OC\AppFramework\Utility;
 use OCP\AppFramework\Utility\ITimeFactory;
 
 /**
- * Use this to get a timestamp or DateTime object in code to remain testable
- *
- * @since 8.0.0
- * @since 26.0.0 Extends the \Psr\Clock\ClockInterface interface
- * @ref https://www.php-fig.org/psr/psr-20/#21-clockinterface
+ * Needed to mock calls to time()
  */
 class TimeFactory implements ITimeFactory {
-	protected \DateTimeZone $timezone;
-
-	public function __construct() {
-		$this->timezone = new \DateTimeZone('UTC');
-	}
-
 	/**
 	 * @return int the result of a call to time()
-	 * @since 8.0.0
-	 * @deprecated 26.0.0 {@see ITimeFactory::now()}
 	 */
 	public function getTime(): int {
 		return time();
@@ -58,19 +45,8 @@ class TimeFactory implements ITimeFactory {
 	 * @param \DateTimeZone $timezone
 	 * @return \DateTime
 	 * @since 15.0.0
-	 * @deprecated 26.0.0 {@see ITimeFactory::now()}
 	 */
 	public function getDateTime(string $time = 'now', \DateTimeZone $timezone = null): \DateTime {
 		return new \DateTime($time, $timezone);
-	}
-
-	public function now(): \DateTimeImmutable {
-		return new \DateTimeImmutable('now', $this->timezone);
-	}
-	public function withTimeZone(\DateTimeZone $timezone): static {
-		$clone = clone $this;
-		$clone->timezone = $timezone;
-
-		return $clone;
 	}
 }

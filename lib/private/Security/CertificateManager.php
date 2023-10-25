@@ -33,7 +33,6 @@ declare(strict_types=1);
 namespace OC\Security;
 
 use OC\Files\Filesystem;
-use OC\Files\View;
 use OCP\ICertificate;
 use OCP\ICertificateManager;
 use OCP\IConfig;
@@ -44,14 +43,24 @@ use Psr\Log\LoggerInterface;
  * Manage trusted certificates for users
  */
 class CertificateManager implements ICertificateManager {
-	protected View $view;
-	protected IConfig $config;
+	/**
+	 * @var \OC\Files\View
+	 */
+	protected $view;
+
+	/**
+	 * @var IConfig
+	 */
+	protected $config;
+
 	protected LoggerInterface $logger;
-	protected ISecureRandom $random;
+
+	/** @var ISecureRandom */
+	protected $random;
 
 	private ?string $bundlePath = null;
 
-	public function __construct(View $view,
+	public function __construct(\OC\Files\View $view,
 								IConfig $config,
 								LoggerInterface $logger,
 								ISecureRandom $random) {
@@ -67,7 +76,7 @@ class CertificateManager implements ICertificateManager {
 	 * @return \OCP\ICertificate[]
 	 */
 	public function listCertificates(): array {
-		if (!$this->config->getSystemValueBool('installed', false)) {
+		if (!$this->config->getSystemValue('installed', false)) {
 			return [];
 		}
 
@@ -99,7 +108,7 @@ class CertificateManager implements ICertificateManager {
 	}
 
 	private function hasCertificates(): bool {
-		if (!$this->config->getSystemValueBool('installed', false)) {
+		if (!$this->config->getSystemValue('installed', false)) {
 			return false;
 		}
 
@@ -234,7 +243,8 @@ class CertificateManager implements ICertificateManager {
 
 	/**
 	 * Get the full local path to the certificate bundle
-	 * @throws \Exception when getting bundle path fails
+	 *
+	 * @return string
 	 */
 	public function getAbsoluteBundlePath(): string {
 		try {
@@ -261,6 +271,9 @@ class CertificateManager implements ICertificateManager {
 		}
 	}
 
+	/**
+	 * @return string
+	 */
 	private function getPathToCertificates(): string {
 		return '/files_external/';
 	}

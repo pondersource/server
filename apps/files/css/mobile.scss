@@ -45,11 +45,6 @@ table.multiselect thead {
 	overflow: hidden;
 }
 
-// Hide system tags on mobile
-td.filename a.name .system-tags {
-	display: none;
-}
-
 
 /* shorten elements for mobile */
 #uploadprogressbar, #uploadprogressbar .label.inner {

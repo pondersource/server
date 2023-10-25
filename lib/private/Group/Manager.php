@@ -41,14 +41,13 @@ namespace OC\Group;
 
 use OC\Hooks\PublicEmitter;
 use OCP\EventDispatcher\IEventDispatcher;
-use OCP\Group\Events\BeforeGroupCreatedEvent;
-use OCP\Group\Events\GroupCreatedEvent;
 use OCP\GroupInterface;
 use OCP\ICacheFactory;
 use OCP\IGroup;
 use OCP\IGroupManager;
 use OCP\IUser;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class Manager
@@ -71,7 +70,8 @@ class Manager extends PublicEmitter implements IGroupManager {
 
 	/** @var \OC\User\Manager */
 	private $userManager;
-	private IEventDispatcher $dispatcher;
+	/** @var EventDispatcherInterface */
+	private $dispatcher;
 	private LoggerInterface $logger;
 
 	/** @var \OC\Group\Group[] */
@@ -86,7 +86,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 	private DisplayNameCache $displayNameCache;
 
 	public function __construct(\OC\User\Manager $userManager,
-								IEventDispatcher $dispatcher,
+								EventDispatcherInterface $dispatcher,
 								LoggerInterface $logger,
 								ICacheFactory $cacheFactory) {
 		$this->userManager = $userManager;
@@ -220,13 +220,11 @@ class Manager extends PublicEmitter implements IGroupManager {
 		} elseif ($group = $this->get($gid)) {
 			return $group;
 		} else {
-			$this->dispatcher->dispatchTyped(new BeforeGroupCreatedEvent($gid));
 			$this->emit('\OC\Group', 'preCreate', [$gid]);
 			foreach ($this->backends as $backend) {
 				if ($backend->implementsActions(Backend::CREATE_GROUP)) {
 					if ($backend->createGroup($gid)) {
 						$group = $this->getGroupObject($gid);
-						$this->dispatcher->dispatchTyped(new GroupCreatedEvent($group));
 						$this->emit('\OC\Group', 'postCreate', [$group]);
 						return $group;
 					}
@@ -238,14 +236,14 @@ class Manager extends PublicEmitter implements IGroupManager {
 
 	/**
 	 * @param string $search
-	 * @param ?int $limit
-	 * @param ?int $offset
+	 * @param int $limit
+	 * @param int $offset
 	 * @return \OC\Group\Group[]
 	 */
-	public function search(string $search, ?int $limit = null, ?int $offset = 0) {
+	public function search($search, $limit = null, $offset = null) {
 		$groups = [];
 		foreach ($this->backends as $backend) {
-			$groupIds = $backend->getGroups($search, $limit ?? -1, $offset ?? 0);
+			$groupIds = $backend->getGroups($search, $limit, $offset);
 			foreach ($groupIds as $groupId) {
 				$aGroup = $this->get($groupId);
 				if ($aGroup instanceof IGroup) {
@@ -426,7 +424,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 				$this->userManager,
 				$this,
 				\OC::$server->getDatabaseConnection(),
-				$this->dispatcher
+				\OC::$server->get(IEventDispatcher::class)
 			);
 		}
 

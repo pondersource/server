@@ -28,7 +28,6 @@
  */
 namespace OCA\User_LDAP;
 
-use OC\ServerNotAvailableException;
 use OCP\Group\Backend\IDeleteGroupBackend;
 use OCP\Group\Backend\IGetDisplayNameBackend;
 use OCP\Group\Backend\INamedBackend;
@@ -172,7 +171,7 @@ class Group_Proxy extends Proxy implements \OCP\GroupInterface, IGroupLDAP, IGet
 	/**
 	 * get a list of all users in a group
 	 *
-	 * @return array<int,string> user ids
+	 * @return string[] with user ids
 	 */
 	public function usersInGroup($gid, $search = '', $limit = -1, $offset = 0) {
 		$this->setup();
@@ -288,23 +287,6 @@ class Group_Proxy extends Proxy implements \OCP\GroupInterface, IGroupLDAP, IGet
 	}
 
 	/**
-	 * Check if a group exists
-	 *
-	 * @throws ServerNotAvailableException
-	 */
-	public function groupExistsOnLDAP(string $gid, bool $ignoreCache = false): bool {
-		return $this->handleRequest($gid, 'groupExistsOnLDAP', [$gid, $ignoreCache]);
-	}
-
-	/**
-	 * returns the groupname for the given LDAP DN, if available
-	 */
-	public function dn2GroupName(string $dn): string|false {
-		$id = 'DN,' . $dn;
-		return $this->handleRequest($id, 'dn2GroupName', [$dn]);
-	}
-
-	/**
 	 * Check if backend implements actions
 	 *
 	 * @param int $actions bitwise-or'ed actions
@@ -351,9 +333,5 @@ class Group_Proxy extends Proxy implements \OCP\GroupInterface, IGroupLDAP, IGet
 	 */
 	public function getBackendName(): string {
 		return 'LDAP';
-	}
-
-	public function searchInGroup(string $gid, string $search = '', int $limit = -1, int $offset = 0): array {
-		return $this->handleRequest($gid, 'searchInGroup', [$gid, $search, $limit, $offset]);
 	}
 }

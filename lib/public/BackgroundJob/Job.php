@@ -38,13 +38,11 @@ use Psr\Log\LoggerInterface;
  *
  * @since 15.0.0
  */
-abstract class Job implements IJob, IParallelAwareJob {
+abstract class Job implements IJob {
 	protected int $id = 0;
 	protected int $lastRun = 0;
 	protected $argument;
 	protected ITimeFactory $time;
-	protected bool $allowParallelRuns = true;
-	private ?ILogger $logger = null;
 
 	/**
 	 * @since 15.0.0
@@ -63,7 +61,6 @@ abstract class Job implements IJob, IParallelAwareJob {
 	 * @since 15.0.0
 	 */
 	public function execute(IJobList $jobList, ILogger $logger = null) {
-		$this->logger = $logger;
 		$this->start($jobList);
 	}
 
@@ -73,7 +70,7 @@ abstract class Job implements IJob, IParallelAwareJob {
 	 */
 	public function start(IJobList $jobList): void {
 		$jobList->setLastRun($this);
-		$logger = $this->logger ?? \OCP\Server::get(LoggerInterface::class);
+		$logger = \OCP\Server::get(LoggerInterface::class);
 
 		try {
 			$jobStartTime = $this->time->getTime();
@@ -83,7 +80,7 @@ abstract class Job implements IJob, IParallelAwareJob {
 
 			$logger->debug('Finished ' . get_class($this) . ' job with ID ' . $this->getId() . ' in ' . $timeTaken . ' seconds', ['app' => 'cron']);
 			$jobList->setExecutionTime($this, $timeTaken);
-		} catch (\Throwable $e) {
+		} catch (\Exception $e) {
 			if ($logger) {
 				$logger->error('Error while running background job (class: ' . get_class($this) . ', arguments: ' . print_r($this->argument, true) . ')', [
 					'app' => 'core',
@@ -133,25 +130,6 @@ abstract class Job implements IJob, IParallelAwareJob {
 	 */
 	public function getArgument() {
 		return $this->argument;
-	}
-
-	/**
-	 * Set this to false to prevent two Jobs from this class from running in parallel
-	 *
-	 * @param bool $allow
-	 * @return void
-	 * @since 27.0.0
-	 */
-	public function setAllowParallelRuns(bool $allow): void {
-		$this->allowParallelRuns = $allow;
-	}
-
-	/**
-	 * @return bool
-	 * @since 27.0.0
-	 */
-	public function getAllowParallelRuns(): bool {
-		return $this->allowParallelRuns;
 	}
 
 	/**

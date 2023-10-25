@@ -39,14 +39,18 @@ use OCP\IUser;
 use Psr\Log\LoggerInterface;
 
 class ActionProviderStore {
-	public function __construct(
-		private IServerContainer $serverContainer,
-		private AppManager $appManager,
-		private LoggerInterface $logger,
-	) {
+	private IServerContainer $serverContainer;
+	private AppManager $appManager;
+	private LoggerInterface $logger;
+
+	public function __construct(IServerContainer $serverContainer, AppManager $appManager, LoggerInterface $logger) {
+		$this->serverContainer = $serverContainer;
+		$this->appManager = $appManager;
+		$this->logger = $logger;
 	}
 
 	/**
+	 * @param IUser $user
 	 * @return IProvider[]
 	 * @throws Exception
 	 */
@@ -86,6 +90,7 @@ class ActionProviderStore {
 	}
 
 	/**
+	 * @param IUser $user
 	 * @return string[]
 	 */
 	private function getAppProviderClasses(IUser $user): array {

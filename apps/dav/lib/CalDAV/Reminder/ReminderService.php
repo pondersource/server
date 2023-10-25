@@ -147,14 +147,7 @@ class ReminderService {
 				continue;
 			}
 
-			try {
-				$vevent = $this->getVEventByRecurrenceId($vcalendar, $reminder['recurrence_id'], $reminder['is_recurrence_exception']);
-			} catch (MaxInstancesExceededException $e) {
-				$this->logger->debug('Recurrence with too many instances detected, skipping VEVENT', ['exception' => $e]);
-				$this->backend->removeReminder($reminder['id']);
-				continue;
-			}
-
+			$vevent = $this->getVEventByRecurrenceId($vcalendar, $reminder['recurrence_id'], $reminder['is_recurrence_exception']);
 			if (!$vevent) {
 				$this->logger->debug('Reminder {id} does not belong to a valid event', [
 					'id' => $reminder['id'],
@@ -179,7 +172,7 @@ class ReminderService {
 				continue;
 			}
 
-			if ($this->config->getAppValue('dav', 'sendEventRemindersToSharedUsers', 'yes') === 'no') {
+			if ($this->config->getAppValue('dav', 'sendEventRemindersToSharedGroupMembers', 'yes') === 'no') {
 				$users = $this->getAllUsersWithWriteAccessToCalendar($reminder['calendar_id']);
 			} else {
 				$users = [];

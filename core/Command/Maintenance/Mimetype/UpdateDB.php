@@ -35,11 +35,16 @@ use Symfony\Component\Console\Output\OutputInterface;
 class UpdateDB extends Command {
 	public const DEFAULT_MIMETYPE = 'application/octet-stream';
 
+	protected IMimeTypeDetector $mimetypeDetector;
+	protected IMimeTypeLoader $mimetypeLoader;
+
 	public function __construct(
-		protected IMimeTypeDetector $mimetypeDetector,
-		protected IMimeTypeLoader $mimetypeLoader,
+		IMimeTypeDetector $mimetypeDetector,
+		IMimeTypeLoader $mimetypeLoader
 	) {
 		parent::__construct();
+		$this->mimetypeDetector = $mimetypeDetector;
+		$this->mimetypeLoader = $mimetypeLoader;
 	}
 
 	protected function configure() {

@@ -134,7 +134,11 @@ class Entry implements IEntry {
 		$this->properties = $contact;
 	}
 
-	public function getProperty(string $key): mixed {
+	/**
+	 * @param string $key
+	 * @return mixed
+	 */
+	public function getProperty(string $key) {
 		if (!isset($this->properties[$key])) {
 			return null;
 		}
@@ -142,7 +146,7 @@ class Entry implements IEntry {
 	}
 
 	/**
-	 * @return array{id: int|string|null, fullName: string, avatar: string|null, topAction: mixed, actions: array, lastMessage: '', emailAddresses: string[], profileTitle: string|null, profileUrl: string|null}
+	 * @return array
 	 */
 	public function jsonSerialize(): array {
 		$topAction = !empty($this->actions) ? $this->actions[0]->jsonSerialize() : null;

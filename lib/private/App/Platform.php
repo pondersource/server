@@ -56,7 +56,7 @@ class Platform {
 	}
 
 	public function getDatabase(): string {
-		$dbType = $this->config->getSystemValueString('dbtype', 'sqlite');
+		$dbType = $this->config->getSystemValue('dbtype', 'sqlite');
 		if ($dbType === 'sqlite3') {
 			$dbType = 'sqlite';
 		}

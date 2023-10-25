@@ -121,7 +121,7 @@ class MountPoint implements IMountPoint {
 			$this->storage = $this->loader->wrap($this, $storage);
 		} else {
 			// Update old classes to new namespace
-			if (str_contains($storage, 'OC_Filestorage_')) {
+			if (strpos($storage, 'OC_Filestorage_') !== false) {
 				$storage = '\OC\Files\Storage\\' . substr($storage, 15);
 			}
 			$this->class = $storage;

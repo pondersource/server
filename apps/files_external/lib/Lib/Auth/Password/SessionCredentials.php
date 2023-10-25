@@ -58,10 +58,6 @@ class SessionCredentials extends AuthMechanism {
 			throw new InsufficientDataForMeaningfulAnswerException('No session credentials saved');
 		}
 
-		if ($user === null) {
-			throw new StorageAuthException('Session unavailable');
-		}
-
 		if ($credentials->getUID() !== $user->getUID()) {
 			throw new StorageAuthException('Session credentials for storage owner not available');
 		}

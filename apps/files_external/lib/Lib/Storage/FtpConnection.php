@@ -89,14 +89,8 @@ class FtpConnection {
 		return @ftp_rename($this->connection, $source, $target);
 	}
 
-	public function mdtm(string $path): int {
-		$result = @ftp_mdtm($this->connection, $path);
-
-		// filezilla doesn't like empty path with mdtm
-		if ($result === -1 && $path === "") {
-			$result = @ftp_mdtm($this->connection, "/");
-		}
-		return $result;
+	public function mdtm(string $path) {
+		return @ftp_mdtm($this->connection, $path);
 	}
 
 	public function size(string $path) {
@@ -110,7 +104,7 @@ class FtpConnection {
 	public function nlist(string $path) {
 		$files = @ftp_nlist($this->connection, $path);
 		return array_map(function ($name) {
-			if (str_contains($name, '/')) {
+			if (strpos($name, '/') !== false) {
 				$name = basename($name);
 			}
 			return $name;
@@ -122,7 +116,7 @@ class FtpConnection {
 
 		if ($files !== false) {
 			return array_map(function ($file) {
-				if (str_contains($file['name'], '/')) {
+				if (strpos($file['name'], '/') !== false) {
 					$file['name'] = basename($file['name']);
 				}
 				return $file;

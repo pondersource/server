@@ -90,7 +90,7 @@ class UUIDFixInsert implements IRepairStep {
 					$this->jobList->add($jobClass, ['records' => $records]);
 					$offset += $batchSize;
 				} catch (\InvalidArgumentException $e) {
-					if (str_contains($e->getMessage(), 'Background job arguments can\'t exceed 4000')) {
+					if (strpos($e->getMessage(), 'Background job arguments can\'t exceed 4000') !== false) {
 						$batchSize = (int)floor(count($records) * 0.8);
 						$retry = true;
 					}

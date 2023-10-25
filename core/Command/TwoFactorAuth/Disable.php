@@ -29,14 +29,12 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Disable extends Base {
-	public function __construct(
-		private ProviderManager $manager,
-		IUserManager $userManager,
-	) {
-		parent::__construct(
-			'twofactorauth:disable',
-			$userManager,
-		);
+	private ProviderManager $manager;
+
+	public function __construct(ProviderManager $manager, IUserManager $userManager) {
+		parent::__construct('twofactorauth:disable');
+		$this->manager = $manager;
+		$this->userManager = $userManager;
 	}
 
 	protected function configure() {

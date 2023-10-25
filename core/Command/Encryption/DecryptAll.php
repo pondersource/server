@@ -41,17 +41,28 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 class DecryptAll extends Command {
-	protected bool $wasTrashbinEnabled = false;
-	protected bool $wasMaintenanceModeEnabled = false;
+	protected IManager $encryptionManager;
+	protected IAppManager $appManager;
+	protected IConfig $config;
+	protected QuestionHelper $questionHelper;
+	protected bool $wasTrashbinEnabled;
+	protected bool $wasMaintenanceModeEnabled;
+	protected \OC\Encryption\DecryptAll $decryptAll;
 
 	public function __construct(
-		protected IManager $encryptionManager,
-		protected IAppManager $appManager,
-		protected IConfig $config,
-		protected \OC\Encryption\DecryptAll $decryptAll,
-		protected QuestionHelper $questionHelper,
+		IManager $encryptionManager,
+		IAppManager $appManager,
+		IConfig $config,
+		\OC\Encryption\DecryptAll $decryptAll,
+		QuestionHelper $questionHelper
 	) {
 		parent::__construct();
+
+		$this->appManager = $appManager;
+		$this->encryptionManager = $encryptionManager;
+		$this->config = $config;
+		$this->decryptAll = $decryptAll;
+		$this->questionHelper = $questionHelper;
 	}
 
 	/**

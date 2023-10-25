@@ -71,7 +71,6 @@ class ThemingDefaults extends \OC_Defaults {
 	private string $productName;
 	private string $url;
 	private string $color;
-	private string $docBaseUrl;
 
 	private string $iTunesAppId;
 	private string $iOSClientUrl;
@@ -121,7 +120,6 @@ class ThemingDefaults extends \OC_Defaults {
 		$this->iOSClientUrl = parent::getiOSClientUrl();
 		$this->AndroidClientUrl = parent::getAndroidClientUrl();
 		$this->FDroidClientUrl = parent::getFDroidClientUrl();
-		$this->docBaseUrl = parent::getDocBaseUrl();
 	}
 
 	public function getName() {
@@ -163,10 +161,6 @@ class ThemingDefaults extends \OC_Defaults {
 
 	public function getPrivacyUrl() {
 		return (string)$this->config->getAppValue('theming', 'privacyUrl', '');
-	}
-
-	public function getDocBaseUrl() {
-		return (string)$this->config->getAppValue('theming', 'docBaseUrl', $this->docBaseUrl);
 	}
 
 	public function getShortFooter() {
@@ -289,9 +283,9 @@ class ThemingDefaults extends \OC_Defaults {
 
 		if (!$logo || !$logoExists) {
 			if ($useSvg) {
-				$logo = $this->urlGenerator->imagePath('core', 'logo/logo.svg');
+				$logo = $this->urlGenerator->imagePath('core', 'logo/logo-enterprise.svg');
 			} else {
-				$logo = $this->urlGenerator->imagePath('core', 'logo/logo.png');
+				$logo = $this->urlGenerator->imagePath('core', 'logo/logo-enterprise.png');
 			}
 			return $logo . '?v=' . $cacheBusterCounter;
 		}
@@ -410,7 +404,7 @@ class ThemingDefaults extends \OC_Defaults {
 			}
 			$route = $this->urlGenerator->linkToRoute('theming.Theming.getManifest', ['app' => $app ]);
 		}
-		if (str_starts_with($image, 'filetypes/') && file_exists(\OC::$SERVERROOT . '/core/img/' . $image)) {
+		if (strpos($image, 'filetypes/') === 0 && file_exists(\OC::$SERVERROOT . '/core/img/' . $image)) {
 			$route = $this->urlGenerator->linkToRoute('theming.Icon.getThemedIcon', ['app' => $app, 'image' => $image]);
 		}
 

@@ -8,7 +8,6 @@ declare(strict_types=1);
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Joas Schilling <coding@schilljs.com>
  * @author John Molakvoæ <skjnldsv@protonmail.com>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -30,7 +29,6 @@ namespace OC\Core\Controller;
 
 use OC\Search\SearchComposer;
 use OC\Search\SearchQuery;
-use OCA\Core\ResponseDefinitions;
 use OCP\AppFramework\OCSController;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
@@ -41,29 +39,30 @@ use OCP\Route\IRouter;
 use OCP\Search\ISearchQuery;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 
-/**
- * @psalm-import-type CoreUnifiedSearchProvider from ResponseDefinitions
- * @psalm-import-type CoreUnifiedSearchResult from ResponseDefinitions
- */
 class UnifiedSearchController extends OCSController {
-	public function __construct(
-		IRequest $request,
-		private IUserSession $userSession,
-		private SearchComposer $composer,
-		private IRouter $router,
-		private IURLGenerator $urlGenerator,
-	) {
+	private SearchComposer $composer;
+	private IUserSession $userSession;
+	private IRouter $router;
+	private IURLGenerator $urlGenerator;
+
+	public function __construct(IRequest $request,
+								IUserSession $userSession,
+								SearchComposer $composer,
+								IRouter $router,
+								IURLGenerator $urlGenerator) {
 		parent::__construct('core', $request);
+
+		$this->composer = $composer;
+		$this->userSession = $userSession;
+		$this->router = $router;
+		$this->urlGenerator = $urlGenerator;
 	}
 
 	/**
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
 	 *
-	 * Get the providers for unified search
-	 *
 	 * @param string $from the url the user is currently at
-	 * @return DataResponse<Http::STATUS_OK, CoreUnifiedSearchProvider[], array{}>
 	 */
 	public function getProviders(string $from = ''): DataResponse {
 		[$route, $parameters] = $this->getRouteInformation($from);
@@ -78,19 +77,14 @@ class UnifiedSearchController extends OCSController {
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
 	 *
-	 * Search
+	 * @param string $providerId
+	 * @param string $term
+	 * @param int|null $sortOrder
+	 * @param int|null $limit
+	 * @param int|string|null $cursor
+	 * @param string $from
 	 *
-	 * @param string $providerId ID of the provider
-	 * @param string $term Term to search
-	 * @param int|null $sortOrder Order of entries
-	 * @param int|null $limit Maximum amount of entries
-	 * @param int|string|null $cursor Offset for searching
-	 * @param string $from The current user URL
-	 *
-	 * @return DataResponse<Http::STATUS_OK, CoreUnifiedSearchResult, array{}>|DataResponse<Http::STATUS_BAD_REQUEST, null, array{}>
-	 *
-	 * 200: Search entries returned
-	 * 400: Searching is not possible
+	 * @return DataResponse
 	 */
 	public function search(string $providerId,
 						   string $term = '',
@@ -115,7 +109,7 @@ class UnifiedSearchController extends OCSController {
 					$route,
 					$routeParameters
 				)
-			)->jsonSerialize()
+			)
 		);
 	}
 

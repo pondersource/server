@@ -32,16 +32,32 @@ use OCP\IUser;
 use OCP\IUserManager;
 
 class Signer {
-	public function __construct(
-		private Manager $keyManager,
-		private ITimeFactory $timeFactory,
-		private IUserManager $userManager,
-	) {
+	/** @var Manager */
+	private $keyManager;
+	/** @var ITimeFactory */
+	private $timeFactory;
+	/** @var IUserManager */
+	private $userManager;
+
+	/**
+	 * @param Manager $keyManager
+	 * @param ITimeFactory $timeFactory
+	 * @param IUserManager $userManager
+	 */
+	public function __construct(Manager $keyManager,
+								ITimeFactory $timeFactory,
+								IUserManager $userManager) {
+		$this->keyManager = $keyManager;
+		$this->timeFactory = $timeFactory;
+		$this->userManager = $userManager;
 	}
 
 	/**
 	 * Returns a signed blob for $data
 	 *
+	 * @param string $type
+	 * @param array $data
+	 * @param IUser $user
 	 * @return array ['message', 'signature']
 	 */
 	public function sign(string $type, array $data, IUser $user): array {
@@ -63,10 +79,13 @@ class Signer {
 	/**
 	 * Whether the data is signed properly
 	 *
+	 * @param array $data
+	 * @return bool
 	 */
 	public function verify(array $data): bool {
-		if (isset($data['message']['signer'])
+		if (isset($data['message'])
 			&& isset($data['signature'])
+			&& isset($data['message']['signer'])
 		) {
 			$location = strrpos($data['message']['signer'], '@');
 			$userId = substr($data['message']['signer'], 0, $location);

@@ -44,7 +44,7 @@ use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\Config\IUserMountCache;
 use OCP\Files\Events\InvalidateMountCacheEvent;
 use OCP\Files\StorageNotAvailableException;
-use Psr\Log\LoggerInterface;
+use OCP\ILogger;
 
 /**
  * Service class to manage external storage
@@ -119,15 +119,17 @@ abstract class StoragesService {
 			return $config;
 		} catch (\UnexpectedValueException $e) {
 			// don't die if a storage backend doesn't exist
-			\OC::$server->get(LoggerInterface::class)->error('Could not load storage.', [
+			\OC::$server->getLogger()->logException($e, [
+				'message' => 'Could not load storage.',
+				'level' => ILogger::ERROR,
 				'app' => 'files_external',
-				'exception' => $e,
 			]);
 			return null;
 		} catch (\InvalidArgumentException $e) {
-			\OC::$server->get(LoggerInterface::class)->error('Could not load storage.', [
+			\OC::$server->getLogger()->logException($e, [
+				'message' => 'Could not load storage.',
+				'level' => ILogger::ERROR,
 				'app' => 'files_external',
-				'exception' => $e,
 			]);
 			return null;
 		}

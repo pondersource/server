@@ -98,7 +98,7 @@ class Wrapper implements \OC\Files\Storage\Storage, ILockingStorage, IWriteStrea
 	 * see https://www.php.net/manual/en/function.opendir.php
 	 *
 	 * @param string $path
-	 * @return resource|false
+	 * @return resource|bool
 	 */
 	public function opendir($path) {
 		return $this->getWrapperStorage()->opendir($path);
@@ -238,7 +238,7 @@ class Wrapper implements \OC\Files\Storage\Storage, ILockingStorage, IWriteStrea
 	 * see https://www.php.net/manual/en/function.file_get_contents.php
 	 *
 	 * @param string $path
-	 * @return string|false
+	 * @return string|bool
 	 */
 	public function file_get_contents($path) {
 		return $this->getWrapperStorage()->file_get_contents($path);
@@ -358,7 +358,7 @@ class Wrapper implements \OC\Files\Storage\Storage, ILockingStorage, IWriteStrea
 	 * The local version of the file can be temporary and doesn't have to be persistent across requests
 	 *
 	 * @param string $path
-	 * @return string|false
+	 * @return string|bool
 	 */
 	public function getLocalFile($path) {
 		return $this->getWrapperStorage()->getLocalFile($path);
@@ -456,7 +456,7 @@ class Wrapper implements \OC\Files\Storage\Storage, ILockingStorage, IWriteStrea
 	 * get the ETag for a file or folder
 	 *
 	 * @param string $path
-	 * @return string|false
+	 * @return string|bool
 	 */
 	public function getETag($path) {
 		return $this->getWrapperStorage()->getETag($path);

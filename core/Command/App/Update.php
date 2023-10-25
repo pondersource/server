@@ -37,12 +37,15 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Update extends Command {
-	public function __construct(
-		protected IAppManager $manager,
-		private Installer $installer,
-		private LoggerInterface $logger,
-	) {
+	protected IAppManager $manager;
+	private Installer $installer;
+	private LoggerInterface $logger;
+
+	public function __construct(IAppManager $manager, Installer $installer, LoggerInterface $logger) {
 		parent::__construct();
+		$this->manager = $manager;
+		$this->installer = $installer;
+		$this->logger = $logger;
 	}
 
 	protected function configure() {

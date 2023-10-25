@@ -62,12 +62,15 @@ class Upgrade extends Command {
 	public const ERROR_INVALID_ARGUMENTS = 4;
 	public const ERROR_FAILURE = 5;
 
-	public function __construct(
-		private IConfig $config,
-		private LoggerInterface $logger,
-		private Installer $installer,
-	) {
+	private IConfig $config;
+	private LoggerInterface $logger;
+	private Installer $installer;
+
+	public function __construct(IConfig $config, LoggerInterface $logger, Installer $installer) {
 		parent::__construct();
+		$this->config = $config;
+		$this->logger = $logger;
+		$this->installer = $installer;
 	}
 
 	protected function configure() {

@@ -17,7 +17,6 @@
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license AGPL-3.0
  *
@@ -38,7 +37,6 @@ namespace OC\Core\Controller;
 
 use Exception;
 use OCP\AppFramework\Controller;
-use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
@@ -74,30 +72,55 @@ use function reset;
  *
  * @package OC\Core\Controller
  */
-#[IgnoreOpenAPI]
 class LostController extends Controller {
+	protected IURLGenerator $urlGenerator;
+	protected IUserManager $userManager;
+	protected Defaults $defaults;
+	protected IL10N $l10n;
 	protected string $from;
+	protected IManager $encryptionManager;
+	protected IConfig $config;
+	protected IMailer $mailer;
+	private LoggerInterface $logger;
+	private Manager $twoFactorManager;
+	private IInitialState $initialState;
+	private IVerificationToken $verificationToken;
+	private IEventDispatcher $eventDispatcher;
+	private Limiter $limiter;
 
 	public function __construct(
 		string $appName,
 		IRequest $request,
-		private IURLGenerator $urlGenerator,
-		private IUserManager $userManager,
-		private Defaults $defaults,
-		private IL10N $l10n,
-		private IConfig $config,
+		IURLGenerator $urlGenerator,
+		IUserManager $userManager,
+		Defaults $defaults,
+		IL10N $l10n,
+		IConfig $config,
 		string $defaultMailAddress,
-		private IManager $encryptionManager,
-		private IMailer $mailer,
-		private LoggerInterface $logger,
-		private Manager $twoFactorManager,
-		private IInitialState $initialState,
-		private IVerificationToken $verificationToken,
-		private IEventDispatcher $eventDispatcher,
-		private Limiter $limiter,
+		IManager $encryptionManager,
+		IMailer $mailer,
+		LoggerInterface $logger,
+		Manager $twoFactorManager,
+		IInitialState $initialState,
+		IVerificationToken $verificationToken,
+		IEventDispatcher $eventDispatcher,
+		Limiter $limiter
 	) {
 		parent::__construct($appName, $request);
+		$this->urlGenerator = $urlGenerator;
+		$this->userManager = $userManager;
+		$this->defaults = $defaults;
+		$this->l10n = $l10n;
 		$this->from = $defaultMailAddress;
+		$this->encryptionManager = $encryptionManager;
+		$this->config = $config;
+		$this->mailer = $mailer;
+		$this->logger = $logger;
+		$this->twoFactorManager = $twoFactorManager;
+		$this->initialState = $initialState;
+		$this->verificationToken = $verificationToken;
+		$this->eventDispatcher = $eventDispatcher;
+		$this->limiter = $limiter;
 	}
 
 	/**
@@ -176,8 +199,6 @@ class LostController extends Controller {
 		if ($this->config->getSystemValue('lost_password_link', '') !== '') {
 			return new JSONResponse($this->error($this->l10n->t('Password reset is disabled')));
 		}
-
-		$user = trim($user);
 
 		\OCP\Util::emitHook(
 			'\OCA\Files_Sharing\API\Server2Server',

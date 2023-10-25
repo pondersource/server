@@ -46,16 +46,14 @@ class File extends Node implements \OCP\Files\File {
 	/**
 	 * @return string
 	 * @throws NotPermittedException
-	 * @throws GenericFileException
 	 * @throws LockedException
 	 */
 	public function getContent() {
 		if ($this->checkPermissions(\OCP\Constants::PERMISSION_READ)) {
-			$content = $this->view->file_get_contents($this->path);
-			if ($content === false) {
-				throw new GenericFileException();
-			}
-			return $content;
+			/**
+			 * @var \OC\Files\Storage\Storage $storage;
+			 */
+			return $this->view->file_get_contents($this->path);
 		} else {
 			throw new NotPermittedException();
 		}
@@ -64,7 +62,7 @@ class File extends Node implements \OCP\Files\File {
 	/**
 	 * @param string|resource $data
 	 * @throws NotPermittedException
-	 * @throws GenericFileException
+	 * @throws \OCP\Files\GenericFileException
 	 * @throws LockedException
 	 */
 	public function putContent($data) {
@@ -82,7 +80,7 @@ class File extends Node implements \OCP\Files\File {
 
 	/**
 	 * @param string $mode
-	 * @return resource|false
+	 * @return resource
 	 * @throws NotPermittedException
 	 * @throws LockedException
 	 */

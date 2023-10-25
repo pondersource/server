@@ -42,21 +42,21 @@ OC.MimeType = {
 		var icon = mimeType.replace(new RegExp('/', 'g'), '-');
 
 		// Generate path
-		if (mimeType === 'dir' && files.includes('folder')) {
+		if (mimeType === 'dir' && $.inArray('folder', files) !== -1) {
 			return 'folder';
-		} else if (mimeType === 'dir-encrypted' && files.includes('folder-encrypted')) {
+		} else if (mimeType === 'dir-encrypted' && $.inArray('folder-encrypted', files) !== -1) {
 			return 'folder-encrypted';
-		} else if (mimeType === 'dir-shared' && files.includes('folder-shared')) {
+		} else if (mimeType === 'dir-shared' && $.inArray('folder-shared', files) !== -1) {
 			return 'folder-shared';
-		} else if (mimeType === 'dir-public' && files.includes('folder-public')) {
+		} else if (mimeType === 'dir-public' && $.inArray('folder-public', files) !== -1) {
 			return 'folder-public';
-		} else if ((mimeType === 'dir-external' || mimeType === 'dir-external-root') && files.includes('folder-external')) {
+		} else if ((mimeType === 'dir-external' || mimeType === 'dir-external-root') && $.inArray('folder-external', files) !== -1) {
 			return 'folder-external';
-		} else if (files.includes(icon)) {
+		} else if ($.inArray(icon, files) !== -1) {
 			return icon;
-		} else if (files.includes(icon.split('-')[0])) {
+		} else if ($.inArray(icon.split('-')[0], files) !== -1) {
 			return icon.split('-')[0];
-		} else if (files.includes('file')) {
+		} else if ($.inArray('file', files) !== -1) {
 			return 'file';
 		}
 
@@ -70,7 +70,7 @@ OC.MimeType = {
 	 * @return {string} Url to the icon for mimeType
 	 */
 	getIconUrl: function(mimeType) {
-		if (typeof mimeType === 'undefined') {
+		if (_.isUndefined(mimeType)) {
 			return undefined;
 		}
 
@@ -84,7 +84,7 @@ OC.MimeType = {
 		// First try to get the correct icon from the current theme
 		var gotIcon = null;
 		var path = '';
-		if (OC.theme.folder !== '' && Array.isArray(OC.MimeTypeList.themes[OC.theme.folder])) {
+		if (OC.theme.folder !== '' && $.isArray(OC.MimeTypeList.themes[OC.theme.folder])) {
 			path = OC.getRootPath() + '/themes/' + OC.theme.folder + '/core/img/filetypes/';
 			var icon = OC.MimeType._getFile(mimeType, OC.MimeTypeList.themes[OC.theme.folder]);
 

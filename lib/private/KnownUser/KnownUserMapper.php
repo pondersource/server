@@ -30,8 +30,6 @@ use OCP\IDBConnection;
 
 /**
  * @method KnownUser mapRowToEntity(array $row)
- *
- * @template-extends QBMapper<KnownUser>
  */
 class KnownUserMapper extends QBMapper {
 	/**

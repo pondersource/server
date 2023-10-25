@@ -245,6 +245,15 @@ class OC_Defaults {
 	}
 
 	/**
+	 * Returns logo claim
+	 * @return string logo claim
+	 * @deprecated 13.0.0
+	 */
+	public function getLogoClaim() {
+		return '';
+	}
+
+	/**
 	 * Returns short version of the footer
 	 * @return string short footer
 	 */
@@ -325,9 +334,9 @@ class OC_Defaults {
 		}
 
 		if ($useSvg) {
-			$logo = \OC::$server->getURLGenerator()->imagePath('core', 'logo/logo.svg');
+			$logo = \OC::$server->getURLGenerator()->imagePath('core', 'logo/logo-enterprise.svg');
 		} else {
-			$logo = \OC::$server->getURLGenerator()->imagePath('core', 'logo/logo.png');
+			$logo = \OC::$server->getURLGenerator()->imagePath('core', 'logo/logo-enterprise.png');
 		}
 		return $logo . '?v=' . hash('sha1', implode('.', \OCP\Util::getVersion()));
 	}

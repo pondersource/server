@@ -3,7 +3,6 @@
  * @copyright Copyright (c) 2017 Bjoern Schiessle <bjoern@schiessle.org>
  *
  * @author Bjoern Schiessle <bjoern@schiessle.org>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -38,20 +37,8 @@ class Capabilities implements ICapability {
 	/**
 	 * Function an app uses to return the capabilities
 	 *
-	 * @return array{
-	 *     ocm: array{
-	 *         enabled: bool,
-	 *         apiVersion: string,
-	 *         endPoint: string,
-	 *         resourceTypes: array{
-	 *             name: string,
-	 *             shareTypes: string[],
-	 *             protocols: array{
-	 *                 webdav: string,
-	 *	           },
-	 *	       }[],
-	 *	   },
-	 * }
+	 * @return array Array containing the apps capabilities
+	 * @since 8.2.0
 	 */
 	public function getCapabilities() {
 		$url = $this->urlGenerator->linkToRouteAbsolute('cloud_federation_api.requesthandlercontroller.addShare');

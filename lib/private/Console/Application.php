@@ -33,24 +33,24 @@ namespace OC\Console;
 use OC\MemoryInfo;
 use OC\NeedsUpdateException;
 use OC_App;
+use OCP\AppFramework\QueryException;
 use OCP\App\IAppManager;
 use OCP\Console\ConsoleEvent;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
 use OCP\IRequest;
-use Psr\Container\ContainerExceptionInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class Application {
 	/** @var IConfig */
 	private $config;
 	private SymfonyApplication $application;
-	/** @var IEventDispatcher */
+	/** @var EventDispatcherInterface */
 	private $dispatcher;
 	/** @var IRequest */
 	private $request;
@@ -60,7 +60,7 @@ class Application {
 	private $memoryInfo;
 
 	public function __construct(IConfig $config,
-								IEventDispatcher $dispatcher,
+								EventDispatcherInterface $dispatcher,
 								IRequest $request,
 								LoggerInterface $logger,
 								MemoryInfo $memoryInfo) {
@@ -112,7 +112,7 @@ class Application {
 
 		try {
 			require_once __DIR__ . '/../../../core/register_command.php';
-			if ($this->config->getSystemValueBool('installed', false)) {
+			if ($this->config->getSystemValue('installed', false)) {
 				if (\OCP\Util::needUpgrade()) {
 					throw new NeedsUpdateException();
 				} elseif ($this->config->getSystemValueBool('maintenance')) {
@@ -204,20 +204,18 @@ class Application {
 	 * @throws \Exception
 	 */
 	public function run(InputInterface $input = null, OutputInterface $output = null) {
-		$event = new ConsoleEvent(
+		$this->dispatcher->dispatch(ConsoleEvent::EVENT_RUN, new ConsoleEvent(
 			ConsoleEvent::EVENT_RUN,
 			$this->request->server['argv']
-		);
-		$this->dispatcher->dispatchTyped($event);
-		$this->dispatcher->dispatch(ConsoleEvent::EVENT_RUN, $event);
+		));
 		return $this->application->run($input, $output);
 	}
 
 	private function loadCommandsFromInfoXml($commands) {
 		foreach ($commands as $command) {
 			try {
-				$c = \OCP\Server::get($command);
-			} catch (ContainerExceptionInterface $e) {
+				$c = \OC::$server->query($command);
+			} catch (QueryException $e) {
 				if (class_exists($command)) {
 					try {
 						$c = new $command();

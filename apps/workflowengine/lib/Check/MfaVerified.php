@@ -61,7 +61,7 @@ class MfaVerified implements ICheck{
 		if (!empty($this->session->get("two_factor_auth_passed"))){
 			$mfaVerified = '1';
 		}
-		
+
 		if ($operator === 'is') {
 			return $mfaVerified === '1'; // checking whether the current user is MFA-verified
 		} else {

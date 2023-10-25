@@ -42,13 +42,13 @@ use OCP\AppFramework\Db\Entity;
  * @method void setStatusTimestamp(int $statusTimestamp)
  * @method bool getIsUserDefined()
  * @method void setIsUserDefined(bool $isUserDefined)
- * @method string|null getMessageId()
+ * @method string getMessageId()
  * @method void setMessageId(string|null $messageId)
- * @method string|null getCustomIcon()
+ * @method string getCustomIcon()
  * @method void setCustomIcon(string|null $customIcon)
- * @method string|null getCustomMessage()
+ * @method string getCustomMessage()
  * @method void setCustomMessage(string|null $customMessage)
- * @method int|null getClearAt()
+ * @method int getClearAt()
  * @method void setClearAt(int|null $clearAt)
  * @method setIsBackup(bool $true): void
  * @method getIsBackup(): bool

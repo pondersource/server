@@ -39,11 +39,13 @@ class Account implements IAccount {
 	use TAccountsHelper;
 
 	/** @var IAccountPropertyCollection[]|IAccountProperty[] */
-	private array $properties = [];
+	private $properties = [];
 
-	public function __construct(
-		private IUser $user,
-	) {
+	/** @var IUser */
+	private $user;
+
+	public function __construct(IUser $user) {
+		$this->user = $user;
 	}
 
 	public function setProperty(string $property, string $value, string $scope, string $verified, string $verificationData = ''): IAccount {

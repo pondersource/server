@@ -62,71 +62,71 @@ $application->registerRoutes(
 				'root' => '',
 			],
 			[
-				'name' => 'Api#getThumbnail',
+				'name' => 'API#getThumbnail',
 				'url' => '/api/v1/thumbnail/{x}/{y}/{file}',
 				'verb' => 'GET',
 				'requirements' => ['file' => '.+']
 			],
 			[
-				'name' => 'Api#updateFileTags',
+				'name' => 'API#updateFileTags',
 				'url' => '/api/v1/files/{path}',
 				'verb' => 'POST',
 				'requirements' => ['path' => '.+'],
 			],
 			[
-				'name' => 'Api#getRecentFiles',
+				'name' => 'API#getRecentFiles',
 				'url' => '/api/v1/recent/',
 				'verb' => 'GET'
 			],
 			[
-				'name' => 'Api#getStorageStats',
+				'name' => 'API#getStorageStats',
 				'url' => '/api/v1/stats',
 				'verb' => 'GET'
 			],
 			[
-				'name' => 'Api#setViewConfig',
-				'url' => '/api/v1/views/{view}/{key}',
-				'verb' => 'PUT'
-			],
-			[
-				'name' => 'Api#getViewConfigs',
-				'url' => '/api/v1/views',
-				'verb' => 'GET'
-			],
-			[
-				'name' => 'Api#getViewConfig',
-				'url' => '/api/v1/views/{view}',
-				'verb' => 'GET'
-			],
-			[
-				'name' => 'Api#setConfig',
+				'name' => 'API#setConfig',
 				'url' => '/api/v1/config/{key}',
-				'verb' => 'PUT'
+				'verb' => 'POST'
 			],
 			[
-				'name' => 'Api#getConfigs',
+				'name' => 'API#getConfigs',
 				'url' => '/api/v1/configs',
 				'verb' => 'GET'
 			],
 			[
-				'name' => 'Api#showHiddenFiles',
+				'name' => 'API#updateFileSorting',
+				'url' => '/api/v1/sorting',
+				'verb' => 'POST'
+			],
+			[
+				'name' => 'API#showHiddenFiles',
 				'url' => '/api/v1/showhidden',
 				'verb' => 'POST'
 			],
 			[
-				'name' => 'Api#cropImagePreviews',
+				'name' => 'API#cropImagePreviews',
 				'url' => '/api/v1/cropimagepreviews',
 				'verb' => 'POST'
 			],
 			[
-				'name' => 'Api#showGridView',
+				'name' => 'API#showGridView',
 				'url' => '/api/v1/showgridview',
 				'verb' => 'POST'
 			],
 			[
-				'name' => 'Api#getGridView',
+				'name' => 'API#getGridView',
 				'url' => '/api/v1/showgridview',
 				'verb' => 'GET'
+			],
+			[
+				'name' => 'API#toggleShowFolder',
+				'url' => '/api/v1/toggleShowFolder/{key}',
+				'verb' => 'POST'
+			],
+			[
+				'name' => 'API#getNodeType',
+				'url' => '/api/v1/quickaccess/get/NodeType',
+				'verb' => 'GET',
 			],
 			[
 				'name' => 'DirectEditingView#edit',
@@ -134,19 +134,16 @@ $application->registerRoutes(
 				'verb' => 'GET'
 			],
 			[
-				'name' => 'Api#serviceWorker',
-				'url' => '/preview-service-worker.js',
-				'verb' => 'GET'
-			],
-			[
-				'name' => 'view#indexView',
+				'name' => 'view#index',
 				'url' => '/{view}',
 				'verb' => 'GET',
+				'postfix' => 'view',
 			],
 			[
-				'name' => 'view#indexViewFileid',
+				'name' => 'view#index',
 				'url' => '/{view}/{fileid}',
 				'verb' => 'GET',
+				'postfix' => 'fileid',
 			],
 		],
 		'ocs' => [

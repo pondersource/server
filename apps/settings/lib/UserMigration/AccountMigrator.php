@@ -84,7 +84,7 @@ class AccountMigrator implements IMigrator, ISizeEstimationMigrator {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function getEstimatedExportSize(IUser $user): int|float {
+	public function getEstimatedExportSize(IUser $user): int {
 		$size = 100; // 100KiB for account JSON
 
 		try {
@@ -97,7 +97,7 @@ class AccountMigrator implements IMigrator, ISizeEstimationMigrator {
 			// Skip avatar in size estimate on failure
 		}
 
-		return ceil($size);
+		return (int)ceil($size);
 	}
 
 	/**

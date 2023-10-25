@@ -1,0 +1,25 @@
+OC.L10N.register(
+    "login_notes",
+    {
+    "Login notes" : "הערות כניסה",
+    "Display notes on log-in page" : "הצגת הערות בעמוד הכניסה",
+    "This app will show admin defined notes the log-in page" : "יישום זה יציג הערות שהוגדרו על ידי ההנהלה בעמוד הכניסה",
+    "Enter the text for the updated login note here. Markdown supported." : "נא למלא הודעה להערת הכניסה העדכנית. יש תמיכה ב־Markdown.",
+    "Update note" : "עדכון הערה",
+    "Cancel" : "ביטול",
+    "Edit" : "עריכה",
+    "Delete" : "מחיקה",
+    "Notes on login screen" : "הערות בעמוד הכניסה",
+    "Text alignment" : "יישור טקסט",
+    "Aligned" : "מיושר",
+    "Note content will be aligned to left (or right with RTL languages)." : "תוכן ההערה ייושר לימין (או לשמאל לשפות LTR).",
+    "Centered" : "ממורכז",
+    "Note content will be centered." : "תוכן ההערה יהיה ממורכז.",
+    "Notes list" : "רשימת הערות",
+    "These notes will be shown on the login screen." : "ההערות האלו תופענה בעמוד הכניסה.",
+    "No notes yet" : "אין הערות עדיין",
+    "New login note" : "הערת כניסה חדשה",
+    "Enter the text for your new login note here. Markdown supported." : "נא למלא את טקסט הערת הכניסה החדשה שלך להלן. יש תמיכה ב־Markdown.",
+    "Add new note" : "הוסף פתק חדש"
+},
+"nplurals=4; plural=(n == 1) ? 0 : ((n == 2) ? 1 : ((n > 10 && n % 10 == 0) ? 2 : 3));");

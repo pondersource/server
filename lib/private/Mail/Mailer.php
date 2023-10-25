@@ -57,6 +57,7 @@ use Symfony\Component\Mailer\Transport\SendmailTransport;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
 use Symfony\Component\Mime\Email;
+use Symfony\Component\Mime\Exception\InvalidArgumentException;
 use Symfony\Component\Mime\Exception\RfcComplianceException;
 
 /**
@@ -79,23 +80,37 @@ use Symfony\Component\Mime\Exception\RfcComplianceException;
  */
 class Mailer implements IMailer {
 	private ?MailerInterface $instance = null;
+	private IConfig $config;
+	private LoggerInterface $logger;
+	private Defaults $defaults;
+	private IURLGenerator $urlGenerator;
+	private IL10N $l10n;
+	private IEventDispatcher $dispatcher;
+	private IFactory $l10nFactory;
 
-	public function __construct(
-		private IConfig          $config,
-		private LoggerInterface  $logger,
-		private Defaults         $defaults,
-		private IURLGenerator    $urlGenerator,
-		private IL10N            $l10n,
-		private IEventDispatcher $dispatcher,
-		private IFactory         $l10nFactory,
-	) {
+	public function __construct(IConfig $config,
+						 LoggerInterface $logger,
+						 Defaults $defaults,
+						 IURLGenerator $urlGenerator,
+						 IL10N $l10n,
+						 IEventDispatcher $dispatcher,
+						 IFactory $l10nFactory) {
+		$this->config = $config;
+		$this->logger = $logger;
+		$this->defaults = $defaults;
+		$this->urlGenerator = $urlGenerator;
+		$this->l10n = $l10n;
+		$this->dispatcher = $dispatcher;
+		$this->l10nFactory = $l10nFactory;
 	}
 
 	/**
 	 * Creates a new message object that can be passed to send()
+	 *
+	 * @return Message
 	 */
 	public function createMessage(): Message {
-		$plainTextOnly = $this->config->getSystemValueBool('mail_send_plaintext_only', false);
+		$plainTextOnly = $this->config->getSystemValue('mail_send_plaintext_only', false);
 		return new Message(new Email(), $plainTextOnly);
 	}
 
@@ -103,6 +118,7 @@ class Mailer implements IMailer {
 	 * @param string|null $data
 	 * @param string|null $filename
 	 * @param string|null $contentType
+	 * @return IAttachment
 	 * @since 13.0.0
 	 */
 	public function createAttachment($data = null, $filename = null, $contentType = null): IAttachment {
@@ -110,7 +126,9 @@ class Mailer implements IMailer {
 	}
 
 	/**
+	 * @param string $path
 	 * @param string|null $contentType
+	 * @return IAttachment
 	 * @since 13.0.0
 	 */
 	public function createAttachmentFromPath(string $path, $contentType = null): IAttachment {
@@ -120,10 +138,13 @@ class Mailer implements IMailer {
 	/**
 	 * Creates a new email template object
 	 *
+	 * @param string $emailId
+	 * @param array $data
+	 * @return IEMailTemplate
 	 * @since 12.0.0
 	 */
 	public function createEMailTemplate(string $emailId, array $data = []): IEMailTemplate {
-		$class = $this->config->getSystemValueString('mail_template_class', '');
+		$class = $this->config->getSystemValue('mail_template_class', '');
 
 		if ($class !== '' && class_exists($class) && is_a($class, EMailTemplate::class, true)) {
 			return new $class(
@@ -155,10 +176,10 @@ class Mailer implements IMailer {
 	 * @return string[] $failedRecipients
 	 */
 	public function send(IMessage $message): array {
-		$debugMode = $this->config->getSystemValueBool('mail_smtpdebug', false);
+		$debugMode = $this->config->getSystemValue('mail_smtpdebug', false);
 
 		if (!($message instanceof Message)) {
-			throw new \InvalidArgumentException('Object not of type ' . Message::class);
+			throw new InvalidArgumentException('Object not of type ' . Message::class);
 		}
 
 		if (empty($message->getFrom())) {
@@ -171,7 +192,7 @@ class Mailer implements IMailer {
 
 		try {
 			$message->setRecipients();
-		} catch (\InvalidArgumentException|RfcComplianceException $e) {
+		} catch (InvalidArgumentException|RfcComplianceException $e) {
 			$logMessage = sprintf(
 				'Could not send mail to "%s" with subject "%s" as validation for address failed',
 				print_r(array_merge($message->getTo(), $message->getCc(), $message->getBcc()), true),
@@ -246,7 +267,7 @@ class Mailer implements IMailer {
 
 		$transport = null;
 
-		switch ($this->config->getSystemValueString('mail_smtpmode', 'smtp')) {
+		switch ($this->config->getSystemValue('mail_smtpmode', 'smtp')) {
 			case 'sendmail':
 				$transport = $this->getSendMailInstance();
 				break;
@@ -317,7 +338,7 @@ class Mailer implements IMailer {
 	 * @return SendmailTransport
 	 */
 	protected function getSendMailInstance(): SendmailTransport {
-		switch ($this->config->getSystemValueString('mail_smtpmode', 'smtp')) {
+		switch ($this->config->getSystemValue('mail_smtpmode', 'smtp')) {
 			case 'qmail':
 				$binaryPath = '/var/qmail/bin/sendmail';
 				break;
@@ -330,10 +351,14 @@ class Mailer implements IMailer {
 				break;
 		}
 
-		$binaryParam = match ($this->config->getSystemValueString('mail_sendmailmode', 'smtp')) {
-			'pipe' => ' -t',
-			default => ' -bs',
-		};
+		switch ($this->config->getSystemValue('mail_sendmailmode', 'smtp')) {
+			case 'pipe':
+				$binaryParam = ' -t';
+				break;
+			default:
+				$binaryParam = ' -bs';
+				break;
+		}
 
 		return new SendmailTransport($binaryPath . $binaryParam, null, $this->logger);
 	}

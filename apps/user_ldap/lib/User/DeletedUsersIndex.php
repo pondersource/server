@@ -24,7 +24,6 @@
 namespace OCA\User_LDAP\User;
 
 use OCA\User_LDAP\Mapping\UserMapping;
-use OCP\IConfig;
 use OCP\Share\IManager;
 
 /**
@@ -32,16 +31,24 @@ use OCP\Share\IManager;
  * @package OCA\User_LDAP
  */
 class DeletedUsersIndex {
-	protected IConfig $config;
-	protected UserMapping $mapping;
-	protected ?array $deletedUsers = null;
-	private IManager $shareManager;
+	/**
+	 * @var \OCP\IConfig $config
+	 */
+	protected $config;
 
-	public function __construct(
-		IConfig $config,
-		UserMapping $mapping,
-		IManager $shareManager
-	) {
+	/**
+	 * @var \OCA\User_LDAP\Mapping\UserMapping $mapping
+	 */
+	protected $mapping;
+
+	/**
+	 * @var array $deletedUsers
+	 */
+	protected $deletedUsers;
+	/** @var IManager */
+	private $shareManager;
+
+	public function __construct(\OCP\IConfig $config, UserMapping $mapping, IManager $shareManager) {
 		$this->config = $config;
 		$this->mapping = $mapping;
 		$this->shareManager = $shareManager;
@@ -49,10 +56,11 @@ class DeletedUsersIndex {
 
 	/**
 	 * reads LDAP users marked as deleted from the database
-	 * @return OfflineUser[]
+	 * @return \OCA\User_LDAP\User\OfflineUser[]
 	 */
-	private function fetchDeletedUsers(): array {
-		$deletedUsers = $this->config->getUsersForUserValue('user_ldap', 'isDeleted', '1');
+	private function fetchDeletedUsers() {
+		$deletedUsers = $this->config->getUsersForUserValue(
+			'user_ldap', 'isDeleted', '1');
 
 		$userObjects = [];
 		foreach ($deletedUsers as $user) {
@@ -65,9 +73,9 @@ class DeletedUsersIndex {
 
 	/**
 	 * returns all LDAP users that are marked as deleted
-	 * @return OfflineUser[]
+	 * @return \OCA\User_LDAP\User\OfflineUser[]
 	 */
-	public function getUsers(): array {
+	public function getUsers() {
 		if (is_array($this->deletedUsers)) {
 			return $this->deletedUsers;
 		}
@@ -76,8 +84,9 @@ class DeletedUsersIndex {
 
 	/**
 	 * whether at least one user was detected as deleted
+	 * @return bool
 	 */
-	public function hasUsers(): bool {
+	public function hasUsers() {
 		if (!is_array($this->deletedUsers)) {
 			$this->fetchDeletedUsers();
 		}
@@ -87,19 +96,17 @@ class DeletedUsersIndex {
 	/**
 	 * marks a user as deleted
 	 *
+	 * @param string $ocName
 	 * @throws \OCP\PreConditionNotMetException
 	 */
-	public function markUser(string $ocName): void {
-		if ($this->isUserMarked($ocName)) {
+	public function markUser($ocName) {
+		$curValue = $this->config->getUserValue($ocName, 'user_ldap', 'isDeleted', '0');
+		if ($curValue === '1') {
 			// the user is already marked, do not write to DB again
 			return;
 		}
 		$this->config->setUserValue($ocName, 'user_ldap', 'isDeleted', '1');
 		$this->config->setUserValue($ocName, 'user_ldap', 'foundDeleted', (string)time());
 		$this->deletedUsers = null;
-	}
-
-	public function isUserMarked(string $ocName): bool {
-		return ($this->config->getUserValue($ocName, 'user_ldap', 'isDeleted', '0') === '1');
 	}
 }

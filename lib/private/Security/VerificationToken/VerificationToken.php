@@ -39,13 +39,29 @@ use function json_encode;
 class VerificationToken implements IVerificationToken {
 	protected const TOKEN_LIFETIME = 60 * 60 * 24 * 7;
 
+	/** @var IConfig */
+	private $config;
+	/** @var ICrypto */
+	private $crypto;
+	/** @var ITimeFactory */
+	private $timeFactory;
+	/** @var ISecureRandom */
+	private $secureRandom;
+	/** @var IJobList */
+	private $jobList;
+
 	public function __construct(
-		private IConfig $config,
-		private ICrypto $crypto,
-		private ITimeFactory $timeFactory,
-		private ISecureRandom $secureRandom,
-		private IJobList $jobList
+		IConfig $config,
+		ICrypto $crypto,
+		ITimeFactory $timeFactory,
+		ISecureRandom $secureRandom,
+		IJobList $jobList
 	) {
+		$this->config = $config;
+		$this->crypto = $crypto;
+		$this->timeFactory = $timeFactory;
+		$this->secureRandom = $secureRandom;
+		$this->jobList = $jobList;
 	}
 
 	/**
@@ -55,13 +71,7 @@ class VerificationToken implements IVerificationToken {
 		throw new InvalidTokenException($code);
 	}
 
-	public function check(
-		string $token,
-		?IUser $user,
-		string $subject,
-		string $passwordPrefix = '',
-		bool $expiresWithLogin = false,
-	): void {
+	public function check(string $token, ?IUser $user, string $subject, string $passwordPrefix = '', bool $expiresWithLogin = false): void {
 		if ($user === null || !$user->isEnabled()) {
 			$this->throwInvalidTokenException(InvalidTokenException::USER_UNKNOWN);
 		}
@@ -72,7 +82,7 @@ class VerificationToken implements IVerificationToken {
 		}
 
 		try {
-			$decryptedToken = $this->crypto->decrypt($encryptedToken, $passwordPrefix.$this->config->getSystemValueString('secret'));
+			$decryptedToken = $this->crypto->decrypt($encryptedToken, $passwordPrefix.$this->config->getSystemValue('secret'));
 		} catch (\Exception $e) {
 			// Retry with empty secret as a fallback for instances where the secret might not have been set by accident
 			try {
@@ -97,11 +107,7 @@ class VerificationToken implements IVerificationToken {
 		}
 	}
 
-	public function create(
-		IUser $user,
-		string $subject,
-		string $passwordPrefix = '',
-	): string {
+	public function create(IUser $user, string $subject, string $passwordPrefix = ''): string {
 		$token = $this->secureRandom->generate(
 			21,
 			ISecureRandom::CHAR_DIGITS.
@@ -109,7 +115,7 @@ class VerificationToken implements IVerificationToken {
 			ISecureRandom::CHAR_UPPER
 		);
 		$tokenValue = $this->timeFactory->getTime() .':'. $token;
-		$encryptedValue = $this->crypto->encrypt($tokenValue, $passwordPrefix . $this->config->getSystemValueString('secret'));
+		$encryptedValue = $this->crypto->encrypt($tokenValue, $passwordPrefix . $this->config->getSystemValue('secret'));
 		$this->config->setUserValue($user->getUID(), 'core', $subject, $encryptedValue);
 		$jobArgs = json_encode([
 			'userId' => $user->getUID(),

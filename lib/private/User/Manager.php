@@ -55,6 +55,7 @@ use OCP\User\Backend\ICountUsersBackend;
 use OCP\User\Events\BeforeUserCreatedEvent;
 use OCP\User\Events\UserCreatedEvent;
 use OCP\UserInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class Manager
@@ -87,6 +88,9 @@ class Manager extends PublicEmitter implements IUserManager {
 	/** @var IConfig */
 	private $config;
 
+	/** @var EventDispatcherInterface */
+	private $dispatcher;
+
 	/** @var ICache */
 	private $cache;
 
@@ -96,9 +100,11 @@ class Manager extends PublicEmitter implements IUserManager {
 	private DisplayNameCache $displayNameCache;
 
 	public function __construct(IConfig $config,
+								EventDispatcherInterface $oldDispatcher,
 								ICacheFactory $cacheFactory,
 								IEventDispatcher $eventDispatcher) {
 		$this->config = $config;
+		$this->dispatcher = $oldDispatcher;
 		$this->cache = new WithLocalCache($cacheFactory->createDistributed('user_backend_map'));
 		$cachedUsers = &$this->cachedUsers;
 		$this->listen('\OC\User', 'postDelete', function ($user) use (&$cachedUsers) {
@@ -196,7 +202,7 @@ class Manager extends PublicEmitter implements IUserManager {
 	 * @param bool $cacheUser If false the newly created user object will not be cached
 	 * @return \OC\User\User
 	 */
-	public function getUserObject($uid, $backend, $cacheUser = true) {
+	protected function getUserObject($uid, $backend, $cacheUser = true) {
 		if ($backend instanceof IGetRealUIDBackend) {
 			$uid = $backend->getRealUID($uid);
 		}
@@ -205,7 +211,7 @@ class Manager extends PublicEmitter implements IUserManager {
 			return $this->cachedUsers[$uid];
 		}
 
-		$user = new User($uid, $backend, $this->eventDispatcher, $this, $this->config);
+		$user = new User($uid, $backend, $this->dispatcher, $this, $this->config);
 		if ($cacheUser) {
 			$this->cachedUsers[$uid] = $user;
 		}
@@ -287,13 +293,12 @@ class Manager extends PublicEmitter implements IUserManager {
 	}
 
 	/**
-	 * Search by user id
+	 * search by user id
 	 *
 	 * @param string $pattern
 	 * @param int $limit
 	 * @param int $offset
-	 * @return IUser[]
-	 * @deprecated since 27.0.0, use searchDisplayName instead
+	 * @return \OC\User\User[]
 	 */
 	public function search($pattern, $limit = null, $offset = null) {
 		$users = [];
@@ -301,24 +306,28 @@ class Manager extends PublicEmitter implements IUserManager {
 			$backendUsers = $backend->getUsers($pattern, $limit, $offset);
 			if (is_array($backendUsers)) {
 				foreach ($backendUsers as $uid) {
-					$users[$uid] = new LazyUser($uid, $this, null, $backend);
+					$users[$uid] = $this->getUserObject($uid, $backend);
 				}
 			}
 		}
 
-		uasort($users, function (IUser $a, IUser $b) {
+		uasort($users, function ($a, $b) {
+			/**
+			 * @var \OC\User\User $a
+			 * @var \OC\User\User $b
+			 */
 			return strcasecmp($a->getUID(), $b->getUID());
 		});
 		return $users;
 	}
 
 	/**
-	 * Search by displayName
+	 * search by displayName
 	 *
 	 * @param string $pattern
 	 * @param int $limit
 	 * @param int $offset
-	 * @return IUser[]
+	 * @return \OC\User\User[]
 	 */
 	public function searchDisplayName($pattern, $limit = null, $offset = null) {
 		$users = [];
@@ -326,12 +335,16 @@ class Manager extends PublicEmitter implements IUserManager {
 			$backendUsers = $backend->getDisplayNames($pattern, $limit, $offset);
 			if (is_array($backendUsers)) {
 				foreach ($backendUsers as $uid => $displayName) {
-					$users[] = new LazyUser($uid, $this, $displayName, $backend);
+					$users[] = $this->getUserObject($uid, $backend);
 				}
 			}
 		}
 
-		usort($users, function (IUser $a, IUser $b) {
+		usort($users, function ($a, $b) {
+			/**
+			 * @var \OC\User\User $a
+			 * @var \OC\User\User $b
+			 */
 			return strcasecmp($a->getDisplayName(), $b->getDisplayName());
 		});
 		return $users;

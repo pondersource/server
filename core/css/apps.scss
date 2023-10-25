@@ -21,11 +21,9 @@
 
 
 :root {
-	/* - 2px is required for making it look nice */
-	--border-radius-rounded: calc(var(--default-clickable-area) / 2 + var(--default-grid-baseline) * 2 - 2px);
-
-	--body-container-radius: var(--border-radius-rounded);
 	--body-container-margin: calc(var(--default-grid-baseline) * 2);
+	/* - 2px is required for making it look nice */
+	--body-container-radius: calc(var(--default-clickable-area) / 2 + var(--default-grid-baseline) * 2 - 2px);
 	--body-height: calc(100% - env(safe-area-inset-bottom) - 50px - var(--body-container-margin));
 }
 
@@ -210,7 +208,7 @@ kbd {
 				}
 			}
 			a:focus-visible {
-				box-shadow: var(--color-primary-element) inset 0 0 0 2px;
+				box-shadow: var(--color-primary) inset 0 0 0 2px;
 				outline: none;
 			}
 			&.active,
@@ -219,8 +217,7 @@ kbd {
 			a.active {
 				&,
 				> a {
-					background-color: var(--color-primary-element);
-					color: var(--color-primary-element-text);
+					background-color: var(--color-primary-light);
 				}
 			}
 
@@ -279,7 +276,7 @@ kbd {
 						&,
 						> a {
 							border-radius: var(--border-radius-pill);
-							background-color: var(--color-primary-element-light);
+							background-color: var(--color-primary-light);
 						}
 					}
 
@@ -436,7 +433,7 @@ kbd {
 			&:focus-visible {
 				opacity: 1;
 				border-width: 0;
-				box-shadow: inset 0 0 0 2px var(--color-primary-element);
+				box-shadow: inset 0 0 0 2px var(--color-primary);
 				background: none;
 			}
 		}
@@ -536,8 +533,8 @@ kbd {
 				span {
 					padding: 2px 5px;
 					border-radius: 10px;
-					background-color: var(--color-primary-element);
-					color: var(--color-primary-element-text);
+					background-color: var(--color-primary);
+					color: var(--color-primary-text);
 				}
 			}
 		}
@@ -731,10 +728,6 @@ $min-content-width: variables.$breakpoint-mobile - variables.$navigation-width -
 			}
 		}
 	}
-
-	&::-webkit-scrollbar-button {
-		height:  var(--body-container-radius);
-	}
 }
 
 /* APP-SIDEBAR ------------------------------------------------------------ */
@@ -863,7 +856,7 @@ $min-content-width: variables.$breakpoint-mobile - variables.$navigation-width -
 		}
 
 		&:focus-visible {
-			box-shadow: 0 0 0 2px inset var(--color-primary-element) !important;
+			box-shadow: 0 0 0 2px inset var(--color-primary) !important;
 			background-position: 12px center;
 		}
 	}
@@ -1122,7 +1115,7 @@ $outter-margin: math.div($popoveritem-height - $popovericon-size, 2);
 			}
 			&.active {
 				border-radius: var(--border-radius-pill);
-				background-color: var(--color-primary-element-light);
+				background-color: var(--color-primary-light);
 			}
 			/* prevent .action class to break the design */
 			&.action {
@@ -1231,17 +1224,6 @@ $outter-margin: math.div($popoveritem-height - $popovericon-size, 2);
 			> img {
 				width: $popoveritem-height;
 				height: $popoveritem-height;
-			}
-		}
-	}
-}
-
-#contactsmenu .contact .popovermenu {
-	li {
-		> a {
-			> img {
-				width: 16px;
-				height: 16px;
 			}
 		}
 	}
@@ -1429,8 +1411,4 @@ $outter-margin: math.div($popoveritem-height - $popovericon-size, 2);
 	&.selection .app-content-list-item-checkbox.checkbox + label {
 		display: flex;
 	}
-}
-.button.primary.skip-navigation:focus-visible {
-	box-shadow: 0 0 0 4px var(--color-main-background) !important;
-	outline: 2px solid var(--color-main-text) !important;
 }

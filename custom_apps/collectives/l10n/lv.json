@@ -1,0 +1,26 @@
+{ "translations": {
+    "You are not allowed to share %s" : "Jums nav atļauts dalīties %s",
+    "Share link" : "Koplietot saiti",
+    "Unshare" : "Pārtraukt koplietošanu",
+    "Settings" : "Iestatījumi",
+    "Copied" : "Nokopēts",
+    "Members" : "Biedri",
+    "Remove" : "Izņemt",
+    "Loading…" : "Ielādē …",
+    "Permissions" : "Atļaujas",
+    "View" : "Skats",
+    "Edit" : "Rediģēt",
+    "Restore" : "Atjaunot",
+    "Delete permanently" : "Dzēst pavisam",
+    "Cancel" : "Atcelt",
+    "Back" : "Atpakaļ",
+    "Create" : "Izveidot",
+    "Done" : "Pabeigts",
+    "Title" : "Amats",
+    "Deleted" : "Dzēstie",
+    "Download" : "Lejupielādēt",
+    "No other versions available" : "Citas versijas nav pieejamas",
+    "Attachments" : "Pielikumi",
+    "Versions" : "Versijas"
+},"pluralForm" :"nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2);"
+}

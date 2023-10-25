@@ -109,11 +109,6 @@ class DefaultTheme implements ITheme {
 		$colorBoxShadow = $this->util->darken($colorMainBackground, 70);
 		$colorBoxShadowRGB = join(',', $this->util->hexToRGB($colorBoxShadow));
 
-		$colorError = '#d91812';
-		$colorWarning = '#c28900';
-		$colorSuccess = '#2d7b41';
-		$colorInfo = '#0071ad';
-
 		$variables = [
 			'--color-main-background' => $colorMainBackground,
 			'--color-main-background-rgb' => $colorMainBackgroundRGB,
@@ -142,23 +137,16 @@ class DefaultTheme implements ITheme {
 
 			'--color-scrollbar' => 'rgba(' . $colorMainTextRgb . ', .15)',
 
-			// error/warning/success/info feedback colours
-			'--color-error' => $colorError,
-			'--color-error-rgb' => join(',', $this->util->hexToRGB($colorError)),
-			'--color-error-hover' => $this->util->mix($colorError, $colorMainBackground, 75),
-			'--color-error-text' => $this->util->darken($colorError, 4),
-			'--color-warning' => $colorWarning,
-			'--color-warning-rgb' => join(',', $this->util->hexToRGB($colorWarning)),
-			'--color-warning-hover' => $this->util->mix($colorWarning, $colorMainBackground, 60),
-			'--color-warning-text' => $this->util->darken($colorWarning, 8),
-			'--color-success' => $colorSuccess,
-			'--color-success-rgb' => join(',', $this->util->hexToRGB($colorSuccess)),
-			'--color-success-hover' => $this->util->mix($colorSuccess, $colorMainBackground, 78),
-			'--color-success-text' => $this->util->darken($colorSuccess, 4),
-			'--color-info' => $colorInfo,
-			'--color-info-rgb' => join(',', $this->util->hexToRGB($colorInfo)),
-			'--color-info-hover' => $this->util->mix($colorInfo, $colorMainBackground, 80),
-			'--color-info-text' => $this->util->darken($colorInfo, 4),
+			// info/warning/success feedback colours
+			'--color-error' => '#e9322d',
+			'--color-error-rgb' => join(',', $this->util->hexToRGB('#e9322d')),
+			'--color-error-hover' => $this->util->mix('#e9322d', $colorMainBackground, 60),
+			'--color-warning' => '#eca700',
+			'--color-warning-rgb' => join(',', $this->util->hexToRGB('#eca700')),
+			'--color-warning-hover' => $this->util->mix('#eca700', $colorMainBackground, 60),
+			'--color-success' => '#46ba61',
+			'--color-success-rgb' => join(',', $this->util->hexToRGB('#46ba61')),
+			'--color-success-hover' => $this->util->mix('#46ba61', $colorMainBackground, 60),
 
 			// used for the icon loading animation
 			'--color-loading-light' => '#cccccc',
@@ -171,7 +159,7 @@ class DefaultTheme implements ITheme {
 			'--color-border-dark' => $this->util->darken($colorMainBackground, 14),
 			'--color-border-maxcontrast' => $this->util->darken($colorMainBackground, 42),
 
-			'--font-face' => "system-ui, -apple-system, 'Segoe UI', Roboto, Oxygen-Sans, Cantarell, Ubuntu, 'Helvetica Neue', 'Noto Sans', 'Liberation Sans', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'",
+			'--font-face' => "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Cantarell, Ubuntu, 'Helvetica Neue', Arial, sans-serif, 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'",
 			'--default-font-size' => '15px',
 
 			// TODO: support "(prefers-reduced-motion)"
@@ -181,7 +169,6 @@ class DefaultTheme implements ITheme {
 			// Default variables --------------------------------------------
 			'--border-radius' => '3px',
 			'--border-radius-large' => '10px',
-			'--border-radius-rounded' => '28px',
 			// pill-style button, value is large so big buttons also have correct roundness
 			'--border-radius-pill' => '100px',
 

@@ -50,7 +50,7 @@ class CapabilitiesManager {
 	 *
 	 * @param bool $public get public capabilities only
 	 * @throws \InvalidArgumentException
-	 * @return array<string, mixed>
+	 * @return array
 	 */
 	public function getCapabilities(bool $public = false, bool $initialState = false) : array {
 		$capabilities = [];

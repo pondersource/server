@@ -54,23 +54,9 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Collection of useful functions
- *
- * @psalm-type StorageInfo = array{
- *     free: float|int,
- *     mountPoint: string,
- *     mountType: string,
- *     owner: string,
- *     ownerDisplayName: string,
- *     quota: float|int,
- *     relative: float|int,
- *     total: float|int,
- *     used: float|int,
- * }
  */
 class OC_Helper {
 	private static $templateManager;
-	private static ?ICacheFactory $cacheFactory = null;
-	private static ?bool $quotaIncludeExternalStorage = null;
 
 	/**
 	 * Make a human file size
@@ -472,20 +458,16 @@ class OC_Helper {
 	 * @param \OCP\Files\FileInfo $rootInfo (optional)
 	 * @param bool $includeMountPoints whether to include mount points in the size calculation
 	 * @param bool $useCache whether to use the cached quota values
-	 * @psalm-suppress LessSpecificReturnStatement Legacy code outputs weird types - manually validated that they are correct
-	 * @return StorageInfo
+	 * @return array
 	 * @throws \OCP\Files\NotFoundException
 	 */
 	public static function getStorageInfo($path, $rootInfo = null, $includeMountPoints = true, $useCache = true) {
-		if (!self::$cacheFactory) {
-			self::$cacheFactory = \OC::$server->get(ICacheFactory::class);
-		}
-		$memcache = self::$cacheFactory->createLocal('storage_info');
+		/** @var ICacheFactory $cacheFactory */
+		$cacheFactory = \OC::$server->get(ICacheFactory::class);
+		$memcache = $cacheFactory->createLocal('storage_info');
 
 		// return storage info without adding mount points
-		if (self::$quotaIncludeExternalStorage === null) {
-			self::$quotaIncludeExternalStorage = \OC::$server->getSystemConfig()->getValue('quota_include_external_storage', false);
-		}
+		$includeExtStorage = \OC::$server->getSystemConfig()->getValue('quota_include_external_storage', false);
 
 		$view = Filesystem::getView();
 		if (!$view) {
@@ -502,24 +484,23 @@ class OC_Helper {
 		}
 
 		if (!$rootInfo) {
-			$rootInfo = \OC\Files\Filesystem::getFileInfo($path, self::$quotaIncludeExternalStorage ? 'ext' : false);
+			$rootInfo = \OC\Files\Filesystem::getFileInfo($path, $includeExtStorage ? 'ext' : false);
 		}
 		if (!$rootInfo instanceof \OCP\Files\FileInfo) {
-			throw new \OCP\Files\NotFoundException('The root directory of the user\'s files is missing');
+			throw new \OCP\Files\NotFoundException();
 		}
 		$used = $rootInfo->getSize($includeMountPoints);
 		if ($used < 0) {
-			$used = 0.0;
+			$used = 0;
 		}
-		/** @var int|float $quota */
 		$quota = \OCP\Files\FileInfo::SPACE_UNLIMITED;
 		$mount = $rootInfo->getMountPoint();
 		$storage = $mount->getStorage();
 		$sourceStorage = $storage;
 		if ($storage->instanceOfStorage('\OCA\Files_Sharing\SharedStorage')) {
-			self::$quotaIncludeExternalStorage = false;
+			$includeExtStorage = false;
 		}
-		if (self::$quotaIncludeExternalStorage) {
+		if ($includeExtStorage) {
 			if ($storage->instanceOfStorage('\OC\Files\Storage\Home')
 				|| $storage->instanceOfStorage('\OC\Files\ObjectStore\HomeObjectStoreStorage')
 			) {
@@ -542,9 +523,6 @@ class OC_Helper {
 		}
 		try {
 			$free = $sourceStorage->free_space($rootInfo->getInternalPath());
-			if (is_bool($free)) {
-				$free = 0.0;
-			}
 		} catch (\Exception $e) {
 			if ($path === "") {
 				throw $e;
@@ -571,7 +549,6 @@ class OC_Helper {
 			$relative = 0;
 		}
 
-		/** @var string $ownerId */
 		$ownerId = $storage->getOwner($path);
 		$ownerDisplayName = '';
 		if ($ownerId) {
@@ -603,20 +580,15 @@ class OC_Helper {
 
 	/**
 	 * Get storage info including all mount points and quota
-	 *
-	 * @psalm-suppress LessSpecificReturnStatement Legacy code outputs weird types - manually validated that they are correct
-	 * @return StorageInfo
 	 */
 	private static function getGlobalStorageInfo(int|float $quota, IUser $user, IMountPoint $mount): array {
 		$rootInfo = \OC\Files\Filesystem::getFileInfo('', 'ext');
-		/** @var int|float $used */
 		$used = $rootInfo['size'];
 		if ($used < 0) {
-			$used = 0.0;
+			$used = 0;
 		}
 
 		$total = $quota;
-		/** @var int|float $free */
 		$free = $quota - $used;
 
 		if ($total > 0) {
@@ -626,7 +598,7 @@ class OC_Helper {
 			// prevent division by zero or error codes (negative values)
 			$relative = round(($used / $total) * 10000) / 100;
 		} else {
-			$relative = 0.0;
+			$relative = 0;
 		}
 
 		if (substr_count($mount->getMountPoint(), '/') < 3) {
@@ -662,6 +634,6 @@ class OC_Helper {
 	 * @return bool
 	 */
 	public static function isReadOnlyConfigEnabled() {
-		return \OC::$server->getConfig()->getSystemValueBool('config_is_read_only', false);
+		return \OC::$server->getConfig()->getSystemValue('config_is_read_only', false);
 	}
 }

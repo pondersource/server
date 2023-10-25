@@ -50,19 +50,33 @@ class Manager implements IManager {
 	/**
 	 * @var ICalendar[] holds all registered calendars
 	 */
-	private array $calendars = [];
+	private $calendars = [];
 
 	/**
 	 * @var \Closure[] to call to load/register calendar providers
 	 */
-	private array $calendarLoaders = [];
+	private $calendarLoaders = [];
 
-	public function __construct(
-		private Coordinator $coordinator,
-		private ContainerInterface $container,
-		private LoggerInterface $logger,
-		private ITimeFactory $timeFactory,
-	) {
+	/** @var Coordinator */
+	private $coordinator;
+
+	/** @var ContainerInterface */
+	private $container;
+
+	/** @var LoggerInterface */
+	private $logger;
+
+	private ITimeFactory $timeFactory;
+
+
+	public function __construct(Coordinator $coordinator,
+								ContainerInterface $container,
+								LoggerInterface $logger,
+								ITimeFactory $timeFactory) {
+		$this->coordinator = $coordinator;
+		$this->container = $container;
+		$this->logger = $logger;
+		$this->timeFactory = $timeFactory;
 	}
 
 	/**
@@ -78,13 +92,7 @@ class Manager implements IManager {
 	 * @return array an array of events/journals/todos which are arrays of arrays of key-value-pairs
 	 * @since 13.0.0
 	 */
-	public function search(
-		$pattern,
-		array $searchProperties = [],
-		array $options = [],
-		$limit = null,
-		$offset = null,
-	): array {
+	public function search($pattern, array $searchProperties = [], array $options = [], $limit = null, $offset = null) {
 		$this->loadCalendars();
 		$result = [];
 		foreach ($this->calendars as $calendar) {
@@ -104,25 +112,29 @@ class Manager implements IManager {
 	 * @return bool true if enabled, false if not
 	 * @since 13.0.0
 	 */
-	public function isEnabled(): bool {
+	public function isEnabled() {
 		return !empty($this->calendars) || !empty($this->calendarLoaders);
 	}
 
 	/**
 	 * Registers a calendar
 	 *
+	 * @param ICalendar $calendar
+	 * @return void
 	 * @since 13.0.0
 	 */
-	public function registerCalendar(ICalendar $calendar): void {
+	public function registerCalendar(ICalendar $calendar) {
 		$this->calendars[$calendar->getKey()] = $calendar;
 	}
 
 	/**
 	 * Unregisters a calendar
 	 *
+	 * @param ICalendar $calendar
+	 * @return void
 	 * @since 13.0.0
 	 */
-	public function unregisterCalendar(ICalendar $calendar): void {
+	public function unregisterCalendar(ICalendar $calendar) {
 		unset($this->calendars[$calendar->getKey()]);
 	}
 
@@ -130,18 +142,19 @@ class Manager implements IManager {
 	 * In order to improve lazy loading a closure can be registered which will be called in case
 	 * calendars are actually requested
 	 *
+	 * @param \Closure $callable
+	 * @return void
 	 * @since 13.0.0
 	 */
-	public function register(\Closure $callable): void {
+	public function register(\Closure $callable) {
 		$this->calendarLoaders[] = $callable;
 	}
 
 	/**
 	 * @return ICalendar[]
-	 *
 	 * @since 13.0.0
 	 */
-	public function getCalendars(): array {
+	public function getCalendars() {
 		$this->loadCalendars();
 
 		return array_values($this->calendars);
@@ -149,10 +162,10 @@ class Manager implements IManager {
 
 	/**
 	 * removes all registered calendar instances
-	 *
+	 * @return void
 	 * @since 13.0.0
 	 */
-	public function clear(): void {
+	public function clear() {
 		$this->calendars = [];
 		$this->calendarLoaders = [];
 	}
@@ -160,7 +173,7 @@ class Manager implements IManager {
 	/**
 	 * loads all calendars
 	 */
-	private function loadCalendars(): void {
+	private function loadCalendars() {
 		foreach ($this->calendarLoaders as $callable) {
 			$callable($this);
 		}
@@ -168,6 +181,8 @@ class Manager implements IManager {
 	}
 
 	/**
+	 * @param string $principalUri
+	 * @param array $calendarUris
 	 * @return ICreateFromString[]
 	 */
 	public function getCalendarsForPrincipal(string $principalUri, array $calendarUris = []): array {

@@ -6,7 +6,6 @@
  * @author Julius Härtl <jus@bitgrid.net>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license AGPL-3.0
  *
@@ -31,9 +30,6 @@ use OCP\AppFramework\Http;
  * Class DataDisplayResponse
  *
  * @since 8.1.0
- * @template S of int
- * @template H of array<string, mixed>
- * @template-extends Response<int, array<string, mixed>>
  */
 class DataDisplayResponse extends Response {
 	/**
@@ -45,14 +41,17 @@ class DataDisplayResponse extends Response {
 
 	/**
 	 * @param string $data the data to display
-	 * @param S $statusCode the Http status code, defaults to 200
-	 * @param H $headers additional key value based headers
+	 * @param int $statusCode the Http status code, defaults to 200
+	 * @param array $headers additional key value based headers
 	 * @since 8.1.0
 	 */
-	public function __construct(string $data = '', int $statusCode = Http::STATUS_OK, array $headers = []) {
-		parent::__construct($statusCode, $headers);
+	public function __construct($data = '', $statusCode = Http::STATUS_OK,
+								$headers = []) {
+		parent::__construct();
 
 		$this->data = $data;
+		$this->setStatus($statusCode);
+		$this->setHeaders(array_merge($this->getHeaders(), $headers));
 		$this->addHeader('Content-Disposition', 'inline; filename=""');
 	}
 

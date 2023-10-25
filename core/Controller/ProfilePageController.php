@@ -6,7 +6,6 @@ declare(strict_types=1);
  * @copyright 2021 Christopher Ng <chrng8@gmail.com>
  *
  * @author Christopher Ng <chrng8@gmail.com>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -28,7 +27,6 @@ declare(strict_types=1);
 namespace OC\Core\Controller;
 
 use OC\Profile\ProfileManager;
-use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\Profile\BeforeTemplateRenderedEvent;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\TemplateResponse;
@@ -41,20 +39,34 @@ use OCP\Share\IManager as IShareManager;
 use OCP\UserStatus\IManager as IUserStatusManager;
 use OCP\EventDispatcher\IEventDispatcher;
 
-#[IgnoreOpenAPI]
 class ProfilePageController extends Controller {
+	private IInitialState $initialStateService;
+	private ProfileManager $profileManager;
+	private IShareManager $shareManager;
+	private IUserManager $userManager;
+	private IUserSession $userSession;
+	private IUserStatusManager $userStatusManager;
+	private IEventDispatcher $eventDispatcher;
+
 	public function __construct(
-		string $appName,
+		$appName,
 		IRequest $request,
-		private IInitialState $initialStateService,
-		private ProfileManager $profileManager,
-		private IShareManager $shareManager,
-		private IUserManager $userManager,
-		private IUserSession $userSession,
-		private IUserStatusManager $userStatusManager,
-		private IEventDispatcher $eventDispatcher,
+		IInitialState $initialStateService,
+		ProfileManager $profileManager,
+		IShareManager $shareManager,
+		IUserManager $userManager,
+		IUserSession $userSession,
+		IUserStatusManager $userStatusManager,
+		IEventDispatcher $eventDispatcher
 	) {
 		parent::__construct($appName, $request);
+		$this->initialStateService = $initialStateService;
+		$this->profileManager = $profileManager;
+		$this->shareManager = $shareManager;
+		$this->userManager = $userManager;
+		$this->userSession = $userSession;
+		$this->userStatusManager = $userStatusManager;
+		$this->eventDispatcher = $eventDispatcher;
 	}
 
 	/**

@@ -28,7 +28,6 @@
 namespace OCP\DB\QueryBuilder;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\ParameterType;
 use OCP\DB\Exception;
 use OCP\DB\IResult;
 
@@ -42,23 +41,23 @@ interface IQueryBuilder {
 	/**
 	 * @since 9.0.0
 	 */
-	public const PARAM_NULL = ParameterType::NULL;
+	public const PARAM_NULL = \PDO::PARAM_NULL;
 	/**
 	 * @since 9.0.0
 	 */
-	public const PARAM_BOOL = ParameterType::BOOLEAN;
+	public const PARAM_BOOL = \PDO::PARAM_BOOL;
 	/**
 	 * @since 9.0.0
 	 */
-	public const PARAM_INT = ParameterType::INTEGER;
+	public const PARAM_INT = \PDO::PARAM_INT;
 	/**
 	 * @since 9.0.0
 	 */
-	public const PARAM_STR = ParameterType::STRING;
+	public const PARAM_STR = \PDO::PARAM_STR;
 	/**
 	 * @since 9.0.0
 	 */
-	public const PARAM_LOB = ParameterType::LARGE_OBJECT;
+	public const PARAM_LOB = \PDO::PARAM_LOB;
 	/**
 	 * @since 9.0.0
 	 */
@@ -621,7 +620,7 @@ interface IQueryBuilder {
 	 *         ->from('users', 'u')
 	 *         ->where('u.id = ?');
 	 *
-	 *     // You can optionally programmatically build and/or expressions
+	 *     // You can optionally programatically build and/or expressions
 	 *     $qb = $conn->getQueryBuilder();
 	 *
 	 *     $or = $qb->expr()->orx();

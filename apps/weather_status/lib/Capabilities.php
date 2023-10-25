@@ -44,7 +44,7 @@ class Capabilities implements ICapability {
 	}
 
 	/**
-	 * @return array{weather_status: array{enabled: bool}}
+	 * @inheritDoc
 	 */
 	public function getCapabilities() {
 		return [

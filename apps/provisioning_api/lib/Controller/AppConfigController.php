@@ -7,7 +7,6 @@ declare(strict_types=1);
  *
  * @author Joas Schilling <coding@schilljs.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -85,9 +84,7 @@ class AppConfigController extends OCSController {
 	}
 
 	/**
-	 * Get a list of apps
-	 *
-	 * @return DataResponse<Http::STATUS_OK, array{data: string[]}, array{}>
+	 * @return DataResponse
 	 */
 	public function getApps(): DataResponse {
 		return new DataResponse([
@@ -96,13 +93,8 @@ class AppConfigController extends OCSController {
 	}
 
 	/**
-	 * Get the config keys of an app
-	 *
-	 * @param string $app ID of the app
-	 * @return DataResponse<Http::STATUS_OK, array{data: string[]}, array{}>|DataResponse<Http::STATUS_FORBIDDEN, array{data: array{message: string}}, array{}>
-	 *
-	 * 200: Keys returned
-	 * 403: App is not allowed
+	 * @param string $app
+	 * @return DataResponse
 	 */
 	public function getKeys(string $app): DataResponse {
 		try {
@@ -116,15 +108,10 @@ class AppConfigController extends OCSController {
 	}
 
 	/**
-	 * Get a the config value of an app
-	 *
-	 * @param string $app ID of the app
-	 * @param string $key Key
-	 * @param string $defaultValue Default returned value if the value is empty
-	 * @return DataResponse<Http::STATUS_OK, array{data: string}, array{}>|DataResponse<Http::STATUS_FORBIDDEN, array{data: array{message: string}}, array{}>
-	 *
-	 * 200: Value returned
-	 * 403: App is not allowed
+	 * @param string $app
+	 * @param string $key
+	 * @param string $defaultValue
+	 * @return DataResponse
 	 */
 	public function getValue(string $app, string $key, string $defaultValue = ''): DataResponse {
 		try {
@@ -141,16 +128,10 @@ class AppConfigController extends OCSController {
 	 * @PasswordConfirmationRequired
 	 * @NoSubAdminRequired
 	 * @NoAdminRequired
-	 *
-	 * Update the config value of an app
-	 *
-	 * @param string $app ID of the app
-	 * @param string $key Key to update
-	 * @param string $value New value for the key
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>|DataResponse<Http::STATUS_FORBIDDEN, array{data: array{message: string}}, array{}>
-	 *
-	 * 200: Value updated successfully
-	 * 403: App or key is not allowed
+	 * @param string $app
+	 * @param string $key
+	 * @param string $value
+	 * @return DataResponse
 	 */
 	public function setValue(string $app, string $key, string $value): DataResponse {
 		$user = $this->userSession->getUser();
@@ -175,15 +156,9 @@ class AppConfigController extends OCSController {
 
 	/**
 	 * @PasswordConfirmationRequired
-	 *
-	 * Delete a config key of an app
-	 *
-	 * @param string $app ID of the app
-	 * @param string $key Key to delete
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>|DataResponse<Http::STATUS_FORBIDDEN, array{data: array{message: string}}, array{}>
-	 *
-	 * 200: Key deleted successfully
-	 * 403: App or key is not allowed
+	 * @param string $app
+	 * @param string $key
+	 * @return DataResponse
 	 */
 	public function deleteKey(string $app, string $key): DataResponse {
 		try {

@@ -6,7 +6,6 @@ declare(strict_types=1);
  * @copyright Copyright (c) 2019, Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -34,12 +33,15 @@ use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 
 class WipeController extends Controller {
-	public function __construct(
-		string $appName,
-		IRequest $request,
-		private RemoteWipe $remoteWipe,
-	) {
+	/** @var RemoteWipe */
+	private $remoteWipe;
+
+	public function __construct(string $appName,
+								IRequest $request,
+								RemoteWipe $remoteWipe) {
 		parent::__construct($appName, $request);
+
+		$this->remoteWipe = $remoteWipe;
 	}
 
 	/**
@@ -49,14 +51,9 @@ class WipeController extends Controller {
 	 *
 	 * @AnonRateThrottle(limit=10, period=300)
 	 *
-	 * Check if the device should be wiped
+	 * @param string $token
 	 *
-	 * @param string $token App password
-	 *
-	 * @return JSONResponse<Http::STATUS_OK, array{wipe: bool}, array{}>|JSONResponse<Http::STATUS_NOT_FOUND, array<empty>, array{}>
-	 *
-	 * 200: Device should be wiped
-	 * 404: Device should not be wiped
+	 * @return JSONResponse
 	 */
 	public function checkWipe(string $token): JSONResponse {
 		try {
@@ -80,14 +77,9 @@ class WipeController extends Controller {
 	 *
 	 * @AnonRateThrottle(limit=10, period=300)
 	 *
-	 * Finish the wipe
+	 * @param string $token
 	 *
-	 * @param string $token App password
-	 *
-	 * @return JSONResponse<Http::STATUS_OK|Http::STATUS_NOT_FOUND, array<empty>, array{}>
-	 *
-	 * 200: Wipe finished successfully
-	 * 404: Device should not be wiped
+	 * @return JSONResponse
 	 */
 	public function wipeDone(string $token): JSONResponse {
 		try {

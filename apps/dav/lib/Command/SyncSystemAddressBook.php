@@ -24,18 +24,22 @@
 namespace OCA\DAV\Command;
 
 use OCA\DAV\CardDAV\SyncService;
-use OCP\IConfig;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class SyncSystemAddressBook extends Command {
+
+	/** @var SyncService */
+	private $syncService;
+
 	/**
 	 * @param SyncService $syncService
 	 */
-	public function __construct(private SyncService $syncService, private IConfig $config) {
+	public function __construct(SyncService $syncService) {
 		parent::__construct();
+		$this->syncService = $syncService;
 	}
 
 	protected function configure() {
@@ -58,7 +62,6 @@ class SyncSystemAddressBook extends Command {
 
 		$progress->finish();
 		$output->writeln('');
-		$this->config->setAppValue('dav', 'needs_system_address_book_sync', 'no');
 		return 0;
 	}
 }

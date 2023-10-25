@@ -190,7 +190,7 @@ class TemplateLayout extends \OC_Template {
 			$this->assign('bodyid', 'body-public');
 
 			/** @var IRegistry $subscription */
-			$subscription = \OCP\Server::get(IRegistry::class);
+			$subscription = \OC::$server->query(IRegistry::class);
 			$showSimpleSignup = $this->config->getSystemValueBool('simpleSignUpLink.shown', true);
 			if ($showSimpleSignup && $subscription->delegateHasValidSubscription()) {
 				$showSimpleSignup = false;
@@ -221,12 +221,12 @@ class TemplateLayout extends \OC_Template {
 		// TODO: remove deprecated OC_Util injection
 		$jsFiles = self::findJavascriptFiles(array_merge(\OC_Util::$scripts, Util::getScripts()));
 		$this->assign('jsfiles', []);
-		if ($this->config->getSystemValueBool('installed', false) && $renderAs != TemplateResponse::RENDER_AS_ERROR) {
+		if ($this->config->getSystemValue('installed', false) && $renderAs != TemplateResponse::RENDER_AS_ERROR) {
 			// this is on purpose outside of the if statement below so that the initial state is prefilled (done in the getConfig() call)
 			// see https://github.com/nextcloud/server/pull/22636 for details
 			$jsConfigHelper = new JSConfigHelper(
 				\OC::$server->getL10N('lib'),
-				\OCP\Server::get(Defaults::class),
+				\OC::$server->query(Defaults::class),
 				\OC::$server->getAppManager(),
 				\OC::$server->getSession(),
 				\OC::$server->getUserSession()->getUser(),
@@ -235,7 +235,7 @@ class TemplateLayout extends \OC_Template {
 				\OC::$server->get(IniGetWrapper::class),
 				\OC::$server->getURLGenerator(),
 				\OC::$server->getCapabilitiesManager(),
-				\OCP\Server::get(IInitialStateService::class)
+				\OC::$server->query(IInitialStateService::class)
 			);
 			$config = $jsConfigHelper->getConfig();
 			if (\OC::$server->getContentSecurityPolicyNonceManager()->browserSupportsCspV3()) {
@@ -284,7 +284,7 @@ class TemplateLayout extends \OC_Template {
 			} else {
 				$suffix = $this->getVersionHashSuffix($web, $file);
 
-				if (!str_contains($file, '?v=')) {
+				if (strpos($file, '?v=') == false) {
 					$this->append('cssfiles', $web.'/'.$file . $suffix);
 				} else {
 					$this->append('cssfiles', $web.'/'.$file . '-' . substr($suffix, 3));
@@ -304,14 +304,14 @@ class TemplateLayout extends \OC_Template {
 	 * @return string
 	 */
 	protected function getVersionHashSuffix($path = false, $file = false) {
-		if ($this->config->getSystemValueBool('debug', false)) {
+		if ($this->config->getSystemValue('debug', false)) {
 			// allows chrome workspace mapping in debug mode
 			return "";
 		}
 		$themingSuffix = '';
 		$v = [];
 
-		if ($this->config->getSystemValueBool('installed', false)) {
+		if ($this->config->getSystemValue('installed', false)) {
 			if (\OC::$server->getAppManager()->isInstalled('theming')) {
 				$themingSuffix = '-' . $this->config->getAppValue('theming', 'cachebuster', '0');
 			}

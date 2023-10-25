@@ -265,18 +265,12 @@ class PublicKeyTokenProvider implements IProvider {
 	public function invalidateOldTokens() {
 		$this->cache->clear();
 
-		$olderThan = $this->time->getTime() - $this->config->getSystemValueInt('session_lifetime', 60 * 60 * 24);
+		$olderThan = $this->time->getTime() - (int) $this->config->getSystemValue('session_lifetime', 60 * 60 * 24);
 		$this->logger->debug('Invalidating session tokens older than ' . date('c', $olderThan), ['app' => 'cron']);
 		$this->mapper->invalidateOld($olderThan, IToken::DO_NOT_REMEMBER);
-		$rememberThreshold = $this->time->getTime() - $this->config->getSystemValueInt('remember_login_cookie_lifetime', 60 * 60 * 24 * 15);
+		$rememberThreshold = $this->time->getTime() - (int) $this->config->getSystemValue('remember_login_cookie_lifetime', 60 * 60 * 24 * 15);
 		$this->logger->debug('Invalidating remembered session tokens older than ' . date('c', $rememberThreshold), ['app' => 'cron']);
 		$this->mapper->invalidateOld($rememberThreshold, IToken::REMEMBER);
-	}
-
-	public function invalidateLastUsedBefore(string $uid, int $before): void {
-		$this->cache->clear();
-
-		$this->mapper->invalidateLastUsedBefore($uid, $before);
 	}
 
 	public function updateToken(IToken $token) {
@@ -333,20 +327,18 @@ class PublicKeyTokenProvider implements IProvider {
 			throw new InvalidTokenException("Invalid token type");
 		}
 
-		$this->atomic(function () use ($password, $token) {
-			// When changing passwords all temp tokens are deleted
-			$this->mapper->deleteTempToken($token);
+		// When changing passwords all temp tokens are deleted
+		$this->mapper->deleteTempToken($token);
 
-			// Update the password for all tokens
-			$tokens = $this->mapper->getTokenByUser($token->getUID());
-			$hashedPassword = $this->hashPassword($password);
-			foreach ($tokens as $t) {
-				$publicKey = $t->getPublicKey();
-				$t->setPassword($this->encryptPassword($password, $publicKey));
-				$t->setPasswordHash($hashedPassword);
-				$this->updateToken($t);
-			}
-		}, $this->db);
+		// Update the password for all tokens
+		$tokens = $this->mapper->getTokenByUser($token->getUID());
+		$hashedPassword = $this->hashPassword($password);
+		foreach ($tokens as $t) {
+			$publicKey = $t->getPublicKey();
+			$t->setPassword($this->encryptPassword($password, $publicKey));
+			$t->setPasswordHash($hashedPassword);
+			$this->updateToken($t);
+		}
 	}
 
 	private function hashPassword(string $password): string {
@@ -372,7 +364,7 @@ class PublicKeyTokenProvider implements IProvider {
 	}
 
 	private function encrypt(string $plaintext, string $token): string {
-		$secret = $this->config->getSystemValueString('secret');
+		$secret = $this->config->getSystemValue('secret');
 		return $this->crypto->encrypt($plaintext, $token . $secret);
 	}
 
@@ -380,7 +372,7 @@ class PublicKeyTokenProvider implements IProvider {
 	 * @throws InvalidTokenException
 	 */
 	private function decrypt(string $cipherText, string $token): string {
-		$secret = $this->config->getSystemValueString('secret');
+		$secret = $this->config->getSystemValue('secret');
 		try {
 			return $this->crypto->decrypt($cipherText, $token . $secret);
 		} catch (\Exception $ex) {
@@ -410,7 +402,7 @@ class PublicKeyTokenProvider implements IProvider {
 	}
 
 	private function hashToken(string $token): string {
-		$secret = $this->config->getSystemValueString('secret');
+		$secret = $this->config->getSystemValue('secret');
 		return hash('sha512', $token . $secret);
 	}
 
@@ -497,51 +489,49 @@ class PublicKeyTokenProvider implements IProvider {
 			return;
 		}
 
-		$this->atomic(function () use ($password, $uid) {
-			// Update the password for all tokens
-			$tokens = $this->mapper->getTokenByUser($uid);
-			$newPasswordHash = null;
+		// Update the password for all tokens
+		$tokens = $this->mapper->getTokenByUser($uid);
+		$newPasswordHash = null;
 
-			/**
-			 * - true: The password hash could not be verified anymore
-			 *     and the token needs to be updated with the newly encrypted password
-			 * - false: The hash could still be verified
-			 * - missing: The hash needs to be verified
-			 */
-			$hashNeedsUpdate = [];
+		/**
+		 * - true: The password hash could not be verified anymore
+		 *     and the token needs to be updated with the newly encrypted password
+		 * - false: The hash could still be verified
+		 * - missing: The hash needs to be verified
+		 */
+		$hashNeedsUpdate = [];
 
-			foreach ($tokens as $t) {
-				if (!isset($hashNeedsUpdate[$t->getPasswordHash()])) {
-					if ($t->getPasswordHash() === null) {
-						$hashNeedsUpdate[$t->getPasswordHash() ?: ''] = true;
-					} elseif (!$this->hasher->verify(sha1($password) . $password, $t->getPasswordHash())) {
-						$hashNeedsUpdate[$t->getPasswordHash() ?: ''] = true;
-					} else {
-						$hashNeedsUpdate[$t->getPasswordHash() ?: ''] = false;
-					}
-				}
-				$needsUpdating = $hashNeedsUpdate[$t->getPasswordHash() ?: ''] ?? true;
-
-				if ($needsUpdating) {
-					if ($newPasswordHash === null) {
-						$newPasswordHash = $this->hashPassword($password);
-					}
-
-					$publicKey = $t->getPublicKey();
-					$t->setPassword($this->encryptPassword($password, $publicKey));
-					$t->setPasswordHash($newPasswordHash);
-					$t->setPasswordInvalid(false);
-					$this->updateToken($t);
+		foreach ($tokens as $t) {
+			if (!isset($hashNeedsUpdate[$t->getPasswordHash()])) {
+				if ($t->getPasswordHash() === null) {
+					$hashNeedsUpdate[$t->getPasswordHash() ?: ''] = true;
+				} elseif (!$this->hasher->verify(sha1($password) . $password, $t->getPasswordHash())) {
+					$hashNeedsUpdate[$t->getPasswordHash() ?: ''] = true;
+				} else {
+					$hashNeedsUpdate[$t->getPasswordHash() ?: ''] = false;
 				}
 			}
+			$needsUpdating = $hashNeedsUpdate[$t->getPasswordHash() ?: ''] ?? true;
 
-			// If password hashes are different we update them all to be equal so
-			// that the next execution only needs to verify once
-			if (count($hashNeedsUpdate) > 1) {
-				$newPasswordHash = $this->hashPassword($password);
-				$this->mapper->updateHashesForUser($uid, $newPasswordHash);
+			if ($needsUpdating) {
+				if ($newPasswordHash === null) {
+					$newPasswordHash = $this->hashPassword($password);
+				}
+
+				$publicKey = $t->getPublicKey();
+				$t->setPassword($this->encryptPassword($password, $publicKey));
+				$t->setPasswordHash($newPasswordHash);
+				$t->setPasswordInvalid(false);
+				$this->updateToken($t);
 			}
-		}, $this->db);
+		}
+
+		// If password hashes are different we update them all to be equal so
+		// that the next execution only needs to verify once
+		if (count($hashNeedsUpdate) > 1) {
+			$newPasswordHash = $this->hashPassword($password);
+			$this->mapper->updateHashesForUser($uid, $newPasswordHash);
+		}
 	}
 
 	private function logOpensslError() {

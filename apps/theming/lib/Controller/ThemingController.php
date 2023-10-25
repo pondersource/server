@@ -18,7 +18,6 @@
  * @author Robin Appelman <robin@icewind.nl>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Thomas Citharel <nextcloud@tcit.fr>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -47,7 +46,6 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\FileDisplayResponse;
-use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\NotFoundResponse;
 use OCP\Files\IAppData;
 use OCP\Files\NotFoundException;
@@ -184,7 +182,7 @@ class ThemingController extends Controller {
 	 * Check that a string is a valid http/https url
 	 */
 	private function isValidUrl(string $url): bool {
-		return ((str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) &&
+		return ((strpos($url, 'http://') === 0 || strpos($url, 'https://') === 0) &&
 			filter_var($url, FILTER_VALIDATE_URL) !== false);
 	}
 
@@ -316,15 +314,10 @@ class ThemingController extends Controller {
 	 * @NoCSRFRequired
 	 * @NoSameSiteCookieRequired
 	 *
-	 * Get an image
-	 *
-	 * @param string $key Key of the image
-	 * @param bool $useSvg Return image as SVG
-	 * @return FileDisplayResponse<Http::STATUS_OK, array{}>|NotFoundResponse<Http::STATUS_NOT_FOUND, array{}>
+	 * @param string $key
+	 * @param bool $useSvg
+	 * @return FileDisplayResponse|NotFoundResponse
 	 * @throws NotPermittedException
-	 *
-	 * 200: Image returned
-	 * 404: Image not found
 	 */
 	public function getImage(string $key, bool $useSvg = true) {
 		try {
@@ -354,15 +347,7 @@ class ThemingController extends Controller {
 	 * @NoSameSiteCookieRequired
 	 * @NoTwoFactorRequired
 	 *
-	 * Get the CSS stylesheet for a theme
-	 *
-	 * @param string $themeId ID of the theme
-	 * @param bool $plain Let the browser decide the CSS priority
-	 * @param bool $withCustomCss Include custom CSS
-	 * @return DataDisplayResponse<Http::STATUS_OK, array{Content-Type: 'text/css'}>|NotFoundResponse<Http::STATUS_NOT_FOUND, array{}>
-	 *
-	 * 200: Stylesheet returned
-	 * 404: Theme not found
+	 * @return DataDisplayResponse|NotFoundResponse
 	 */
 	public function getThemeStylesheet(string $themeId, bool $plain = false, bool $withCustomCss = false) {
 		$themes = $this->themesService->getThemes();
@@ -402,13 +387,9 @@ class ThemingController extends Controller {
 	 * @NoCSRFRequired
 	 * @PublicPage
 	 *
-	 * Get the manifest for an app
-	 *
-	 * @param string $app ID of the app
-	 * @psalm-suppress LessSpecificReturnStatement The content of the Manifest doesn't need to be described in the return type
-	 * @return JSONResponse<Http::STATUS_OK, array{name: string, short_name: string, start_url: string, theme_color: string, background_color: string, description: string, icons: array{src: non-empty-string, type: string, sizes: string}[], display: string}, array{}>
+	 * @return Http\JSONResponse
 	 */
-	public function getManifest(string $app) {
+	public function getManifest($app) {
 		$cacheBusterValue = $this->config->getAppValue('theming', 'cachebuster', '0');
 		if ($app === 'core' || $app === 'settings') {
 			$name = $this->themingDefaults->getName();
@@ -419,17 +400,13 @@ class ThemingController extends Controller {
 			$info = $this->appManager->getAppInfo($app, false, $this->l10n->getLanguageCode());
 			$name = $info['name'] . ' - ' . $this->themingDefaults->getName();
 			$shortName = $info['name'];
-			if (str_contains($this->request->getRequestUri(), '/index.php/')) {
+			if (strpos($this->request->getRequestUri(), '/index.php/') !== false) {
 				$startUrl = $this->urlGenerator->getBaseUrl() . '/index.php/apps/' . $app . '/';
 			} else {
 				$startUrl = $this->urlGenerator->getBaseUrl() . '/apps/' . $app . '/';
 			}
 			$description = $info['summary'] ?? '';
 		}
-		/**
-		 * @var string $description
-		 * @var string $shortName
-		 */
 		$responseJS = [
 			'name' => $name,
 			'short_name' => $shortName,
@@ -454,7 +431,7 @@ class ThemingController extends Controller {
 				],
 			'display' => 'standalone'
 		];
-		$response = new JSONResponse($responseJS);
+		$response = new Http\JSONResponse($responseJS);
 		$response->cacheFor(3600);
 		return $response;
 	}

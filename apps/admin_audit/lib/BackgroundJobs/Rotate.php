@@ -35,11 +35,14 @@ use OCP\Log\RotationTrait;
 class Rotate extends TimedJob {
 	use RotationTrait;
 
-	public function __construct(
-		ITimeFactory $time,
-		private IConfig $config,
-	) {
+	/** @var IConfig */
+	private $config;
+
+	public function __construct(ITimeFactory $time,
+								IConfig  $config) {
 		parent::__construct($time);
+
+		$this->config = $config;
 
 		$this->setInterval(60 * 60 * 3);
 	}

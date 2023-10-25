@@ -31,7 +31,6 @@ namespace OC\SystemTag;
 
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use OCP\DB\QueryBuilder\IQueryBuilder;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IUser;
@@ -40,6 +39,7 @@ use OCP\SystemTag\ISystemTagManager;
 use OCP\SystemTag\ManagerEvent;
 use OCP\SystemTag\TagAlreadyExistsException;
 use OCP\SystemTag\TagNotFoundException;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Manager class for system tags
@@ -48,6 +48,15 @@ class SystemTagManager implements ISystemTagManager {
 	public const TAG_TABLE = 'systemtag';
 	public const TAG_GROUP_TABLE = 'systemtag_group';
 
+	/** @var IDBConnection */
+	protected $connection;
+
+	/** @var EventDispatcherInterface */
+	protected $dispatcher;
+
+	/** @var IGroupManager */
+	protected $groupManager;
+
 	/**
 	 * Prepared query for selecting tags directly
 	 *
@@ -55,11 +64,22 @@ class SystemTagManager implements ISystemTagManager {
 	 */
 	private $selectTagQuery;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param IDBConnection $connection database connection
+	 * @param IGroupManager $groupManager
+	 * @param EventDispatcherInterface $dispatcher
+	 */
 	public function __construct(
-		protected IDBConnection $connection,
-		protected IGroupManager $groupManager,
-		protected IEventDispatcher $dispatcher,
+		IDBConnection $connection,
+		IGroupManager $groupManager,
+		EventDispatcherInterface $dispatcher
 	) {
+		$this->connection = $connection;
+		$this->groupManager = $groupManager;
+		$this->dispatcher = $dispatcher;
+
 		$query = $this->connection->getQueryBuilder();
 		$this->selectTagQuery = $query->select('*')
 			->from(self::TAG_TABLE)

@@ -32,8 +32,6 @@ namespace OC\Files\Node;
 use OC\Files\Filesystem;
 use OC\Files\Mount\MoveableMount;
 use OC\Files\Utils\PathHelper;
-use OCP\EventDispatcher\GenericEvent;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\FileInfo;
 use OCP\Files\InvalidPathException;
 use OCP\Files\IRootFolder;
@@ -42,6 +40,7 @@ use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
 use OCP\Lock\LockedException;
 use OCP\PreConditionNotMetException;
+use Symfony\Component\EventDispatcher\GenericEvent;
 
 // FIXME: this class really should be abstract
 class Node implements INode {
@@ -128,8 +127,7 @@ class Node implements INode {
 	 */
 	protected function sendHooks($hooks, array $args = null) {
 		$args = !empty($args) ? $args : [$this];
-		/** @var IEventDispatcher $dispatcher */
-		$dispatcher = \OC::$server->get(IEventDispatcher::class);
+		$dispatcher = \OC::$server->getEventDispatcher();
 		foreach ($hooks as $hook) {
 			if (method_exists($this->root, 'emit')) {
 				$this->root->emit('\OC\Files', $hook, $args);

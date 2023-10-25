@@ -33,38 +33,46 @@ use OCP\Calendar\Resource\IManager;
 use OCP\IServerContainer;
 
 class Manager implements IManager {
+	private Coordinator $bootstrapCoordinator;
+
+	private IServerContainer $server;
+
 	private bool $bootstrapBackendsLoaded = false;
 
 	/**
 	 * @var string[] holds all registered resource backends
 	 * @psalm-var class-string<IBackend>[]
 	 */
-	private array $backends = [];
+	private $backends = [];
 
 	/** @var IBackend[] holds all backends that have been initialized already */
-	private array $initializedBackends = [];
+	private $initializedBackends = [];
 
-	public function __construct(
-		private Coordinator $bootstrapCoordinator,
-		private IServerContainer $server,
-	) {
+	public function __construct(Coordinator $bootstrapCoordinator,
+								IServerContainer $server) {
+		$this->bootstrapCoordinator = $bootstrapCoordinator;
+		$this->server = $server;
 	}
 
 	/**
 	 * Registers a resource backend
 	 *
+	 * @param string $backendClass
+	 * @return void
 	 * @since 14.0.0
 	 */
-	public function registerBackend(string $backendClass): void {
+	public function registerBackend(string $backendClass) {
 		$this->backends[$backendClass] = $backendClass;
 	}
 
 	/**
 	 * Unregisters a resource backend
 	 *
+	 * @param string $backendClass
+	 * @return void
 	 * @since 14.0.0
 	 */
-	public function unregisterBackend(string $backendClass): void {
+	public function unregisterBackend(string $backendClass) {
 		unset($this->backends[$backendClass], $this->initializedBackends[$backendClass]);
 	}
 
@@ -106,8 +114,9 @@ class Manager implements IManager {
 	/**
 	 * @param string $backendId
 	 * @throws \OCP\AppFramework\QueryException
+	 * @return IBackend|null
 	 */
-	public function getBackend($backendId): ?IBackend {
+	public function getBackend($backendId) {
 		$backends = $this->getBackends();
 		foreach ($backends as $backend) {
 			if ($backend->getBackendIdentifier() === $backendId) {
@@ -120,10 +129,10 @@ class Manager implements IManager {
 
 	/**
 	 * removes all registered backend instances
-	 *
+	 * @return void
 	 * @since 14.0.0
 	 */
-	public function clear(): void {
+	public function clear() {
 		$this->backends = [];
 		$this->initializedBackends = [];
 	}

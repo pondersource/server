@@ -100,8 +100,6 @@ class Encryption extends Wrapper {
 	/** @var CappedMemoryCache<bool> */
 	private CappedMemoryCache $encryptedPaths;
 
-	private $enabled = true;
-
 	/**
 	 * @param array $parameters
 	 */
@@ -140,10 +138,8 @@ class Encryption extends Wrapper {
 	public function filesize($path): false|int|float {
 		$fullPath = $this->getFullPath($path);
 
+		/** @var CacheEntry $info */
 		$info = $this->getCache()->get($path);
-		if ($info === false) {
-			return false;
-		}
 		if (isset($this->unencryptedSize[$fullPath])) {
 			$size = $this->unencryptedSize[$fullPath];
 
@@ -192,12 +188,10 @@ class Encryption extends Wrapper {
 		if (isset($this->unencryptedSize[$fullPath])) {
 			$data['encrypted'] = true;
 			$data['size'] = $this->unencryptedSize[$fullPath];
-			$data['unencrypted_size'] = $data['size'];
 		} else {
 			if (isset($info['fileid']) && $info['encrypted']) {
 				$data['size'] = $this->verifyUnencryptedSize($path, $info->getUnencryptedSize());
 				$data['encrypted'] = true;
-				$data['unencrypted_size'] = $data['size'];
 			}
 		}
 
@@ -227,7 +221,7 @@ class Encryption extends Wrapper {
 	 * see https://www.php.net/manual/en/function.file_get_contents.php
 	 *
 	 * @param string $path
-	 * @return string|false
+	 * @return string
 	 */
 	public function file_get_contents($path) {
 		$encryptionModule = $this->getEncryptionModule($path);
@@ -394,10 +388,6 @@ class Encryption extends Wrapper {
 			return $this->storage->fopen($path, $mode);
 		}
 
-		if (!$this->enabled) {
-			return $this->storage->fopen($path, $mode);
-		}
-
 		$encryptionEnabled = $this->encryptionManager->isEnabled();
 		$shouldEncrypt = false;
 		$encryptionModule = null;
@@ -512,8 +502,7 @@ class Encryption extends Wrapper {
 		$result = $unencryptedSize;
 
 		if ($unencryptedSize < 0 ||
-			($size > 0 && $unencryptedSize === $size) ||
-			$unencryptedSize > $size
+			($size > 0 && $unencryptedSize === $size)
 		) {
 			// check if we already calculate the unencrypted size for the
 			// given path to avoid recursions
@@ -936,11 +925,39 @@ class Encryption extends Wrapper {
 		}
 		$firstBlock = $this->readFirstBlock($path);
 
-		if (str_starts_with($firstBlock, Util::HEADER_START)) {
+		if (substr($firstBlock, 0, strlen(Util::HEADER_START)) === Util::HEADER_START) {
 			$headerSize = $this->util->getHeaderSize();
 		}
 
 		return $headerSize;
+	}
+
+	/**
+	 * parse raw header to array
+	 *
+	 * @param string $rawHeader
+	 * @return array
+	 */
+	protected function parseRawHeader($rawHeader) {
+		$result = [];
+		if (substr($rawHeader, 0, strlen(Util::HEADER_START)) === Util::HEADER_START) {
+			$header = $rawHeader;
+			$endAt = strpos($header, Util::HEADER_END);
+			if ($endAt !== false) {
+				$header = substr($header, 0, $endAt + strlen(Util::HEADER_END));
+
+				// +1 to not start with an ':' which would result in empty element at the beginning
+				$exploded = explode(':', substr($header, strlen(Util::HEADER_START) + 1));
+
+				$element = array_shift($exploded);
+				while ($element !== Util::HEADER_END) {
+					$result[$element] = array_shift($exploded);
+					$element = array_shift($exploded);
+				}
+			}
+		}
+
+		return $result;
 	}
 
 	/**
@@ -966,7 +983,7 @@ class Encryption extends Wrapper {
 
 		if ($isEncrypted) {
 			$firstBlock = $this->readFirstBlock($path);
-			$result = $this->util->parseRawHeader($firstBlock);
+			$result = $this->parseRawHeader($firstBlock);
 
 			// if the header doesn't contain a encryption module we check if it is a
 			// legacy file. If true, we add the default encryption module
@@ -1071,7 +1088,7 @@ class Encryption extends Wrapper {
 
 		// object store, stores the size after write and doesn't update this during scan
 		// manually store the unencrypted size
-		if ($result && $this->getWrapperStorage()->instanceOfStorage(ObjectStoreStorage::class)) {
+		if ($result && $this->getWrapperStorage()->instanceOfStorage(ObjectStoreStorage::class) && $this->shouldEncrypt($path)) {
 			$this->getCache()->put($path, ['unencrypted_size' => $count]);
 		}
 
@@ -1080,15 +1097,5 @@ class Encryption extends Wrapper {
 
 	public function clearIsEncryptedCache(): void {
 		$this->encryptedPaths->clear();
-	}
-
-	/**
-	 * Allow temporarily disabling the wrapper
-	 *
-	 * @param bool $enabled
-	 * @return void
-	 */
-	public function setEnabled(bool $enabled): void {
-		$this->enabled = $enabled;
 	}
 }

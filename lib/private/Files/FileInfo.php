@@ -32,16 +32,18 @@
  */
 namespace OC\Files;
 
-use OCA\Files_Sharing\ISharedStorage;
 use OCP\Files\Cache\ICacheEntry;
-use OCP\Files\IHomeStorage;
 use OCP\Files\Mount\IMountPoint;
 use OCP\IUser;
 
 class FileInfo implements \OCP\Files\FileInfo, \ArrayAccess {
-	private array|ICacheEntry $data;
 	/**
-	 * @var string
+	 * @var array $data
+	 */
+	private $data;
+
+	/**
+	 * @var string $path
 	 */
 	private $path;
 
@@ -51,7 +53,7 @@ class FileInfo implements \OCP\Files\FileInfo, \ArrayAccess {
 	private $storage;
 
 	/**
-	 * @var string
+	 * @var string $internalPath
 	 */
 	private $internalPath;
 
@@ -60,19 +62,22 @@ class FileInfo implements \OCP\Files\FileInfo, \ArrayAccess {
 	 */
 	private $mount;
 
-	private ?IUser $owner;
+	/**
+	 * @var IUser
+	 */
+	private $owner;
 
 	/**
 	 * @var string[]
 	 */
-	private array $childEtags = [];
+	private $childEtags = [];
 
 	/**
 	 * @var IMountPoint[]
 	 */
-	private array $subMounts = [];
+	private $subMounts = [];
 
-	private bool $subMountsUsed = false;
+	private $subMountsUsed = false;
 
 	/**
 	 * The size of the file/folder without any sub mount
@@ -84,8 +89,8 @@ class FileInfo implements \OCP\Files\FileInfo, \ArrayAccess {
 	 * @param Storage\Storage $storage
 	 * @param string $internalPath
 	 * @param array|ICacheEntry $data
-	 * @param IMountPoint $mount
-	 * @param ?IUser $owner
+	 * @param \OCP\Files\Mount\IMountPoint $mount
+	 * @param \OCP\IUser|null $owner
 	 */
 	public function __construct($path, $storage, $internalPath, $data, $mount, $owner = null) {
 		$this->path = $path;
@@ -102,9 +107,6 @@ class FileInfo implements \OCP\Files\FileInfo, \ArrayAccess {
 	}
 
 	public function offsetSet($offset, $value): void {
-		if (is_null($offset)) {
-			throw new \TypeError('Null offset not supported');
-		}
 		$this->data[$offset] = $value;
 	}
 
@@ -207,7 +209,7 @@ class FileInfo implements \OCP\Files\FileInfo, \ArrayAccess {
 		if ($includeMounts) {
 			$this->updateEntryfromSubMounts();
 
-			if (isset($this->data['unencrypted_size']) && $this->data['unencrypted_size'] > 0) {
+			if ($this->isEncrypted() && isset($this->data['unencrypted_size']) && $this->data['unencrypted_size'] > 0) {
 				return $this->data['unencrypted_size'];
 			} else {
 				return isset($this->data['size']) ? 0 + $this->data['size'] : 0;
@@ -229,13 +231,15 @@ class FileInfo implements \OCP\Files\FileInfo, \ArrayAccess {
 	 * @return bool
 	 */
 	public function isEncrypted() {
-		return $this->data['encrypted'];
+		return $this->data['encrypted'] ?? false;
 	}
 
 	/**
 	 * Return the current version used for the HMAC in the encryption app
+	 *
+	 * @return int
 	 */
-	public function getEncryptedVersion(): int {
+	public function getEncryptedVersion() {
 		return isset($this->data['encryptedVersion']) ? (int) $this->data['encryptedVersion'] : 1;
 	}
 
@@ -311,13 +315,27 @@ class FileInfo implements \OCP\Files\FileInfo, \ArrayAccess {
 	 * @return bool
 	 */
 	public function isShared() {
-		$storage = $this->getStorage();
-		return $storage->instanceOfStorage(ISharedStorage::class);
+		$sid = $this->getStorage()->getId();
+		if (!is_null($sid)) {
+			$sid = explode(':', $sid);
+			return ($sid[0] === 'shared');
+		}
+
+		return false;
 	}
 
 	public function isMounted() {
 		$storage = $this->getStorage();
-		return !($storage->instanceOfStorage(IHomeStorage::class) || $storage->instanceOfStorage(ISharedStorage::class));
+		if ($storage->instanceOfStorage('\OCP\Files\IHomeStorage')) {
+			return false;
+		}
+		$sid = $storage->getId();
+		if (!is_null($sid)) {
+			$sid = explode(':', $sid);
+			return ($sid[0] !== 'home' and $sid[0] !== 'shared');
+		}
+
+		return false;
 	}
 
 	/**
@@ -332,7 +350,7 @@ class FileInfo implements \OCP\Files\FileInfo, \ArrayAccess {
 	/**
 	 * Get the owner of the file
 	 *
-	 * @return ?IUser
+	 * @return \OCP\IUser
 	 */
 	public function getOwner() {
 		return $this->owner;
@@ -345,7 +363,7 @@ class FileInfo implements \OCP\Files\FileInfo, \ArrayAccess {
 		$this->subMounts = $mounts;
 	}
 
-	private function updateEntryfromSubMounts(): void {
+	private function updateEntryfromSubMounts() {
 		if ($this->subMountsUsed) {
 			return;
 		}

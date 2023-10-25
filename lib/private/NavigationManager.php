@@ -61,7 +61,7 @@ class NavigationManager implements INavigationManager {
 	private $l10nFac;
 	/** @var IUserSession */
 	private $userSession;
-	/** @var Manager */
+	/** @var IGroupManager|Manager */
 	private $groupManager;
 	/** @var IConfig */
 	private $config;
@@ -171,8 +171,8 @@ class NavigationManager implements INavigationManager {
 	/**
 	 * @inheritDoc
 	 */
-	public function setActiveEntry($appId) {
-		$this->activeEntry = $appId;
+	public function setActiveEntry($id) {
+		$this->activeEntry = $id;
 	}
 
 	/**
@@ -189,7 +189,7 @@ class NavigationManager implements INavigationManager {
 		$this->init = true;
 
 		$l = $this->l10nFac->get('lib');
-		if ($this->config->getSystemValueBool('knowledgebaseenabled', true)) {
+		if ($this->config->getSystemValue('knowledgebaseenabled', true)) {
 			$this->add([
 				'type' => 'settings',
 				'id' => 'help',

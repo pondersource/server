@@ -161,7 +161,7 @@ class Base extends Command implements CompletionAwareInterface {
 	 *
 	 * Gives a chance to the command to properly terminate what it's doing
 	 */
-	public function cancelOperation(): void {
+	protected function cancelOperation() {
 		$this->interrupted = true;
 	}
 

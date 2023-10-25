@@ -30,6 +30,7 @@ use OCA\FederatedFileSharing\Notifications;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
 use OCP\BackgroundJob\Job;
+use OCP\ILogger;
 
 /**
  * Class RetryJob

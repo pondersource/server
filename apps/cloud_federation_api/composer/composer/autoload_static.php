@@ -26,7 +26,6 @@ class ComposerStaticInitCloudFederationAPI
         'OCA\\CloudFederationAPI\\Capabilities' => __DIR__ . '/..' . '/../lib/Capabilities.php',
         'OCA\\CloudFederationAPI\\Config' => __DIR__ . '/..' . '/../lib/Config.php',
         'OCA\\CloudFederationAPI\\Controller\\RequestHandlerController' => __DIR__ . '/..' . '/../lib/Controller/RequestHandlerController.php',
-        'OCA\\CloudFederationAPI\\ResponseDefinitions' => __DIR__ . '/..' . '/../lib/ResponseDefinitions.php',
     );
 
     public static function getInitializer(ClassLoader $loader)

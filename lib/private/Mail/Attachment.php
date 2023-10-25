@@ -36,15 +36,25 @@ use Symfony\Component\Mime\Email;
  * @since 13.0.0
  */
 class Attachment implements IAttachment {
+	private ?string $body;
+	private ?string $name;
+	private ?string $contentType;
+	private ?string $path;
+
 	public function __construct(
-		private ?string $body,
-		private ?string $name,
-		private ?string $contentType,
-		private ?string $path = null
+		?string $body,
+		?string $name,
+		?string $contentType,
+		?string $path = null
 	) {
+		$this->body = $body;
+		$this->name = $name;
+		$this->contentType = $contentType;
+		$this->path = $path;
 	}
 
 	/**
+	 * @param string $filename
 	 * @return $this
 	 * @since 13.0.0
 	 */
@@ -54,6 +64,7 @@ class Attachment implements IAttachment {
 	}
 
 	/**
+	 * @param string $contentType
 	 * @return $this
 	 * @since 13.0.0
 	 */
@@ -63,6 +74,7 @@ class Attachment implements IAttachment {
 	}
 
 	/**
+	 * @param string $body
 	 * @return $this
 	 * @since 13.0.0
 	 */

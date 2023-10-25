@@ -47,11 +47,13 @@ use Throwable;
 use function get_class;
 
 class Install extends Command {
-	public function __construct(
-		private SystemConfig $config,
-		private IniGetWrapper $iniGetWrapper,
-	) {
+	private SystemConfig $config;
+	private IniGetWrapper $iniGetWrapper;
+
+	public function __construct(SystemConfig $config, IniGetWrapper $iniGetWrapper) {
 		parent::__construct();
+		$this->config = $config;
+		$this->iniGetWrapper = $iniGetWrapper;
 	}
 
 	protected function configure() {
@@ -121,7 +123,7 @@ class Install extends Command {
 		$db = strtolower($input->getOption('database'));
 
 		if (!in_array($db, $supportedDatabases)) {
-			throw new InvalidArgumentException("Database <$db> is not supported. " . implode(", ", $supportedDatabases) . " are supported.");
+			throw new InvalidArgumentException("Database <$db> is not supported.");
 		}
 
 		$dbUser = $input->getOption('database-user');

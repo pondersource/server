@@ -49,7 +49,6 @@ namespace OCP;
 use OC\AppScriptDependency;
 use OC\AppScriptSort;
 use bantu\IniGetWrapper\IniGetWrapper;
-use Psr\Container\ContainerExceptionInterface;
 
 /**
  * This class provides different helper functions to make the life of a developer easier
@@ -84,9 +83,9 @@ class Util {
 	public static function hasExtendedSupport(): bool {
 		try {
 			/** @var \OCP\Support\Subscription\IRegistry */
-			$subscriptionRegistry = \OCP\Server::get(\OCP\Support\Subscription\IRegistry::class);
+			$subscriptionRegistry = \OC::$server->query(\OCP\Support\Subscription\IRegistry::class);
 			return $subscriptionRegistry->delegateHasExtendedSupport();
-		} catch (ContainerExceptionInterface $e) {
+		} catch (AppFramework\QueryException $e) {
 		}
 		return \OC::$server->getConfig()->getSystemValueBool('extendedSupport', false);
 	}
@@ -169,10 +168,9 @@ class Util {
 	 * @param string $application
 	 * @param string|null $file
 	 * @param string $afterAppId
-	 * @param bool $prepend
 	 * @since 4.0.0
 	 */
-	public static function addScript(string $application, string $file = null, string $afterAppId = 'core', bool $prepend = false): void {
+	public static function addScript(string $application, string $file = null, string $afterAppId = 'core'): void {
 		if (!empty($application)) {
 			$path = "$application/js/$file";
 		} else {
@@ -184,7 +182,7 @@ class Util {
 		// need separate handling
 		if ($application !== 'core'
 			&& $file !== null
-			&& !str_contains($file, 'l10n')) {
+			&& strpos($file, 'l10n') === false) {
 			self::addTranslations($application);
 		}
 
@@ -195,11 +193,7 @@ class Util {
 			self::$scriptDeps[$application]->addDep($afterAppId);
 		}
 
-		if ($prepend) {
-			array_unshift(self::$scripts[$application], $path);
-		} else {
-			self::$scripts[$application][] = $path;
-		}
+		self::$scripts[$application][] = $path;
 	}
 
 	/**
@@ -217,12 +211,7 @@ class Util {
 		$sortedScripts = $sortedScripts ? array_merge(...array_values(($sortedScripts))) : [];
 
 		// Override core-common and core-main order
-		if (in_array('core/js/main', $sortedScripts)) {
-			array_unshift($sortedScripts, 'core/js/main');
-		}
-		if (in_array('core/js/common', $sortedScripts)) {
-			array_unshift($sortedScripts, 'core/js/common');
-		}
+		array_unshift($sortedScripts, 'core/js/common', 'core/js/main');
 
 		return array_unique($sortedScripts);
 	}
@@ -286,6 +275,21 @@ class Util {
 		return $urlGenerator->getAbsoluteURL(
 			$remoteBase . (($service[strlen($service) - 1] != '/') ? '/' : '')
 		);
+	}
+
+	/**
+	 * Creates an absolute url for public use
+	 * @param string $service id
+	 * @return string the url
+	 * @since 4.5.0
+	 * @deprecated 15.0.0 - use OCP\IURLGenerator
+	 */
+	public static function linkToPublic($service) {
+		$urlGenerator = \OC::$server->getURLGenerator();
+		if ($service === 'files') {
+			return $urlGenerator->getAbsoluteURL('/s');
+		}
+		return $urlGenerator->getAbsoluteURL($urlGenerator->linkTo('', 'public.php').'?service='.$service);
 	}
 
 	/**
@@ -572,13 +576,13 @@ class Util {
 	 * Sometimes a string has to be shortened to fit within a certain maximum
 	 * data length in bytes. substr() you may break multibyte characters,
 	 * because it operates on single byte level. mb_substr() operates on
-	 * characters, so does not ensure that the shortened string satisfies the
+	 * characters, so does not ensure that the shortend string satisfies the
 	 * max length in bytes.
 	 *
 	 * For example, json_encode is messing with multibyte characters a lot,
 	 * replacing them with something along "\u1234".
 	 *
-	 * This function shortens the string with by $accuracy (-5) from
+	 * This function shortens the string with by $accurancy (-5) from
 	 * $dataLength characters, until it fits within $dataLength bytes.
 	 *
 	 * @since 23.0.0
@@ -603,6 +607,11 @@ class Util {
 		}
 		$ini = \OCP\Server::get(IniGetWrapper::class);
 		$disabled = explode(',', $ini->get('disable_functions') ?: '');
+		$disabled = array_map('trim', $disabled);
+		if (in_array($functionName, $disabled)) {
+			return false;
+		}
+		$disabled = explode(',', $ini->get('suhosin.executor.func.blacklist') ?: '');
 		$disabled = array_map('trim', $disabled);
 		if (in_array($functionName, $disabled)) {
 			return false;

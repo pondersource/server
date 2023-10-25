@@ -9,7 +9,6 @@ declare(strict_types=1);
  * @author Jakob Sack <mail@jakobsack.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -30,16 +29,12 @@ declare(strict_types=1);
 namespace OCP\AppFramework\Http;
 
 use OC\Streamer;
-use OCP\AppFramework\Http;
 use OCP\IRequest;
 
 /**
  * Public library to send several files in one zip archive.
  *
  * @since 15.0.0
- * @template S of int
- * @template H of array<string, mixed>
- * @template-extends Response<int, array<string, mixed>>
  */
 class ZipResponse extends Response implements ICallbackResponse {
 	/** @var array{internalName: string, resource: resource, size: int, time: int}[] Files to be added to the zip response */
@@ -49,12 +44,10 @@ class ZipResponse extends Response implements ICallbackResponse {
 	private IRequest $request;
 
 	/**
-	 * @param S $status
-	 * @param H $headers
 	 * @since 15.0.0
 	 */
-	public function __construct(IRequest $request, string $name = 'output', int $status = Http::STATUS_OK, array $headers = []) {
-		parent::__construct($status, $headers);
+	public function __construct(IRequest $request, string $name = 'output') {
+		parent::__construct();
 
 		$this->name = $name;
 		$this->request = $request;

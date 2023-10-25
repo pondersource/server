@@ -31,10 +31,6 @@ use OCP\IImage;
  */
 abstract class Bundled extends ProviderV2 {
 	protected function extractThumbnail(File $file, string $path): ?IImage {
-		if ($file->getSize() === 0) {
-			return null;
-		}
-
 		$sourceTmp = \OC::$server->getTempManager()->getTemporaryFile();
 		$targetTmp = \OC::$server->getTempManager()->getTemporaryFile();
 		$this->tmpFiles[] = $sourceTmp;

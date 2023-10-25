@@ -42,23 +42,36 @@ use OCP\IConfig;
  * @package OC\Security\RateLimiting\Backend
  */
 class MemoryCacheBackend implements IBackend {
-	private ICache $cache;
+	/** @var IConfig */
+	private $config;
+	/** @var ICache */
+	private $cache;
+	/** @var ITimeFactory */
+	private $timeFactory;
 
 	public function __construct(
-		private IConfig $config,
+		IConfig $config,
 		ICacheFactory $cacheFactory,
-		private ITimeFactory $timeFactory,
-	) {
+		ITimeFactory $timeFactory) {
+		$this->config = $config;
 		$this->cache = $cacheFactory->createDistributed(__CLASS__);
+		$this->timeFactory = $timeFactory;
 	}
 
-	private function hash(
-		string $methodIdentifier,
-		string $userIdentifier,
-	): string {
+	/**
+	 * @param string $methodIdentifier
+	 * @param string $userIdentifier
+	 * @return string
+	 */
+	private function hash(string $methodIdentifier,
+						  string $userIdentifier): string {
 		return hash('sha512', $methodIdentifier . $userIdentifier);
 	}
 
+	/**
+	 * @param string $identifier
+	 * @return array
+	 */
 	private function getExistingAttempts(string $identifier): array {
 		$cachedAttempts = $this->cache->get($identifier);
 		if ($cachedAttempts === null) {
@@ -76,10 +89,8 @@ class MemoryCacheBackend implements IBackend {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function getAttempts(
-		string $methodIdentifier,
-		string $userIdentifier,
-	): int {
+	public function getAttempts(string $methodIdentifier,
+								string $userIdentifier): int {
 		$identifier = $this->hash($methodIdentifier, $userIdentifier);
 		$existingAttempts = $this->getExistingAttempts($identifier);
 
@@ -97,11 +108,9 @@ class MemoryCacheBackend implements IBackend {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function registerAttempt(
-		string $methodIdentifier,
-		string $userIdentifier,
-		int $period,
-	): void {
+	public function registerAttempt(string $methodIdentifier,
+									string $userIdentifier,
+									int $period) {
 		$identifier = $this->hash($methodIdentifier, $userIdentifier);
 		$existingAttempts = $this->getExistingAttempts($identifier);
 		$currentTime = $this->timeFactory->getTime();

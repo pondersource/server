@@ -51,7 +51,6 @@ use OCP\Files\ForbiddenException;
 use OCP\Files\GenericFileException;
 use OCP\Files\IMimeTypeDetector;
 use OCP\Files\Storage\IStorage;
-use OCP\Files\StorageNotAvailableException;
 use OCP\IConfig;
 use OCP\Util;
 use Psr\Log\LoggerInterface;
@@ -95,13 +94,7 @@ class Local extends \OC\Files\Storage\Common {
 		$this->defUMask = $this->config->getSystemValue('localstorage.umask', 0022);
 
 		// support Write-Once-Read-Many file systems
-		$this->unlinkOnTruncate = $this->config->getSystemValueBool('localstorage.unlink_on_truncate', false);
-
-		if (isset($arguments['isExternal']) && $arguments['isExternal'] && !$this->stat('')) {
-			// data dir not accessible or available, can happen when using an external storage of type Local
-			// on an unmounted system mount point
-			throw new StorageNotAvailableException('Local storage path does not exist "' . $this->getSourcePath('') . '"');
-		}
+		$this->unlinkOnTruncate = $this->config->getSystemValue('localstorage.unlink_on_truncate', false);
 	}
 
 	public function __destruct() {
@@ -143,10 +136,10 @@ class Local extends \OC\Files\Storage\Common {
 				if (in_array($file->getBasename(), ['.', '..'])) {
 					$it->next();
 					continue;
-				} elseif ($file->isFile() || $file->isLink()) {
-					unlink($file->getPathname());
 				} elseif ($file->isDir()) {
 					rmdir($file->getPathname());
+				} elseif ($file->isFile() || $file->isLink()) {
+					unlink($file->getPathname());
 				}
 				$it->next();
 			}
@@ -342,7 +335,7 @@ class Local extends \OC\Files\Storage\Common {
 		}
 	}
 
-	public function rename($source, $target): bool {
+	public function rename($source, $target) {
 		$srcParent = dirname($source);
 		$dstParent = dirname($target);
 
@@ -368,14 +361,21 @@ class Local extends \OC\Files\Storage\Common {
 		}
 
 		if ($this->is_dir($source)) {
+			// we can't move folders across devices, use copy instead
+			$stat1 = stat(dirname($this->getSourcePath($source)));
+			$stat2 = stat(dirname($this->getSourcePath($target)));
+			if ($stat1['dev'] !== $stat2['dev']) {
+				$result = $this->copy($source, $target);
+				if ($result) {
+					$result &= $this->rmdir($source);
+				}
+				return $result;
+			}
+
 			$this->checkTreeForForbiddenItems($this->getSourcePath($source));
 		}
 
-		if (@rename($this->getSourcePath($source), $this->getSourcePath($target))) {
-			return true;
-		}
-
-		return $this->copy($source, $target) && $this->unlink($source);
+		return rename($this->getSourcePath($source), $this->getSourcePath($target));
 	}
 
 	public function copy($source, $target) {
@@ -434,6 +434,10 @@ class Local extends \OC\Files\Storage\Common {
 		return $this->getSourcePath($path);
 	}
 
+	public function getLocalFolder($path) {
+		return $this->getSourcePath($path);
+	}
+
 	/**
 	 * @param string $query
 	 * @param string $dir
@@ -487,7 +491,7 @@ class Local extends \OC\Files\Storage\Common {
 
 		$fullPath = $this->datadir . $path;
 		$currentPath = $path;
-		$allowSymlinks = $this->config->getSystemValueBool('localstorage.allowsymlinks', false);
+		$allowSymlinks = $this->config->getSystemValue('localstorage.allowsymlinks', false);
 		if ($allowSymlinks || $currentPath === '') {
 			return $fullPath;
 		}

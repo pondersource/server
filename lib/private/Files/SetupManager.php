@@ -156,8 +156,7 @@ class SetupManager {
 			return $storage;
 		});
 
-		$quotaIncludeExternal = $this->config->getSystemValue('quota_include_external_storage', false);
-		Filesystem::addStorageWrapper('oc_quota', function ($mountPoint, $storage) use ($quotaIncludeExternal) {
+		Filesystem::addStorageWrapper('oc_quota', function ($mountPoint, $storage) {
 			// set up quota for home storages, even for other users
 			// which can happen when using sharing
 
@@ -169,7 +168,7 @@ class SetupManager {
 					$user = $storage->getUser();
 					return new Quota(['storage' => $storage, 'quotaCallback' => function () use ($user) {
 						return OC_Util::getUserQuota($user);
-					}, 'root' => 'files', 'include_external_storage' => $quotaIncludeExternal]);
+					}, 'root' => 'files']);
 				}
 			}
 
@@ -287,7 +286,7 @@ class SetupManager {
 		$userRoot = '/' . $user->getUID() . '/';
 		$mounts = $this->mountManager->getAll();
 		$mounts = array_filter($mounts, function (IMountPoint $mount) use ($userRoot) {
-			return str_starts_with($mount->getMountPoint(), $userRoot);
+			return strpos($mount->getMountPoint(), $userRoot) === 0;
 		});
 		$allProviders = array_map(function (IMountProvider $provider) {
 			return get_class($provider);
@@ -358,7 +357,7 @@ class SetupManager {
 	 * @return IUser|null
 	 */
 	private function getUserForPath(string $path) {
-		if (str_starts_with($path, '/__groupfolders')) {
+		if (strpos($path, '/__groupfolders') === 0) {
 			return null;
 		} elseif (substr_count($path, '/') < 2) {
 			if ($user = $this->userSession->getUser()) {
@@ -366,7 +365,7 @@ class SetupManager {
 			} else {
 				return null;
 			}
-		} elseif (str_starts_with($path, '/appdata_' . \OC_Util::getInstanceId()) || str_starts_with($path, '/files_external/')) {
+		} elseif (strpos($path, '/appdata_' . \OC_Util::getInstanceId()) === 0 || strpos($path, '/files_external/') === 0) {
 			return null;
 		} else {
 			[, $userId] = explode('/', $path);

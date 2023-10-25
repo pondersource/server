@@ -116,7 +116,7 @@ class Detection implements IMimeTypeDetector {
 
 		// Update the alternative mimetypes to avoid having to look them up each time.
 		foreach ($this->mimetypes as $extension => $mimeType) {
-			if (str_starts_with($extension, '_comment')) {
+			if (strpos($extension, '_comment') === 0) {
 				continue;
 			}
 			$this->secureMimeTypes[$mimeType[0]] = $mimeType[1] ?? $mimeType[0];
@@ -238,7 +238,7 @@ class Detection implements IMimeTypeDetector {
 			finfo_close($finfo);
 			if ($info) {
 				$info = strtolower($info);
-				$mimeType = str_contains($info, ';') ? substr($info, 0, strpos($info, ';')) : $info;
+				$mimeType = strpos($info, ';') !== false ? substr($info, 0, strpos($info, ';')) : $info;
 				$mimeType = $this->getSecureMimeType($mimeType);
 				if ($mimeType !== 'application/octet-stream') {
 					return $mimeType;
@@ -246,7 +246,7 @@ class Detection implements IMimeTypeDetector {
 			}
 		}
 
-		if (str_starts_with($path, 'file://')) {
+		if (strpos($path, '://') !== false && strpos($path, 'file://') === 0) {
 			// Is the file wrapped in a stream?
 			return 'application/octet-stream';
 		}
@@ -308,7 +308,7 @@ class Detection implements IMimeTypeDetector {
 		if (function_exists('finfo_open') && function_exists('finfo_file')) {
 			$finfo = finfo_open(FILEINFO_MIME);
 			$info = finfo_buffer($finfo, $data);
-			return str_contains($info, ';') ? substr($info, 0, strpos($info, ';')) : $info;
+			return strpos($info, ';') !== false ? substr($info, 0, strpos($info, ';')) : $info;
 		}
 
 		$tmpFile = \OC::$server->getTempManager()->getTemporaryFile();

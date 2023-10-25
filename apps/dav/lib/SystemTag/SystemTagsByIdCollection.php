@@ -84,10 +84,7 @@ class SystemTagsByIdCollection implements ICollection {
 	/**
 	 * @param string $name
 	 * @param resource|string $data Initial payload
-	 *
 	 * @throws Forbidden
-	 *
-	 * @return never
 	 */
 	public function createFile($name, $data = null) {
 		throw new Forbidden('Cannot create tags by id');
@@ -95,8 +92,6 @@ class SystemTagsByIdCollection implements ICollection {
 
 	/**
 	 * @param string $name
-	 *
-	 * @return never
 	 */
 	public function createDirectory($name) {
 		throw new Forbidden('Permission denied to create collections');
@@ -104,8 +99,6 @@ class SystemTagsByIdCollection implements ICollection {
 
 	/**
 	 * @param string $name
-	 *
-	 * @return SystemTagNode
 	 */
 	public function getChild($name) {
 		try {
@@ -122,11 +115,6 @@ class SystemTagsByIdCollection implements ICollection {
 		}
 	}
 
-	/**
-	 * @return SystemTagNode[]
-	 *
-	 * @psalm-return array<SystemTagNode>
-	 */
 	public function getChildren() {
 		$visibilityFilter = true;
 		if ($this->isAdmin()) {
@@ -157,25 +145,14 @@ class SystemTagsByIdCollection implements ICollection {
 		}
 	}
 
-	/**
-	 * @return never
-	 */
 	public function delete() {
 		throw new Forbidden('Permission denied to delete this collection');
 	}
 
-	/**
-	 * @return string
-	 *
-	 * @psalm-return 'systemtags'
-	 */
 	public function getName() {
 		return 'systemtags';
 	}
 
-	/**
-	 * @return never
-	 */
 	public function setName($name) {
 		throw new Forbidden('Permission denied to rename this collection');
 	}
@@ -183,7 +160,7 @@ class SystemTagsByIdCollection implements ICollection {
 	/**
 	 * Returns the last modification time, as a unix timestamp
 	 *
-	 * @return null
+	 * @return int
 	 */
 	public function getLastModified() {
 		return null;

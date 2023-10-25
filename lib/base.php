@@ -67,6 +67,7 @@ declare(strict_types=1);
  */
 
 use OC\Encryption\HookManager;
+use OC\EventDispatcher\SymfonyAdapter;
 use OC\Share20\Hooks;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Group\Events\UserRemovedEvent;
@@ -74,7 +75,6 @@ use OCP\ILogger;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 use OCP\IUserSession;
-use OCP\Security\Bruteforce\IThrottler;
 use OCP\Server;
 use OCP\Share;
 use OCP\User\Events\UserChangedEvent;
@@ -161,9 +161,6 @@ class OC {
 				'SCRIPT_FILENAME' => $_SERVER['SCRIPT_FILENAME'] ?? null,
 			],
 		];
-		if (isset($_SERVER['REMOTE_ADDR'])) {
-			$params['server']['REMOTE_ADDR'] = $_SERVER['REMOTE_ADDR'];
-		}
 		$fakeRequest = new \OC\AppFramework\Http\Request(
 			$params,
 			new \OC\AppFramework\Http\RequestId($_SERVER['UNIQUE_ID'] ?? '', new \OC\Security\SecureRandom()),
@@ -399,8 +396,8 @@ class OC {
 
 		if (!empty($incompatibleShippedApps)) {
 			$l = Server::get(\OCP\L10N\IFactory::class)->get('core');
-			$hint = $l->t('Application %1$s is not present or has a non-compatible version with this server. Please check the apps directory.', [implode(', ', $incompatibleShippedApps)]);
-			throw new \OCP\HintException('Application ' . implode(', ', $incompatibleShippedApps) . ' is not present or has a non-compatible version with this server. Please check the apps directory.', $hint);
+			$hint = $l->t('The files of the app %1$s were not replaced correctly. Make sure it is a version compatible with the server.', [implode(', ', $incompatibleShippedApps)]);
+			throw new \OCP\HintException('The files of the app ' . implode(', ', $incompatibleShippedApps) . ' were not replaced correctly. Make sure it is a version compatible with the server.', $hint);
 		}
 
 		$tmpl->assign('appsToUpgrade', $appManager->getAppsNeedingUpgrade($ocVersion));
@@ -571,14 +568,11 @@ class OC {
 
 			// All other endpoints require the lax and the strict cookie
 			if (!$request->passesStrictCookieCheck()) {
-				logger('core')->warning('Request does not pass strict cookie check');
 				self::sendSameSiteCookies();
 				// Debug mode gets access to the resources without strict cookie
 				// due to the fact that the SabreDAV browser also lives there.
-				if (!$config->getSystemValueBool('debug', false)) {
-					http_response_code(\OCP\AppFramework\Http::STATUS_PRECONDITION_FAILED);
-					header('Content-Type: application/json');
-					echo json_encode(['error' => 'Strict Cookie has not been found in request']);
+				if (!$config->getSystemValue('debug', false)) {
+					http_response_code(\OCP\AppFramework\Http::STATUS_SERVICE_UNAVAILABLE);
 					exit();
 				}
 			}
@@ -686,7 +680,7 @@ class OC {
 				\OCP\Server::get(\Psr\Log\LoggerInterface::class),
 			);
 			$exceptionHandler = [$errorHandler, 'onException'];
-			if ($config->getSystemValueBool('debug', false)) {
+			if ($config->getSystemValue('debug', false)) {
 				set_error_handler([$errorHandler, 'onAll'], E_ALL);
 				if (\OC::$CLI) {
 					$exceptionHandler = ['OC_Template', 'printExceptionErrorPage'];
@@ -747,7 +741,7 @@ class OC {
 					echo('Writing to database failed');
 				}
 				exit(1);
-			} elseif (self::$CLI && $config->getSystemValueBool('installed', false)) {
+			} elseif (self::$CLI && $config->getSystemValue('installed', false)) {
 				$config->deleteAppValue('core', 'cronErrors');
 			}
 		}
@@ -817,7 +811,7 @@ class OC {
 		 */
 		if (!OC::$CLI
 			&& !Server::get(\OC\Security\TrustedDomainHelper::class)->isTrustedDomain($host)
-			&& $config->getSystemValueBool('installed', false)
+			&& $config->getSystemValue('installed', false)
 		) {
 			// Allow access to CSS resources
 			$isScssRequest = false;
@@ -872,7 +866,7 @@ class OC {
 					// reset brute force delay for this IP address and username
 					$uid = $userSession->getUser()->getUID();
 					$request = Server::get(IRequest::class);
-					$throttler = Server::get(IThrottler::class);
+					$throttler = Server::get(\OC\Security\Bruteforce\Throttler::class);
 					$throttler->resetDelay($request->getRemoteAddress(), 'login', ['user' => $uid]);
 				}
 
@@ -939,7 +933,7 @@ class OC {
 	}
 
 	private static function registerResourceCollectionHooks(): void {
-		\OC\Collaboration\Resources\Listener::register(Server::get(IEventDispatcher::class));
+		\OC\Collaboration\Resources\Listener::register(Server::get(SymfonyAdapter::class), Server::get(IEventDispatcher::class));
 	}
 
 	private static function registerFileReferenceEventListener(): void {
@@ -1138,9 +1132,6 @@ class OC {
 		if (OC_User::handleApacheAuth()) {
 			return true;
 		}
-		if (self::tryAppEcosystemV2Login($request)) {
-			return true;
-		}
 		if ($userSession->tryTokenLogin($request)) {
 			return true;
 		}
@@ -1150,7 +1141,7 @@ class OC {
 			&& $userSession->loginWithCookie($_COOKIE['nc_username'], $_COOKIE['nc_token'], $_COOKIE['nc_session_id'])) {
 			return true;
 		}
-		if ($userSession->tryBasicAuthLogin($request, Server::get(IThrottler::class))) {
+		if ($userSession->tryBasicAuthLogin($request, Server::get(\OC\Security\Bruteforce\Throttler::class))) {
 			return true;
 		}
 		return false;
@@ -1176,22 +1167,6 @@ class OC {
 					break;
 				}
 			}
-		}
-	}
-
-	protected static function tryAppEcosystemV2Login(OCP\IRequest $request): bool {
-		$appManager = Server::get(OCP\App\IAppManager::class);
-		if (!$request->getHeader('AE-SIGNATURE')) {
-			return false;
-		}
-		if (!$appManager->isInstalled('app_ecosystem_v2')) {
-			return false;
-		}
-		try {
-			$appEcosystemV2Service = Server::get(OCA\AppEcosystemV2\Service\AppEcosystemV2Service::class);
-			return $appEcosystemV2Service->validateExAppRequestToNC($request);
-		} catch (\Psr\Container\NotFoundExceptionInterface|\Psr\Container\ContainerExceptionInterface $e) {
-			return false;
 		}
 	}
 }

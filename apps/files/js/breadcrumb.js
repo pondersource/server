@@ -32,7 +32,7 @@
 	 * the URL of a given breadcrumb
 	 */
 	var BreadCrumb = function(options){
-		this.$el = $('<nav></nav>');
+		this.$el = $('<div class="breadcrumb"></div>');
 		this.$menu = $('<div class="popovermenu menu-center"><ul></ul></div>');
 
 		this.crumbSelector = '.crumb:not(.hidden):not(.crumbhome):not(.crumbmenu)';
@@ -123,13 +123,12 @@
 			var $menuItem;
 			this.$el.empty();
 			this.breadcrumbs = [];
-			var $crumbList = $('<ul class="breadcrumb"></ul>');
 
 			for (var i = 0; i < parts.length; i++) {
 				var part = parts[i];
 				var $image;
 				var $link = $('<a></a>');
-				$crumb = $('<li class="crumb svg"></li>');
+				$crumb = $('<div class="crumb svg"></div>');
 				if(part.dir) {
 					$link.attr('href', this.getCrumbUrl(part, i));
 				}
@@ -150,13 +149,12 @@
 					$link.append($image);
 				}
 				this.breadcrumbs.push($crumb);
-				$crumbList.append($crumb);
+				this.$el.append($crumb);
 				// Only add feedback if not menu
 				if (this.onClick && i !== 0) {
 					$link.on('click', this.onClick);
 				}
 			}
-			this.$el.append($crumbList);
 
 			// Menu creation
 			this._createMenu();

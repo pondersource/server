@@ -448,7 +448,6 @@ class MigrationService {
 
 		if ($toSchema instanceof SchemaWrapper) {
 			$targetSchema = $toSchema->getWrappedSchema();
-			$this->ensureUniqueNamesConstraints($targetSchema);
 			if ($this->checkOracle) {
 				$beforeSchema = $this->connection->createSchema();
 				$this->ensureOracleConstraints($beforeSchema, $targetSchema, strlen($this->connection->getPrefix()));
@@ -488,7 +487,7 @@ class MigrationService {
 	protected function createInstance($version) {
 		$class = $this->getClass($version);
 		try {
-			$s = \OCP\Server::get($class);
+			$s = \OC::$server->query($class);
 
 			if (!$s instanceof IMigrationStep) {
 				throw new \InvalidArgumentException('Not a valid migration');
@@ -526,7 +525,6 @@ class MigrationService {
 
 		if ($toSchema instanceof SchemaWrapper) {
 			$targetSchema = $toSchema->getWrappedSchema();
-			$this->ensureUniqueNamesConstraints($targetSchema);
 			if ($this->checkOracle) {
 				$sourceSchema = $this->connection->createSchema();
 				$this->ensureOracleConstraints($sourceSchema, $targetSchema, strlen($this->connection->getPrefix()));
@@ -658,59 +656,6 @@ class MigrationService {
 			if (!$sourceSchema->hasSequence($sequence->getName()) && \strlen($sequence->getName()) > 30) {
 				throw new \InvalidArgumentException('Sequence name "' . $sequence->getName() . '" is too long.');
 			}
-		}
-	}
-
-	/**
-	 * Naming constraints:
-	 * - Index, sequence and primary key names must be unique within a Postgres Schema
-	 *
-	 * @param Schema $targetSchema
-	 */
-	public function ensureUniqueNamesConstraints(Schema $targetSchema): void {
-		$constraintNames = [];
-
-		$sequences = $targetSchema->getSequences();
-
-		foreach ($targetSchema->getTables() as $table) {
-			foreach ($table->getIndexes() as $thing) {
-				$indexName = strtolower($thing->getName());
-				if ($indexName === 'primary' || $thing->isPrimary()) {
-					continue;
-				}
-
-				if (isset($constraintNames[$thing->getName()])) {
-					throw new \InvalidArgumentException('Index name "' . $thing->getName() . '" for table "' . $table->getName() . '" collides with the constraint on table "' . $constraintNames[$thing->getName()] . '".');
-				}
-				$constraintNames[$thing->getName()] = $table->getName();
-			}
-
-			foreach ($table->getForeignKeys() as $thing) {
-				if (isset($constraintNames[$thing->getName()])) {
-					throw new \InvalidArgumentException('Foreign key name "' . $thing->getName() . '" for table "' . $table->getName() . '" collides with the constraint on table "' . $constraintNames[$thing->getName()] . '".');
-				}
-				$constraintNames[$thing->getName()] = $table->getName();
-			}
-
-			$primaryKey = $table->getPrimaryKey();
-			if ($primaryKey instanceof Index) {
-				$indexName = strtolower($primaryKey->getName());
-				if ($indexName === 'primary') {
-					continue;
-				}
-
-				if (isset($constraintNames[$indexName])) {
-					throw new \InvalidArgumentException('Primary index name "' . $indexName . '" for table "' . $table->getName() . '" collides with the constraint on table "' . $constraintNames[$thing->getName()] . '".');
-				}
-				$constraintNames[$indexName] = $table->getName();
-			}
-		}
-
-		foreach ($sequences as $sequence) {
-			if (isset($constraintNames[$sequence->getName()])) {
-				throw new \InvalidArgumentException('Sequence name "' . $sequence->getName() . '" for table "' . $table->getName() . '" collides with the constraint on table "' . $constraintNames[$thing->getName()] . '".');
-			}
-			$constraintNames[$sequence->getName()] = 'sequence';
 		}
 	}
 

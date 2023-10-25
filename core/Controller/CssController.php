@@ -11,7 +11,6 @@ declare(strict_types=1);
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Thomas Citharel <nextcloud@tcit.fr>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -34,7 +33,6 @@ namespace OC\Core\Controller;
 use OC\Files\AppData\Factory;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\FileDisplayResponse;
 use OCP\AppFramework\Http\NotFoundResponse;
 use OCP\AppFramework\Http\Response;
@@ -45,19 +43,18 @@ use OCP\Files\SimpleFS\ISimpleFile;
 use OCP\Files\SimpleFS\ISimpleFolder;
 use OCP\IRequest;
 
-#[IgnoreOpenAPI]
 class CssController extends Controller {
 	protected IAppData $appData;
+	protected ITimeFactory $timeFactory;
 
-	public function __construct(
-		string $appName,
-		IRequest $request,
-		Factory $appDataFactory,
-		protected ITimeFactory $timeFactory,
-	) {
+	public function __construct(string $appName,
+								IRequest $request,
+								Factory $appDataFactory,
+								ITimeFactory $timeFactory) {
 		parent::__construct($appName, $request);
 
 		$this->appData = $appDataFactory->get('css');
+		$this->timeFactory = $timeFactory;
 	}
 
 	/**
@@ -104,7 +101,7 @@ class CssController extends Controller {
 	private function getFile(ISimpleFolder $folder, string $fileName, bool &$gzip): ISimpleFile {
 		$encoding = $this->request->getHeader('Accept-Encoding');
 
-		if (str_contains($encoding, 'gzip')) {
+		if (strpos($encoding, 'gzip') !== false) {
 			try {
 				$gzip = true;
 				return $folder->getFile($fileName . '.gzip'); # Safari doesn't like .gz

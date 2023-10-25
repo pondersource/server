@@ -67,7 +67,7 @@ class TrashbinMigrator implements IMigrator, ISizeEstimationMigrator {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function getEstimatedExportSize(IUser $user): int|float {
+	public function getEstimatedExportSize(IUser $user): int {
 		$uid = $user->getUID();
 
 		try {
@@ -75,7 +75,7 @@ class TrashbinMigrator implements IMigrator, ISizeEstimationMigrator {
 			if (!$trashbinFolder instanceof Folder) {
 				return 0;
 			}
-			return ceil($trashbinFolder->getSize() / 1024);
+			return (int)ceil($trashbinFolder->getSize() / 1024);
 		} catch (\Throwable $e) {
 			return 0;
 		}

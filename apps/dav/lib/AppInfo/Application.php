@@ -32,8 +32,9 @@ declare(strict_types=1);
  */
 namespace OCA\DAV\AppInfo;
 
+use Exception;
+use OCA\DAV\BackgroundJob\UpdateCalendarResourcesRoomsBackgroundJob;
 use OCA\DAV\CalDAV\Activity\Backend;
-use OCA\DAV\CalDAV\AppCalendar\AppCalendarPlugin;
 use OCA\DAV\CalDAV\CalendarManager;
 use OCA\DAV\CalDAV\CalendarProvider;
 use OCA\DAV\CalDAV\Reminder\NotificationProvider\AudioProvider;
@@ -43,6 +44,7 @@ use OCA\DAV\CalDAV\Reminder\NotificationProviderManager;
 use OCA\DAV\CalDAV\Reminder\Notifier;
 
 use OCA\DAV\Capabilities;
+use OCA\DAV\CardDAV\CardDavBackend;
 use OCA\DAV\CardDAV\ContactsManager;
 use OCA\DAV\CardDAV\PhotoCache;
 use OCA\DAV\CardDAV\SyncService;
@@ -69,8 +71,6 @@ use OCA\DAV\Events\CardDeletedEvent;
 use OCA\DAV\Events\CardUpdatedEvent;
 use OCA\DAV\Events\SubscriptionCreatedEvent;
 use OCA\DAV\Events\SubscriptionDeletedEvent;
-use OCP\Accounts\UserUpdatedEvent;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Federation\Events\TrustedServerRemovedEvent;
 use OCA\DAV\HookManager;
 use OCA\DAV\Listener\ActivityUpdaterListener;
@@ -100,11 +100,11 @@ use OCP\Calendar\IManager as ICalendarManager;
 use OCP\Config\BeforePreferenceDeletedEvent;
 use OCP\Config\BeforePreferenceSetEvent;
 use OCP\Contacts\IManager as IContactsManager;
-use OCP\Files\AppData\IAppDataFactory;
 use OCP\IServerContainer;
 use OCP\IUser;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Throwable;
 use function is_null;
@@ -119,17 +119,14 @@ class Application extends App implements IBootstrap {
 	public function register(IRegistrationContext $context): void {
 		$context->registerServiceAlias('CardDAVSyncService', SyncService::class);
 		$context->registerService(PhotoCache::class, function (ContainerInterface $c) {
+			/** @var IServerContainer $server */
+			$server = $c->get(IServerContainer::class);
+
 			return new PhotoCache(
-				$c->get(IAppDataFactory::class)->get('dav-photocache'),
+				$server->getAppDataDir('dav-photocache'),
 				$c->get(LoggerInterface::class)
 			);
 		});
-		$context->registerService(AppCalendarPlugin::class, function(ContainerInterface $c) {
-			return new AppCalendarPlugin(
-			  $c->get(ICalendarManager::class),
-			  $c->get(LoggerInterface::class)
-			);
-		  });
 
 		/*
 		 * Register capabilities
@@ -214,8 +211,9 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function registerHooks(HookManager $hm,
-								   IEventDispatcher $dispatcher,
-								   IAppContainer $container) {
+								   EventDispatcherInterface $dispatcher,
+								   IAppContainer $container,
+								   IServerContainer $serverContainer) {
 		$hm->setup();
 
 		// first time login event setup
@@ -225,25 +223,40 @@ class Application extends App implements IBootstrap {
 			}
 		});
 
-		$dispatcher->addListener(UserUpdatedEvent::class, function (UserUpdatedEvent $event) use ($container) {
+		$dispatcher->addListener('OC\AccountManager::userUpdated', function (GenericEvent $event) use ($container) {
+			$user = $event->getSubject();
 			/** @var SyncService $syncService */
-			$syncService = \OCP\Server::get(SyncService::class);
-			$syncService->updateUser($event->getUser());
+			$syncService = $container->query(SyncService::class);
+			$syncService->updateUser($user);
 		});
 
 
-		$dispatcher->addListener(CalendarShareUpdatedEvent::class, function (CalendarShareUpdatedEvent $event) use ($container) {
+		$dispatcher->addListener('\OCA\DAV\CalDAV\CalDavBackend::updateShares', function (GenericEvent $event) use ($container) {
 			/** @var Backend $backend */
 			$backend = $container->query(Backend::class);
 			$backend->onCalendarUpdateShares(
-				$event->getCalendarData(),
-				$event->getOldShares(),
-				$event->getAdded(),
-				$event->getRemoved()
+				$event->getArgument('calendarData'),
+				$event->getArgument('shares'),
+				$event->getArgument('add'),
+				$event->getArgument('remove')
 			);
 
 			// Here we should recalculate if reminders should be sent to new or old sharees
 		});
+
+		$eventHandler = function () use ($container, $serverContainer): void {
+			try {
+				/** @var UpdateCalendarResourcesRoomsBackgroundJob $job */
+				$job = $container->query(UpdateCalendarResourcesRoomsBackgroundJob::class);
+				$job->run([]);
+				$serverContainer->getJobList()->setLastRun($job);
+			} catch (Exception $ex) {
+				$serverContainer->get(LoggerInterface::class)->error($ex->getMessage(), ['exception' => $ex]);
+			}
+		};
+
+		$dispatcher->addListener('\OCP\Calendar\Resource\ForceRefreshEvent', $eventHandler);
+		$dispatcher->addListener('\OCP\Calendar\Room\ForceRefreshEvent', $eventHandler);
 	}
 
 	public function registerContactsManager(IContactsManager $cm, IAppContainer $container): void {

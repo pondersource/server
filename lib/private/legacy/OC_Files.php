@@ -179,7 +179,7 @@ class OC_Files {
 
 			$streamer->sendHeaders($name);
 			$executionTime = (int)OC::$server->get(IniGetWrapper::class)->getNumeric('max_execution_time');
-			if (!str_contains(@ini_get('disable_functions'), 'set_time_limit')) {
+			if (strpos(@ini_get('disable_functions'), 'set_time_limit') === false) {
 				@set_time_limit(0);
 			}
 			ignore_user_abort(true);
@@ -230,14 +230,15 @@ class OC_Files {
 			OC::$server->getLogger()->logException($ex);
 			$l = \OC::$server->getL10N('lib');
 			\OC_Template::printErrorPage($l->t('Cannot download file'), $ex->getMessage(), 200);
+		} catch (\OCP\Files\ConnectionLostException $ex) {
+			self::unlockAllTheFiles($dir, $files, $getType, $view, $filename);
+			OC::$server->getLogger()->logException($ex, ['level' => \OCP\ILogger::DEBUG]);
+			\OC_Template::printErrorPage('Connection lost', $ex->getMessage(), 200);
 		} catch (\Exception $ex) {
 			self::unlockAllTheFiles($dir, $files, $getType, $view, $filename);
 			OC::$server->getLogger()->logException($ex);
 			$l = \OC::$server->getL10N('lib');
 			$hint = method_exists($ex, 'getHint') ? $ex->getHint() : '';
-			if ($event && $event->getErrorMessage() !== null) {
-				$hint .= ' ' . $event->getErrorMessage();
-			}
 			\OC_Template::printErrorPage($l->t('Cannot download file'), $hint, 200);
 		}
 	}
@@ -333,7 +334,7 @@ class OC_Files {
 			$rangeArray = self::parseHttpRangeHeader(substr($params['range'], 6), $fileSize);
 		}
 
-		$dispatcher = \OCP\Server::get(IEventDispatcher::class);
+		$dispatcher = \OC::$server->query(IEventDispatcher::class);
 		$event = new BeforeDirectFileDownloadEvent($filename);
 		$dispatcher->dispatchTyped($event);
 

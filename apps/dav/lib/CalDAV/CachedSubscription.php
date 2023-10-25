@@ -28,6 +28,7 @@ declare(strict_types=1);
 namespace OCA\DAV\CalDAV;
 
 use OCA\DAV\Exception\UnsupportedLimitOnInitialSyncException;
+use Sabre\CalDAV\Backend\BackendInterface;
 use Sabre\DAV\Exception\MethodNotAllowed;
 use Sabre\DAV\Exception\NotFound;
 use Sabre\DAV\INode;
@@ -37,7 +38,7 @@ use Sabre\DAV\PropPatch;
  * Class CachedSubscription
  *
  * @package OCA\DAV\CalDAV
- * @property CalDavBackend $caldavBackend
+ * @property BackendInterface|CalDavBackend $caldavBackend
  */
 class CachedSubscription extends \Sabre\CalDAV\Calendar {
 
@@ -111,7 +112,7 @@ class CachedSubscription extends \Sabre\CalDAV\Calendar {
 		return parent::getOwner();
 	}
 
-
+	
 	public function delete() {
 		$this->caldavBackend->deleteSubscription($this->calendarInfo['id']);
 	}

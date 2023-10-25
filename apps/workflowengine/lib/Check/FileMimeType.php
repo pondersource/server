@@ -107,7 +107,13 @@ class FileMimeType extends AbstractStringCheck implements IFileCheck {
 	 * @return bool
 	 */
 	public function executeCheck($operator, $value) {
-		return $this->executeStringCheck($operator, $value, $this->getActualValue());
+		$actualValue = $this->getActualValue();
+		$plainMimetypeResult = $this->executeStringCheck($operator, $value, $actualValue);
+		if ($actualValue === 'httpd/unix-directory') {
+			return $plainMimetypeResult;
+		}
+		$detectMimetypeBasedOnFilenameResult = $this->executeStringCheck($operator, $value, $this->mimeTypeDetector->detectPath($this->path));
+		return $plainMimetypeResult || $detectMimetypeBasedOnFilenameResult;
 	}
 
 	/**
@@ -151,11 +157,11 @@ class FileMimeType extends AbstractStringCheck implements IFileCheck {
 	protected function isWebDAVRequest() {
 		return substr($this->request->getScriptName(), 0 - strlen('/remote.php')) === '/remote.php' && (
 			$this->request->getPathInfo() === '/webdav' ||
-			str_starts_with($this->request->getPathInfo() ?? '', '/webdav/') ||
+			strpos($this->request->getPathInfo(), '/webdav/') === 0 ||
 			$this->request->getPathInfo() === '/dav/files' ||
-			str_starts_with($this->request->getPathInfo() ?? '', '/dav/files/') ||
+			strpos($this->request->getPathInfo(), '/dav/files/') === 0 ||
 			$this->request->getPathInfo() === '/dav/uploads' ||
-			str_starts_with($this->request->getPathInfo() ?? '', '/dav/uploads/')
+			strpos($this->request->getPathInfo(), '/dav/uploads/') === 0
 		);
 	}
 
@@ -165,7 +171,7 @@ class FileMimeType extends AbstractStringCheck implements IFileCheck {
 	protected function isPublicWebDAVRequest() {
 		return substr($this->request->getScriptName(), 0 - strlen('/public.php')) === '/public.php' && (
 			$this->request->getPathInfo() === '/webdav' ||
-			str_starts_with($this->request->getPathInfo() ?? '', '/webdav/')
+			strpos($this->request->getPathInfo(), '/webdav/') === 0
 		);
 	}
 

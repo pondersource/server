@@ -33,10 +33,13 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ListCommand extends Base {
-	public function __construct(
-		protected IUserManager $userManager,
-		protected IGroupManager $groupManager,
-	) {
+	protected IUserManager $userManager;
+	protected IGroupManager $groupManager;
+
+	public function __construct(IUserManager $userManager,
+								IGroupManager $groupManager) {
+		$this->userManager = $userManager;
+		$this->groupManager = $groupManager;
 		parent::__construct();
 	}
 
@@ -71,7 +74,7 @@ class ListCommand extends Base {
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {
-		$users = $this->userManager->searchDisplayName('', (int) $input->getOption('limit'), (int) $input->getOption('offset'));
+		$users = $this->userManager->search('', (int) $input->getOption('limit'), (int) $input->getOption('offset'));
 
 		$this->writeArrayInOutputFormat($input, $output, $this->formatUsers($users, (bool)$input->getOption('info')));
 		return 0;

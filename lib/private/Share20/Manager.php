@@ -66,11 +66,6 @@ use OCP\Security\Events\ValidatePasswordPolicyEvent;
 use OCP\Security\IHasher;
 use OCP\Security\ISecureRandom;
 use OCP\Share;
-use OCP\Share\Events\BeforeShareDeletedEvent;
-use OCP\Share\Events\ShareAcceptedEvent;
-use OCP\Share\Events\ShareCreatedEvent;
-use OCP\Share\Events\ShareDeletedEvent;
-use OCP\Share\Events\ShareDeletedFromSelfEvent;
 use OCP\Share\Exceptions\AlreadySharedException;
 use OCP\Share\Exceptions\GenericShareException;
 use OCP\Share\Exceptions\ShareNotFound;
@@ -79,6 +74,8 @@ use OCP\Share\IProviderFactory;
 use OCP\Share\IShare;
 use OCP\Share\IShareProvider;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\EventDispatcher\GenericEvent;
 
 /**
  * This class is the communication hub for all sharing related operations.
@@ -105,6 +102,8 @@ class Manager implements IManager {
 	private $userManager;
 	/** @var IRootFolder */
 	private $rootFolder;
+	/** @var EventDispatcherInterface */
+	private $legacyDispatcher;
 	/** @var LegacyHooks */
 	private $legacyHooks;
 	/** @var IMailer */
@@ -133,6 +132,7 @@ class Manager implements IManager {
 		IProviderFactory $factory,
 		IUserManager $userManager,
 		IRootFolder $rootFolder,
+		EventDispatcherInterface $legacyDispatcher,
 		IMailer $mailer,
 		IURLGenerator $urlGenerator,
 		\OC_Defaults $defaults,
@@ -152,9 +152,10 @@ class Manager implements IManager {
 		$this->factory = $factory;
 		$this->userManager = $userManager;
 		$this->rootFolder = $rootFolder;
+		$this->legacyDispatcher = $legacyDispatcher;
 		// The constructor of LegacyHooks registers the listeners of share events
 		// do not remove if those are not properly migrated
-		$this->legacyHooks = new LegacyHooks($dispatcher);
+		$this->legacyHooks = new LegacyHooks($this->legacyDispatcher);
 		$this->mailer = $mailer;
 		$this->urlGenerator = $urlGenerator;
 		$this->defaults = $defaults;
@@ -192,7 +193,7 @@ class Manager implements IManager {
 
 		// Let others verify the password
 		try {
-			$this->dispatcher->dispatchTyped(new ValidatePasswordPolicyEvent($password));
+			$this->legacyDispatcher->dispatch(new ValidatePasswordPolicyEvent($password));
 		} catch (HintException $e) {
 			throw new \Exception($e->getHint());
 		}
@@ -492,7 +493,7 @@ class Manager implements IManager {
 			$expirationDate = new \DateTime();
 			$expirationDate->setTime(0, 0, 0);
 
-			$days = (int)$this->config->getAppValue('core', 'link_defaultExpDays', (string)$this->shareApiLinkDefaultExpireDays());
+			$days = (int)$this->config->getAppValue('core', 'link_defaultExpDays', $this->shareApiLinkDefaultExpireDays());
 			if ($days > $this->shareApiLinkDefaultExpireDays()) {
 				$days = $this->shareApiLinkDefaultExpireDays();
 			}
@@ -804,10 +805,10 @@ class Manager implements IManager {
 			$share->setTarget($target);
 
 			// Pre share event
-			$event = new Share\Events\BeforeShareCreatedEvent($share);
-			$this->dispatcher->dispatchTyped($event);
-			if ($event->isPropagationStopped() && $event->getError()) {
-				throw new \Exception($event->getError());
+			$event = new GenericEvent($share);
+			$this->legacyDispatcher->dispatch('OCP\Share::preShare', $event);
+			if ($event->isPropagationStopped() && $event->hasArgument('error')) {
+				throw new \Exception($event->getArgument('error'));
 			}
 
 			$oldShare = $share;
@@ -823,15 +824,14 @@ class Manager implements IManager {
 			}
 		} catch (AlreadySharedException $e) {
 			// if a share for the same target already exists, dont create a new one, but do trigger the hooks and notifications again
-			$oldShare = $share;
-
-			// Reuse the node we already have
 			$share = $e->getExistingShare();
-			$share->setNode($oldShare->getNode());
 		}
 
 		// Post share event
-		$this->dispatcher->dispatchTyped(new ShareCreatedEvent($share));
+		$event = new GenericEvent($share);
+		$this->legacyDispatcher->dispatch('OCP\Share::postShare', $event);
+
+		$this->dispatcher->dispatchTyped(new Share\Events\ShareCreatedEvent($share));
 
 		if ($this->config->getSystemValueBool('sharing.enable_share_mail', true)
 			&& $share->getShareType() === IShare::TYPE_USER) {
@@ -1117,9 +1117,8 @@ class Manager implements IManager {
 			throw new \InvalidArgumentException('Share provider does not support accepting');
 		}
 		$provider->acceptShare($share, $recipientId);
-
-		$event = new ShareAcceptedEvent($share);
-		$this->dispatcher->dispatchTyped($event);
+		$event = new GenericEvent($share);
+		$this->legacyDispatcher->dispatch('OCP\Share::postAcceptShare', $event);
 
 		return $share;
 	}
@@ -1175,7 +1174,7 @@ class Manager implements IManager {
 	 * Set the share's password expiration time
 	 */
 	private function setSharePasswordExpirationTime(IShare $share): void {
-		if (!$this->config->getSystemValueBool('sharing.enable_mail_link_password_expiration', false)) {
+		if (!$this->config->getSystemValue('sharing.enable_mail_link_password_expiration', false)) {
 			// Sets password expiration date to NULL
 			$share->setPasswordExpirationTime();
 			return;
@@ -1202,13 +1201,11 @@ class Manager implements IManager {
 		$provider = $this->factory->getProviderForType($share->getShareType());
 
 		foreach ($provider->getChildren($share) as $child) {
-			$this->dispatcher->dispatchTyped(new BeforeShareDeletedEvent($child));
-
 			$deletedChildren = $this->deleteChildren($child);
 			$deletedShares = array_merge($deletedShares, $deletedChildren);
 
 			$provider->delete($child);
-			$this->dispatcher->dispatchTyped(new ShareDeletedEvent($child));
+			$this->dispatcher->dispatchTyped(new Share\Events\ShareDeletedEvent($child));
 			$deletedShares[] = $child;
 		}
 
@@ -1229,16 +1226,24 @@ class Manager implements IManager {
 			throw new \InvalidArgumentException('Share does not have a full id');
 		}
 
-		$this->dispatcher->dispatchTyped(new BeforeShareDeletedEvent($share));
+		$event = new GenericEvent($share);
+		$this->legacyDispatcher->dispatch('OCP\Share::preUnshare', $event);
 
 		// Get all children and delete them as well
-		$this->deleteChildren($share);
+		$deletedShares = $this->deleteChildren($share);
 
 		// Do the actual delete
 		$provider = $this->factory->getProviderForType($share->getShareType());
 		$provider->delete($share);
 
-		$this->dispatcher->dispatchTyped(new ShareDeletedEvent($share));
+		$this->dispatcher->dispatchTyped(new Share\Events\ShareDeletedEvent($share));
+
+		// All the deleted shares caused by this delete
+		$deletedShares[] = $share;
+
+		// Emit post hook
+		$event->setArgument('deletedShares', $deletedShares);
+		$this->legacyDispatcher->dispatch('OCP\Share::postUnshare', $event);
 	}
 
 
@@ -1256,8 +1261,8 @@ class Manager implements IManager {
 		$provider = $this->factory->getProvider($providerId);
 
 		$provider->deleteFromSelf($share, $recipientId);
-		$event = new ShareDeletedFromSelfEvent($share);
-		$this->dispatcher->dispatchTyped($event);
+		$event = new GenericEvent($share);
+		$this->legacyDispatcher->dispatch('OCP\Share::postUnshareFromSelf', $event);
 	}
 
 	public function restoreShare(IShare $share, string $recipientId): IShare {

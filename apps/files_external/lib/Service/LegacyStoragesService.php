@@ -27,7 +27,7 @@
 namespace OCA\Files_External\Service;
 
 use OCA\Files_External\Lib\StorageConfig;
-use Psr\Log\LoggerInterface;
+use OCP\ILogger;
 
 /**
  * Read mount config from legacy mount.json
@@ -143,7 +143,7 @@ abstract class LegacyStoragesService {
 					$parts = explode('/', ltrim($rootMountPath, '/'), 3);
 					if (count($parts) < 3) {
 						// something went wrong, skip
-						\OC::$server->get(LoggerInterface::class)->error('Could not parse mount point "' . $rootMountPath . '"', ['app' => 'files_external']);
+						\OC::$server->getLogger()->error('Could not parse mount point "' . $rootMountPath . '"', ['app' => 'files_external']);
 						continue;
 					}
 					$relativeMountPath = rtrim($parts[2], '/');
@@ -191,9 +191,10 @@ abstract class LegacyStoragesService {
 						}
 					} catch (\UnexpectedValueException $e) {
 						// don't die if a storage backend doesn't exist
-						\OC::$server->get(LoggerInterface::class)->error('Could not load storage.', [
+						\OC::$server->getLogger()->logException($e, [
+							'message' => 'Could not load storage.',
+							'level' => ILogger::ERROR,
 							'app' => 'files_external',
-							'exception' => $e,
 						]);
 					}
 				}

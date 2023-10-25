@@ -92,7 +92,7 @@ class ImageManager {
 			case 'logo':
 			case 'logoheader':
 			case 'favicon':
-				return $this->urlGenerator->imagePath('core', 'logo/logo.png') . '?v=' . $cacheBusterCounter;
+				return $this->urlGenerator->imagePath('core', 'logo/logo-enterprise.png') . '?v=' . $cacheBusterCounter;
 			case 'background':
 				return $this->urlGenerator->linkTo(Application::APP_ID, 'img/background/' . BackgroundService::DEFAULT_BACKGROUND_IMAGE);
 		}
@@ -240,7 +240,7 @@ class ImageManager {
 		$supportedFormats = $this->getSupportedUploadImageFormats($key);
 		$detectedMimeType = mime_content_type($tmpFile);
 		if (!in_array($detectedMimeType, $supportedFormats, true)) {
-			throw new \Exception('Unsupported image type: ' . $detectedMimeType);
+			throw new \Exception('Unsupported image type');
 		}
 
 		if ($key === 'background' && $this->shouldOptimizeBackgroundImage($detectedMimeType, filesize($tmpFile))) {
@@ -266,7 +266,7 @@ class ImageManager {
 				$newTmpFile = $this->tempManager->getTemporaryFile();
 				imageinterlace($outputImage, 1);
 				// Keep jpeg images encoded as jpeg
-				if (str_contains($detectedMimeType, 'image/jpeg')) {
+				if (strpos($detectedMimeType, 'image/jpeg') !== false) {
 					if (!imagejpeg($outputImage, $newTmpFile, 90)) {
 						throw new \Exception('Could not recompress background image as JPEG');
 					}
@@ -300,16 +300,16 @@ class ImageManager {
 	 */
 	private function shouldOptimizeBackgroundImage(string $mimeType, int $contentSize): bool {
 		// Do not touch SVGs
-		if (str_contains($mimeType, 'image/svg')) {
+		if (strpos($mimeType, 'image/svg') !== false) {
 			return false;
 		}
 		// GIF does not benefit from converting
-		if (str_contains($mimeType, 'image/gif')) {
+		if (strpos($mimeType, 'image/gif') !== false) {
 			return false;
 		}
 		// WebP also does not benefit from converting
 		// We could possibly try to convert to progressive image, but normally webP images are quite small
-		if (str_contains($mimeType, 'image/webp')) {
+		if (strpos($mimeType, 'image/webp') !== false) {
 			return false;
 		}
 		// As a rule of thumb background images should be max. 150-300 KiB, small images do not benefit from converting
@@ -323,7 +323,7 @@ class ImageManager {
 	 * @param string $key The image key, e.g. "favicon"
 	 * @return string[]
 	 */
-	public function getSupportedUploadImageFormats(string $key): array {
+	private function getSupportedUploadImageFormats(string $key): array {
 		$supportedFormats = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 		if ($key !== 'favicon' || $this->shouldReplaceIcons() === true) {

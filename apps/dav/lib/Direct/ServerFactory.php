@@ -27,6 +27,7 @@ declare(strict_types=1);
  */
 namespace OCA\DAV\Direct;
 
+use OC\Security\Bruteforce\Throttler;
 use OCA\DAV\Connector\Sabre\MaintenancePlugin;
 use OCA\DAV\Db\DirectMapper;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -36,14 +37,12 @@ use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\L10N\IFactory;
-use OCP\Security\Bruteforce\IThrottler;
 
 class ServerFactory {
 	/** @var IConfig */
 	private $config;
 	/** @var IL10N */
 	private $l10n;
-	/** @var IEventDispatcher */
 	private $eventDispatcher;
 
 	public function __construct(IConfig $config, IFactory $l10nFactory, IEventDispatcher $eventDispatcher) {
@@ -57,7 +56,7 @@ class ServerFactory {
 								 IRootFolder $rootFolder,
 								 DirectMapper $mapper,
 								 ITimeFactory $timeFactory,
-								 IThrottler $throttler,
+								 Throttler $throttler,
 								 IRequest $request): Server {
 		$home = new DirectHome($rootFolder, $mapper, $timeFactory, $throttler, $request, $this->eventDispatcher);
 		$server = new Server($home);

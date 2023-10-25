@@ -73,7 +73,7 @@ class Share extends AbstractShare {
 		$this->server = $server;
 		$this->name = $name;
 		$this->system = $system;
-		$this->parser = new Parser('UTC');
+		$this->parser = new Parser($server->getTimeZone());
 	}
 
 	private function getAuthFileArgument(): string {

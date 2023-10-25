@@ -51,6 +51,7 @@
 		 * Initializes the files app
 		 */
 		initialize: function() {
+			this.navigation = OCP.Files.Navigation;
 			this.$showHiddenFiles = $('input#showhiddenfilesToggle');
 			var showHidden = $('#showHiddenFiles').val() === "1";
 			this.$showHiddenFiles.prop('checked', showHidden);
@@ -118,9 +119,7 @@
 						),
 					],
 					sorting: {
-						mode: $('#defaultFileSorting').val() === 'basename'
-							? 'name'
-							: $('#defaultFileSorting').val(),
+						mode: $('#defaultFileSorting').val(),
 						direction: $('#defaultFileSortingDirection').val()
 					},
 					config: this._filesConfig,
@@ -138,15 +137,16 @@
 			OC.Plugins.attach('OCA.Files.App', this);
 
 			this._setupEvents();
+			// trigger URL change event handlers
+			this._onPopState({ ...OC.Util.History.parseUrlQuery(), view: this.navigation?.active?.id });
+
+			this._debouncedPersistShowHiddenFilesState = _.debounce(this._persistShowHiddenFilesState, 1200);
+			this._debouncedPersistCropImagePreviewsState = _.debounce(this._persistCropImagePreviewsState, 1200);
 
 			if (sessionStorage.getItem('WhatsNewServerCheck') < (Date.now() - 3600*1000)) {
 				OCP.WhatsNew.query(); // for Nextcloud server
 				sessionStorage.setItem('WhatsNewServerCheck', Date.now());
 			}
-
-			window._nc_event_bus.emit('files:legacy-view:initialized', this);
-
-			this.navigation = OCP.Files.Navigation
 		},
 
 		/**
@@ -227,8 +227,7 @@
 		 * @return view id
 		 */
 		getActiveView: function() {
-			return this.navigation
-				&& this.navigation.active
+			return this.navigation.active
 				&& this.navigation.active.id;
 		},
 
@@ -317,7 +316,7 @@
 				view: 'files'
 			}, params);
 
-			var lastId = this.getActiveView();
+			var lastId = this.navigation.active;
 			if (!this.navigation.views.find(view => view.id === params.view)) {
 				params.view = 'files';
 			}

@@ -33,7 +33,7 @@
 namespace OCP\Files;
 
 use OCP\Constants;
-use OCP\Files\Mount\IMovableMount;
+use OC\Files\Mount\MoveableMount;
 
 /**
  * This class provides different helper functions related to WebDAV protocol
@@ -59,35 +59,34 @@ class DavUtil {
 	 * @since 25.0.0
 	 */
 	public static function getDavPermissions(FileInfo $info): string {
-		$permissions = $info->getPermissions();
 		$p = '';
 		if ($info->isShared()) {
 			$p .= 'S';
 		}
-		if ($permissions & Constants::PERMISSION_SHARE) {
+		if ($info->isShareable()) {
 			$p .= 'R';
 		}
 		if ($info->isMounted()) {
 			$p .= 'M';
 		}
-		if ($permissions & Constants::PERMISSION_READ) {
+		if ($info->isReadable()) {
 			$p .= 'G';
 		}
-		if ($permissions & Constants::PERMISSION_DELETE) {
+		if ($info->isDeletable()) {
 			$p .= 'D';
 		}
-		if ($permissions & Constants::PERMISSION_UPDATE) {
+		if ($info->isUpdateable()) {
 			$p .= 'NV'; // Renameable, Movable
 		}
 
 		// since we always add update permissions for the root of movable mounts
 		// we need to check the shared cache item directly to determine if it's writable
 		$storage = $info->getStorage();
-		if ($info->getInternalPath() === '' && $info->getMountPoint() instanceof IMovableMount) {
+		if ($info->getInternalPath() === '' && $info->getMountPoint() instanceof MoveableMount) {
 			$rootEntry = $storage->getCache()->get('');
 			$isWritable = $rootEntry->getPermissions() & Constants::PERMISSION_UPDATE;
 		} else {
-			$isWritable = $permissions & Constants::PERMISSION_UPDATE;
+			$isWritable = $info->isUpdateable();
 		}
 
 		if ($info->getType() === FileInfo::TYPE_FILE) {
@@ -95,7 +94,7 @@ class DavUtil {
 				$p .= 'W';
 			}
 		} else {
-			if ($permissions & Constants::PERMISSION_CREATE) {
+			if ($info->isCreatable()) {
 				$p .= 'CK';
 			}
 		}

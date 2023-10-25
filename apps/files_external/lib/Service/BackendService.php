@@ -33,7 +33,6 @@ use OCA\Files_External\Lib\Backend\Backend;
 use OCA\Files_External\Lib\Config\IAuthMechanismProvider;
 use OCA\Files_External\Lib\Config\IBackendProvider;
 use OCP\EventDispatcher\GenericEvent;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
 
 /**
@@ -113,7 +112,7 @@ class BackendService {
 	private function callForRegistrations() {
 		static $eventSent = false;
 		if (!$eventSent) {
-			\OC::$server->get(IEventDispatcher::class)->dispatch(
+			\OC::$server->getEventDispatcher()->dispatch(
 				'OCA\\Files_External::loadAdditionalBackends',
 				new GenericEvent()
 			);

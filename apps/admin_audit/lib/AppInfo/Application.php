@@ -33,7 +33,9 @@ declare(strict_types=1);
  */
 namespace OCA\AdminAudit\AppInfo;
 
+use Closure;
 use OC\Files\Filesystem;
+use OC\Files\Node\File;
 use OC\Group\Manager as GroupManager;
 use OC\User\Session as UserSession;
 use OCA\AdminAudit\Actions\AppManagement;
@@ -54,20 +56,21 @@ use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
-use OCP\Authentication\TwoFactorAuth\TwoFactorProviderChallengeFailed;
-use OCP\Authentication\TwoFactorAuth\TwoFactorProviderChallengePassed;
+use OCP\Authentication\TwoFactorAuth\IProvider;
 use OCP\Console\ConsoleEvent;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
 use OCP\IGroupManager;
+use OCP\IPreview;
+use OCP\IServerContainer;
 use OCP\IUserSession;
 use OCP\Log\Audit\CriticalActionPerformedEvent;
 use OCP\Log\ILogFactory;
-use OCP\Preview\BeforePreviewFetchedEvent;
 use OCP\Share;
 use OCP\Util;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\EventDispatcher\GenericEvent;
 
 class Application extends App implements IBootstrap {
 
@@ -80,7 +83,7 @@ class Application extends App implements IBootstrap {
 
 	public function register(IRegistrationContext $context): void {
 		$context->registerService(IAuditLogger::class, function (ContainerInterface $c) {
-			return new AuditLogger($c->get(ILogFactory::class), $c->get(IConfig::class));
+			return new AuditLogger($c->get(ILogFactory::class), $c->get(Iconfig::class));
 		});
 
 		$context->registerEventListener(CriticalActionPerformedEvent::class, CriticalActionPerformedEventListener::class);
@@ -101,14 +104,13 @@ class Application extends App implements IBootstrap {
 	 * Register hooks in order to log them
 	 */
 	private function registerHooks(IAuditLogger $logger,
-								   ContainerInterface $serverContainer): void {
+									 IServerContainer $serverContainer): void {
 		$this->userManagementHooks($logger, $serverContainer->get(IUserSession::class));
 		$this->groupHooks($logger, $serverContainer->get(IGroupManager::class));
 		$this->authHooks($logger);
 
-
-		/** @var IEventDispatcher $eventDispatcher */
-		$eventDispatcher = $serverContainer->get(IEventDispatcher::class);
+		/** @var EventDispatcherInterface $eventDispatcher */
+		$eventDispatcher = $serverContainer->get(EventDispatcherInterface::class);
 		$this->consoleHooks($logger, $eventDispatcher);
 		$this->appHooks($logger, $eventDispatcher);
 
@@ -167,7 +169,7 @@ class Application extends App implements IBootstrap {
 	}
 
 	private function appHooks(IAuditLogger $logger,
-							  IEventDispatcher $eventDispatcher): void {
+							  EventDispatcherInterface $eventDispatcher): void {
 		$eventDispatcher->addListener(ManagerEvent::EVENT_APP_ENABLE, function (ManagerEvent $event) use ($logger) {
 			$appActions = new AppManagement($logger);
 			$appActions->enableApp($event->getAppID());
@@ -183,26 +185,27 @@ class Application extends App implements IBootstrap {
 	}
 
 	private function consoleHooks(IAuditLogger $logger,
-								  IEventDispatcher $eventDispatcher): void {
-		$eventDispatcher->addListener(ConsoleEvent::class, function (ConsoleEvent $event) use ($logger) {
+								  EventDispatcherInterface $eventDispatcher): void {
+		$eventDispatcher->addListener(ConsoleEvent::EVENT_RUN, function (ConsoleEvent $event) use ($logger) {
 			$appActions = new Console($logger);
 			$appActions->runCommand($event->getArguments());
 		});
 	}
 
 	private function fileHooks(IAuditLogger $logger,
-							   IEventDispatcher $eventDispatcher): void {
+							   EventDispatcherInterface $eventDispatcher): void {
 		$fileActions = new Files($logger);
 		$eventDispatcher->addListener(
-			BeforePreviewFetchedEvent::class,
-			function (BeforePreviewFetchedEvent $event) use ($fileActions) {
-				$file = $event->getNode();
+			IPreview::EVENT,
+			function (GenericEvent $event) use ($fileActions) {
+				/** @var File $file */
+				$file = $event->getSubject();
 				$fileActions->preview([
 					'path' => mb_substr($file->getInternalPath(), 5),
-					'width' => $event->getWidth(),
-					'height' => $event->getHeight(),
-					'crop' => $event->isCrop(),
-					'mode' => $event->getMode()
+					'width' => $event->getArguments()['width'],
+					'height' => $event->getArguments()['height'],
+					'crop' => $event->getArguments()['crop'],
+					'mode' => $event->getArguments()['mode']
 				]);
 			}
 		);
@@ -264,14 +267,14 @@ class Application extends App implements IBootstrap {
 	}
 
 	private function securityHooks(IAuditLogger $logger,
-								   IEventDispatcher $eventDispatcher): void {
-		$eventDispatcher->addListener(TwoFactorProviderChallengePassed::class, function (TwoFactorProviderChallengePassed $event) use ($logger) {
+								   EventDispatcherInterface $eventDispatcher): void {
+		$eventDispatcher->addListener(IProvider::EVENT_SUCCESS, function (GenericEvent $event) use ($logger) {
 			$security = new Security($logger);
-			$security->twofactorSuccess($event->getUser(), $event->getProvider());
+			$security->twofactorSuccess($event->getSubject(), $event->getArguments());
 		});
-		$eventDispatcher->addListener(TwoFactorProviderChallengeFailed::class, function (TwoFactorProviderChallengeFailed $event) use ($logger) {
+		$eventDispatcher->addListener(IProvider::EVENT_FAILED, function (GenericEvent $event) use ($logger) {
 			$security = new Security($logger);
-			$security->twofactorFailed($event->getUser(), $event->getProvider());
+			$security->twofactorFailed($event->getSubject(), $event->getArguments());
 		});
 	}
 }

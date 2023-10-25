@@ -11,7 +11,6 @@ declare(strict_types=1);
  * @author Janis Köhr <janis.koehr@novatec-gmbh.de>
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -33,7 +32,6 @@ namespace OCA\Theming\Controller;
 
 use OCA\Theming\AppInfo\Application;
 use OCA\Theming\ITheme;
-use OCA\Theming\ResponseDefinitions;
 use OCA\Theming\Service\BackgroundService;
 use OCA\Theming\Service\ThemesService;
 use OCA\Theming\ThemingDefaults;
@@ -50,13 +48,10 @@ use OCP\IRequest;
 use OCP\IUserSession;
 use OCP\PreConditionNotMetException;
 
-/**
- * @psalm-import-type ThemingBackground from ResponseDefinitions
- */
 class UserThemeController extends OCSController {
 
 	protected ?string $userId = null;
-
+	
 	private IConfig $config;
 	private IUserSession $userSession;
 	private ThemesService $themesService;
@@ -89,11 +84,8 @@ class UserThemeController extends OCSController {
 	 * Enable theme
 	 *
 	 * @param string $themeId the theme ID
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
-	 * @throws OCSBadRequestException Enabling theme is not possible
-	 * @throws PreConditionNotMetException
-	 *
-	 * 200: Theme enabled successfully
+	 * @return DataResponse
+	 * @throws OCSBadRequestException|PreConditionNotMetException
 	 */
 	public function enableTheme(string $themeId): DataResponse {
 		$theme = $this->validateTheme($themeId);
@@ -109,11 +101,8 @@ class UserThemeController extends OCSController {
 	 * Disable theme
 	 *
 	 * @param string $themeId the theme ID
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
-	 * @throws OCSBadRequestException Disabling theme is not possible
-	 * @throws PreConditionNotMetException
-	 *
-	 * 200: Theme disabled successfully
+	 * @return DataResponse
+	 * @throws OCSBadRequestException|PreConditionNotMetException
 	 */
 	public function disableTheme(string $themeId): DataResponse {
 		$theme = $this->validateTheme($themeId);
@@ -130,8 +119,7 @@ class UserThemeController extends OCSController {
 	 *
 	 * @param string $themeId the theme ID
 	 * @return ITheme
-	 * @throws OCSBadRequestException
-	 * @throws PreConditionNotMetException
+	 * @throws OCSBadRequestException|PreConditionNotMetException
 	 */
 	private function validateTheme(string $themeId): ITheme {
 		if ($themeId === '' || !$themeId) {
@@ -155,12 +143,6 @@ class UserThemeController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
-	 *
-	 * Get the background image
-	 * @return FileDisplayResponse<Http::STATUS_OK, array{Content-Type: string}>|NotFoundResponse<Http::STATUS_NOT_FOUND, array{}>
-	 *
-	 * 200: Background image returned
-	 * 404: Background image not found
 	 */
 	public function getBackground(): Http\Response {
 		$file = $this->backgroundService->getBackground();
@@ -174,10 +156,6 @@ class UserThemeController extends OCSController {
 
 	/**
 	 * @NoAdminRequired
-	 *
-	 * Delete the background
-	 *
-	 * @return JSONResponse<Http::STATUS_OK, ThemingBackground, array{}>
 	 */
 	public function deleteBackground(): JSONResponse {
 		$currentVersion = (int)$this->config->getUserValue($this->userId, Application::APP_ID, 'userCacheBuster', '0');
@@ -191,16 +169,6 @@ class UserThemeController extends OCSController {
 
 	/**
 	 * @NoAdminRequired
-	 *
-	 * Set the background
-	 *
-	 * @param string $type Type of background
-	 * @param string $value Path of the background image
-	 * @param string|null $color Color for the background
-	 * @return JSONResponse<Http::STATUS_OK, ThemingBackground, array{}>|JSONResponse<Http::STATUS_BAD_REQUEST|Http::STATUS_INTERNAL_SERVER_ERROR, array{error: string}, array{}>
-	 *
-	 * 200: Background set successfully
-	 * 400: Setting background is not possible
 	 */
 	public function setBackground(string $type = BackgroundService::BACKGROUND_DEFAULT, string $value = '', string $color = null): JSONResponse {
 		$currentVersion = (int)$this->config->getUserValue($this->userId, Application::APP_ID, 'userCacheBuster', '0');

@@ -10,7 +10,6 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Citharel <nextcloud@tcit.fr>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
- * @author Anna Larch <anna.larch@gmx.net>
  *
  * @license AGPL-3.0
  *
@@ -73,7 +72,7 @@ $principalCollection = new \Sabre\CalDAV\Principal\Collection($principalBackend)
 $principalCollection->disableListing = !$debugging; // Disable listing
 
 $pluginManager = new PluginManager(\OC::$server, \OC::$server->query(IAppManager::class));
-$addressBookRoot = new AddressBookRoot($principalBackend, $cardDavBackend, $pluginManager, \OC::$server->getUserSession()->getUser(), \OC::$server->get(\OCP\IGroupManager::class));
+$addressBookRoot = new AddressBookRoot($principalBackend, $cardDavBackend, $pluginManager);
 $addressBookRoot->disableListing = !$debugging; // Disable listing
 
 $nodes = [

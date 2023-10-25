@@ -6,7 +6,6 @@ declare(strict_types=1);
  * @copyright Copyright (c) 2020, Georg Ehrke
  *
  * @author Georg Ehrke <oc.list@georgehrke.com>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -42,13 +41,12 @@ class Capabilities implements ICapability {
 	}
 
 	/**
-	 * @return array{user_status: array{enabled: bool, restore: bool, supports_emoji: bool}}
+	 * @inheritDoc
 	 */
 	public function getCapabilities() {
 		return [
 			'user_status' => [
 				'enabled' => true,
-				'restore' => true,
 				'supports_emoji' => $this->emojiHelper->doesPlatformSupportEmoji(),
 			],
 		];

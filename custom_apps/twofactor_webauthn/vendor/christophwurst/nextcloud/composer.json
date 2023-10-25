@@ -1,0 +1,26 @@
+{
+    "name": "christophwurst/nextcloud",
+    "description": "Composer package containing Nextcloud's public API (classes, interfaces)",
+    "type": "library",
+    "license": "AGPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Christoph Wurst",
+            "email": "christoph@winzerhof-wurst.at"
+        }
+    ],
+    "require": {
+        "php": "^7.3 || ~8.0.0",
+        "psr/container": "^1.0",
+        "psr/event-dispatcher": "^1.0",
+        "psr/log": "^1.1"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "23.0.0-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

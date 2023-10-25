@@ -7,7 +7,6 @@ declare(strict_types=1);
  *
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -30,18 +29,16 @@ namespace OC\Core\Controller;
 use OC\Security\CSRF\CsrfTokenManager;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 
-#[IgnoreOpenAPI]
 class CSRFTokenController extends Controller {
-	public function __construct(
-		string $appName,
-		IRequest $request,
-		private CsrfTokenManager $tokenManager,
-	) {
+	private CsrfTokenManager $tokenManager;
+
+	public function __construct(string $appName, IRequest $request,
+		CsrfTokenManager $tokenManager) {
 		parent::__construct($appName, $request);
+		$this->tokenManager = $tokenManager;
 	}
 
 	/**

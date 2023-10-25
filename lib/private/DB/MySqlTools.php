@@ -63,7 +63,7 @@ class MySqlTools {
 			return false;
 		}
 
-		return str_contains($row, 'maria') && version_compare($row, '10.3', '>=') ||
-			!str_contains($row, 'maria') && version_compare($row, '8.0', '>=');
+		return strpos($row, 'maria') && version_compare($row, '10.3', '>=') ||
+			strpos($row, 'maria') === false && version_compare($row, '8.0', '>=');
 	}
 }

@@ -33,10 +33,15 @@ use OCP\IL10N;
 
 class AddressBookProvider implements IAddressBookProvider {
 
-	public function __construct(
-		private RecentContactMapper $mapper,
-		private IL10N $l10n,
-	) {
+	/** @var RecentContactMapper */
+	private $mapper;
+
+	/** @var IL10N */
+	private $l10n;
+
+	public function __construct(RecentContactMapper $mapper, IL10N $l10n) {
+		$this->mapper = $mapper;
+		$this->l10n = $l10n;
 	}
 
 	/**

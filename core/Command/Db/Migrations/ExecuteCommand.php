@@ -35,10 +35,13 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ExecuteCommand extends Command implements CompletionAwareInterface {
-	public function __construct(
-		private Connection $connection,
-		private IConfig $config,
-	) {
+	private Connection $connection;
+	private IConfig $config;
+
+	public function __construct(Connection $connection, IConfig $config) {
+		$this->connection = $connection;
+		$this->config = $config;
+
 		parent::__construct();
 	}
 

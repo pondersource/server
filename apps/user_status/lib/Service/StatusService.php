@@ -496,32 +496,25 @@ class StatusService {
 		}
 	}
 
-	public function revertUserStatus(string $userId, string $messageId, bool $revertedManually = false): ?UserStatus {
+	public function revertUserStatus(string $userId, string $messageId): void {
 		try {
 			/** @var UserStatus $userStatus */
 			$backupUserStatus = $this->mapper->findByUserId($userId, true);
 		} catch (DoesNotExistException $ex) {
 			// No user status to revert, do nothing
-			return null;
+			return;
 		}
 
 		$deleted = $this->mapper->deleteCurrentStatusToRestoreBackup($userId, $messageId);
 		if (!$deleted) {
 			// Another status is set automatically or no status, do nothing
-			return null;
-		}
-
-		if ($revertedManually && $backupUserStatus->getStatus() === IUserStatus::OFFLINE) {
-			// When the user reverts the status manually they are online
-			$backupUserStatus->setStatus(IUserStatus::ONLINE);
+			return;
 		}
 
 		$backupUserStatus->setIsBackup(false);
 		// Remove the underscore prefix added when creating the backup
 		$backupUserStatus->setUserId(substr($backupUserStatus->getUserId(), 1));
 		$this->mapper->update($backupUserStatus);
-
-		return $backupUserStatus;
 	}
 
 	public function revertMultipleUserStatus(array $userIds, string $messageId): void {

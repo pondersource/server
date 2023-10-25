@@ -45,11 +45,11 @@
 namespace OCA\User_LDAP;
 
 use Exception;
-use OC\ServerNotAvailableException;
 use OCP\Cache\CappedMemoryCache;
 use OCP\GroupInterface;
 use OCP\Group\Backend\IDeleteGroupBackend;
 use OCP\Group\Backend\IGetDisplayNameBackend;
+use OC\ServerNotAvailableException;
 use Psr\Log\LoggerInterface;
 
 class Group_LDAP extends BackendUtility implements GroupInterface, IGroupLDAP, IGetDisplayNameBackend, IDeleteGroupBackend {
@@ -466,7 +466,7 @@ class Group_LDAP extends BackendUtility implements GroupInterface, IGroupLDAP, I
 	}
 
 	/**
-	 * @return array<int,string> A list of users that have the given group as gid number
+	 * @return array A list of users that have the given group as gid number
 	 * @throws ServerNotAvailableException
 	 */
 	public function getUsersInGidNumber(
@@ -591,7 +591,6 @@ class Group_LDAP extends BackendUtility implements GroupInterface, IGroupLDAP, I
 
 	/**
 	 * @throws ServerNotAvailableException
-	 * @return array<int,string>
 	 */
 	public function getUsersInPrimaryGroup(
 		string $groupDN,
@@ -841,7 +840,7 @@ class Group_LDAP extends BackendUtility implements GroupInterface, IGroupLDAP, I
 	 * @param string $search
 	 * @param int $limit
 	 * @param int $offset
-	 * @return array<int,string> user ids
+	 * @return array with user ids
 	 * @throws Exception
 	 * @throws ServerNotAvailableException
 	 */
@@ -910,11 +909,7 @@ class Group_LDAP extends BackendUtility implements GroupInterface, IGroupLDAP, I
 					if (empty($ldap_users)) {
 						break;
 					}
-					$uid = $this->access->dn2username($ldap_users[0]['dn'][0]);
-					if (!$uid) {
-						break;
-					}
-					$groupUsers[] = $uid;
+					$groupUsers[] = $this->access->dn2username($ldap_users[0]['dn'][0]);
 					break;
 				default:
 					//we got DNs, check if we need to filter by search or we can give back all of them
@@ -1105,43 +1100,31 @@ class Group_LDAP extends BackendUtility implements GroupInterface, IGroupLDAP, I
 	 * @throws ServerNotAvailableException
 	 */
 	public function groupExists($gid) {
-		return $this->groupExistsOnLDAP($gid, false);
-	}
-
-	/**
-	 * Check if a group exists
-	 *
-	 * @throws ServerNotAvailableException
-	 */
-	public function groupExistsOnLDAP(string $gid, bool $ignoreCache = false): bool {
-		$cacheKey = 'groupExists' . $gid;
-		if (!$ignoreCache) {
-			$groupExists = $this->access->connection->getFromCache($cacheKey);
-			if (!is_null($groupExists)) {
-				return (bool)$groupExists;
-			}
+		$groupExists = $this->access->connection->getFromCache('groupExists' . $gid);
+		if (!is_null($groupExists)) {
+			return (bool)$groupExists;
 		}
 
 		//getting dn, if false the group does not exist. If dn, it may be mapped
 		//only, requires more checking.
 		$dn = $this->access->groupname2dn($gid);
 		if (!$dn) {
-			$this->access->connection->writeToCache($cacheKey, false);
+			$this->access->connection->writeToCache('groupExists' . $gid, false);
 			return false;
 		}
 
 		if (!$this->access->isDNPartOfBase($dn, $this->access->connection->ldapBaseGroups)) {
-			$this->access->connection->writeToCache($cacheKey, false);
+			$this->access->connection->writeToCache('groupExists' . $gid, false);
 			return false;
 		}
 
 		//if group really still exists, we will be able to read its objectClass
 		if (!is_array($this->access->readAttribute($dn, '', $this->access->connection->ldapGroupFilter))) {
-			$this->access->connection->writeToCache($cacheKey, false);
+			$this->access->connection->writeToCache('groupExists' . $gid, false);
 			return false;
 		}
 
-		$this->access->connection->writeToCache($cacheKey, true);
+		$this->access->connection->writeToCache('groupExists' . $gid, true);
 		return true;
 	}
 
@@ -1180,7 +1163,7 @@ class Group_LDAP extends BackendUtility implements GroupInterface, IGroupLDAP, I
 	 * Returns the supported actions as int to be
 	 * compared with GroupInterface::CREATE_GROUP etc.
 	 */
-	public function implementsActions($actions): bool {
+	public function implementsActions($actions) {
 		return (bool)((GroupInterface::COUNT_USERS |
 				GroupInterface::DELETE_GROUP |
 				$this->groupPluginManager->getImplementedActions()) & $actions);
@@ -1347,12 +1330,5 @@ class Group_LDAP extends BackendUtility implements GroupInterface, IGroupLDAP, I
 
 		$this->access->connection->writeToCache($cacheKey, $displayName);
 		return $displayName;
-	}
-
-	/**
-	 * returns the groupname for the given LDAP DN, if available
-	 */
-	public function dn2GroupName(string $dn): string|false {
-		return $this->access->dn2groupname($dn);
 	}
 }

@@ -61,7 +61,7 @@ class Imaginary extends ProviderV2 {
 	}
 
 	public function getCroppedThumbnail(File $file, int $maxX, int $maxY, bool $crop): ?IImage {
-		$maxSizeForImages = $this->config->getSystemValueInt('preview_max_filesize_image', 50);
+		$maxSizeForImages = $this->config->getSystemValue('preview_max_filesize_image', 50);
 
 		$size = $file->getSize();
 
@@ -105,16 +105,7 @@ class Imaginary extends ProviderV2 {
 			default:
 				$mimeType = 'jpeg';
 		}
-
-		$preview_format = $this->config->getSystemValueString('preview_format', 'jpeg');
-
-		switch ($preview_format) { // Change the format to the correct one
-			case 'webp':
-				$mimeType = 'webp';
-				break;
-			default:
-		}
-
+		
 		$operations = [];
 
 		if ($convert) {
@@ -130,16 +121,7 @@ class Imaginary extends ProviderV2 {
 			];
 		}
 
-		switch ($mimeType) {
-			case 'jpeg':
-				$quality = $this->config->getAppValue('preview', 'jpeg_quality', '80');
-				break;
-			case 'webp':
-				$quality = $this->config->getAppValue('preview', 'webp_quality', '80');
-				break;
-			default:
-				$quality = $this->config->getAppValue('preview', 'jpeg_quality', '80');
-		}
+		$quality = $this->config->getAppValue('preview', 'jpeg_quality', '80');
 
 		$operations[] = [
 			'operation' => ($crop ? 'smartcrop' : 'fit'),
@@ -154,10 +136,9 @@ class Imaginary extends ProviderV2 {
 		];
 
 		try {
-			$imaginaryKey = $this->config->getSystemValueString('preview_imaginary_key', '');
 			$response = $httpClient->post(
 				$imaginaryUrl . '/pipeline', [
-					'query' => ['operations' => json_encode($operations), 'key' => $imaginaryKey],
+					'query' => ['operations' => json_encode($operations)],
 					'stream' => true,
 					'content-type' => $file->getMimeType(),
 					'body' => $stream,
@@ -166,14 +147,14 @@ class Imaginary extends ProviderV2 {
 					'connect_timeout' => 3,
 				]);
 		} catch (\Exception $e) {
-			$this->logger->info('Imaginary preview generation failed: ' . $e->getMessage(), [
+			$this->logger->error('Imaginary preview generation failed: ' . $e->getMessage(), [
 				'exception' => $e,
 			]);
 			return null;
 		}
 
 		if ($response->getStatusCode() !== 200) {
-			$this->logger->info('Imaginary preview generation failed: ' . json_decode($response->getBody())['message']);
+			$this->logger->error('Imaginary preview generation failed: ' . json_decode($response->getBody())['message']);
 			return null;
 		}
 

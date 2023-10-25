@@ -24,6 +24,7 @@
 namespace OC\AppFramework\Middleware\PublicShare;
 
 use OC\AppFramework\Middleware\PublicShare\Exceptions\NeedAuthenticationException;
+use OC\Security\Bruteforce\Throttler;
 use OCP\AppFramework\AuthPublicShareController;
 use OCP\AppFramework\Http\NotFoundResponse;
 use OCP\AppFramework\Middleware;
@@ -32,7 +33,6 @@ use OCP\Files\NotFoundException;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
-use OCP\Security\Bruteforce\IThrottler;
 
 class PublicShareMiddleware extends Middleware {
 	/** @var IRequest */
@@ -44,10 +44,10 @@ class PublicShareMiddleware extends Middleware {
 	/** @var IConfig */
 	private $config;
 
-	/** @var IThrottler */
+	/** @var Throttler */
 	private $throttler;
 
-	public function __construct(IRequest $request, ISession $session, IConfig $config, IThrottler $throttler) {
+	public function __construct(IRequest $request, ISession $session, IConfig $config, Throttler $throttler) {
 		$this->request = $request;
 		$this->session = $session;
 		$this->config = $config;

@@ -11,7 +11,6 @@ declare(strict_types=1);
  * @author John Molakvoæ <skjnldsv@protonmail.com>
  * @author Julius Härtl <jus@bitgrid.net>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -31,9 +30,7 @@ declare(strict_types=1);
  */
 namespace OCA\Files_Sharing\Controller;
 
-use OCA\Files_Sharing\ResponseDefinitions;
 use OCP\App\IAppManager;
-use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCS\OCSException;
 use OCP\AppFramework\OCS\OCSNotFoundException;
@@ -50,9 +47,6 @@ use OCP\Share\Exceptions\ShareNotFound;
 use OCP\Share\IManager as ShareManager;
 use OCP\Share\IShare;
 
-/**
- * @psalm-import-type FilesSharingDeletedShare from ResponseDefinitions
- */
 class DeletedShareAPIController extends OCSController {
 
 	/** @var ShareManager */
@@ -98,8 +92,6 @@ class DeletedShareAPIController extends OCSController {
 
 	/**
 	 * @suppress PhanUndeclaredClassMethod
-	 *
-	 * @return FilesSharingDeletedShare
 	 */
 	private function formatShare(IShare $share): array {
 		$result = [
@@ -141,8 +133,6 @@ class DeletedShareAPIController extends OCSController {
 		$result['file_source'] = $node->getId();
 		$result['file_parent'] = $node->getParent()->getId();
 		$result['file_target'] = $share->getTarget();
-		$result['item_size'] = $node->getSize();
-		$result['item_mtime'] = $node->getMTime();
 
 		$expiration = $share->getExpirationDate();
 		if ($expiration !== null) {
@@ -184,10 +174,6 @@ class DeletedShareAPIController extends OCSController {
 
 	/**
 	 * @NoAdminRequired
-	 *
-	 * Get a list of all deleted shares
-	 *
-	 * @return DataResponse<Http::STATUS_OK, FilesSharingDeletedShare[], array{}>
 	 */
 	public function index(): DataResponse {
 		$groupShares = $this->shareManager->getDeletedSharedWith($this->userId, IShare::TYPE_GROUP, null, -1, 0);
@@ -207,14 +193,7 @@ class DeletedShareAPIController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 *
-	 * Undelete a deleted share
-	 *
-	 * @param string $id ID of the share
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
 	 * @throws OCSException
-	 * @throws OCSNotFoundException Share not found
-	 *
-	 * 200: Share undeleted successfully
 	 */
 	public function undelete(string $id): DataResponse {
 		try {

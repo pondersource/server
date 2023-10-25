@@ -183,7 +183,6 @@ class IMipPlugin extends SabreIMipPlugin {
 		$vEvent = array_pop($modified['new']);
 		/** @var VEvent $oldVevent */
 		$oldVevent = !empty($modified['old']) && is_array($modified['old']) ? array_pop($modified['old']) : null;
-		$isModified = isset($oldVevent);
 
 		// No changed events after all - this shouldn't happen if there is significant change yet here we are
 		// The scheduling status is debatable
@@ -217,12 +216,10 @@ class IMipPlugin extends SabreIMipPlugin {
 
 		$sender = substr($iTipMessage->sender, 7);
 
-		$replyingAttendee = null;
 		switch (strtolower($iTipMessage->method)) {
 			case self::METHOD_REPLY:
 				$method = self::METHOD_REPLY;
 				$data = $this->imipService->buildBodyData($vEvent, $oldVevent);
-				$replyingAttendee = $this->imipService->getReplyingAttendee($iTipMessage);
 				break;
 			case self::METHOD_CANCEL:
 				$method = self::METHOD_CANCEL;
@@ -258,7 +255,7 @@ class IMipPlugin extends SabreIMipPlugin {
 		$template = $this->mailer->createEMailTemplate('dav.calendarInvite.' . $method, $data);
 		$template->addHeader();
 
-		$this->imipService->addSubjectAndHeading($template, $method, $data['invitee_name'], $data['meeting_title'], $isModified, $replyingAttendee);
+		$this->imipService->addSubjectAndHeading($template, $method, $data['invitee_name'], $data['meeting_title']);
 		$this->imipService->addBulletList($template, $vEvent, $data);
 
 		// Only add response buttons to invitation requests: Fix Issue #11230
@@ -299,12 +296,14 @@ class IMipPlugin extends SabreIMipPlugin {
 
 		$message->useTemplate($template);
 
-		$itip_msg = $iTipMessage->message->serialize();
-		$message->attachInline(
-				$itip_msg,
+		$vCalendar = $this->imipService->generateVCalendar($iTipMessage, $vEvent);
+
+		$attachment = $this->mailer->createAttachment(
+			$vCalendar->serialize(),
 			'event.ics',
-				'text/calendar; method=' . $iTipMessage->method,
+			'text/calendar; method=' . $iTipMessage->method
 		);
+		$message->attach($attachment);
 
 		try {
 			$failed = $this->mailer->send($message);

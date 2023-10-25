@@ -31,9 +31,6 @@ use OCP\Authentication\TwoFactorAuth\IProvider;
 use OCP\Authentication\TwoFactorAuth\IRegistry;
 use OCP\Authentication\TwoFactorAuth\RegistryEvent;
 use OCP\Authentication\TwoFactorAuth\TwoFactorProviderDisabled;
-use OCP\Authentication\TwoFactorAuth\TwoFactorProviderForUserRegistered;
-use OCP\Authentication\TwoFactorAuth\TwoFactorProviderForUserUnregistered;
-use OCP\Authentication\TwoFactorAuth\TwoFactorProviderUserDeleted;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IUser;
 
@@ -59,7 +56,6 @@ class Registry implements IRegistry {
 
 		$event = new RegistryEvent($provider, $user);
 		$this->dispatcher->dispatch(self::EVENT_PROVIDER_ENABLED, $event);
-		$this->dispatcher->dispatchTyped(new TwoFactorProviderForUserRegistered($user, $provider));
 	}
 
 	public function disableProviderFor(IProvider $provider, IUser $user) {
@@ -67,14 +63,12 @@ class Registry implements IRegistry {
 
 		$event = new RegistryEvent($provider, $user);
 		$this->dispatcher->dispatch(self::EVENT_PROVIDER_DISABLED, $event);
-		$this->dispatcher->dispatchTyped(new TwoFactorProviderForUserUnregistered($user, $provider));
 	}
 
 	public function deleteUserData(IUser $user): void {
 		foreach ($this->assignmentDao->deleteByUser($user->getUID()) as $provider) {
 			$event = new TwoFactorProviderDisabled($provider['provider_id']);
 			$this->dispatcher->dispatchTyped($event);
-			$this->dispatcher->dispatchTyped(new TwoFactorProviderUserDeleted($user, $provider['provider_id']));
 		}
 	}
 

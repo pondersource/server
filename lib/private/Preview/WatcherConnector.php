@@ -52,7 +52,7 @@ class WatcherConnector {
 	 * @return Watcher
 	 */
 	private function getWatcher(): Watcher {
-		return \OCP\Server::get(Watcher::class);
+		return \OC::$server->query(Watcher::class);
 	}
 
 	public function connectWatcher() {

@@ -7,7 +7,6 @@ declare(strict_types=1);
  *
  * @author Joas Schilling <coding@schilljs.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -27,7 +26,6 @@ declare(strict_types=1);
  */
 namespace OCP\AppFramework\Http;
 
-use OCP\AppFramework\Http;
 use OCP\IURLGenerator;
 
 /**
@@ -35,22 +33,17 @@ use OCP\IURLGenerator;
  *
  * @since 16.0.0
  * @deprecated 23.0.0 Use RedirectResponse() with IURLGenerator::linkToDefaultPageUrl() instead
- * @template S of int
- * @template H of array<string, mixed>
- * @template-extends RedirectResponse<int, array<string, mixed>>
  */
 class RedirectToDefaultAppResponse extends RedirectResponse {
 	/**
 	 * Creates a response that redirects to the default app
 	 *
-	 * @param S $status
-	 * @param H $headers
 	 * @since 16.0.0
 	 * @deprecated 23.0.0 Use RedirectResponse() with IURLGenerator::linkToDefaultPageUrl() instead
 	 */
-	public function __construct(int $status = Http::STATUS_SEE_OTHER, array $headers = []) {
+	public function __construct() {
 		/** @var IURLGenerator $urlGenerator */
 		$urlGenerator = \OC::$server->get(IURLGenerator::class);
-		parent::__construct($urlGenerator->linkToDefaultPageUrl(), $status, $headers);
+		parent::__construct($urlGenerator->linkToDefaultPageUrl());
 	}
 }

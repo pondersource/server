@@ -29,9 +29,6 @@ namespace OC\Core\Db;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\IDBConnection;
 
-/**
- * @template-extends QBMapper<ProfileConfig>
- */
 class ProfileConfigMapper extends QBMapper {
 	public function __construct(IDBConnection $db) {
 		parent::__construct($db, 'profile_config', ProfileConfig::class);

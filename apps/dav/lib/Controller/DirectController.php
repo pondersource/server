@@ -7,7 +7,6 @@ declare(strict_types=1);
  *
  * @author Iscle <albertiscle9@gmail.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -29,7 +28,6 @@ namespace OCA\DAV\Controller;
 
 use OCA\DAV\Db\Direct;
 use OCA\DAV\Db\DirectMapper;
-use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCS\OCSBadRequestException;
 use OCP\AppFramework\OCS\OCSNotFoundException;
@@ -90,17 +88,6 @@ class DirectController extends OCSController {
 
 	/**
 	 * @NoAdminRequired
-	 *
-	 * Get a direct link to a file
-	 *
-	 * @param int $fileId ID of the file
-	 * @param int $expirationTime Duration until the link expires
-	 * @return DataResponse<Http::STATUS_OK, array{url: string}, array{}>
-	 * @throws OCSNotFoundException File not found
-	 * @throws OCSBadRequestException Getting direct link is not possible
-	 * @throws OCSForbiddenException Missing permissions to get direct link
-	 *
-	 * 200: Direct link returned
 	 */
 	public function getUrl(int $fileId, int $expirationTime = 60 * 60 * 8): DataResponse {
 		$userFolder = $this->rootFolder->getUserFolder($this->userId);

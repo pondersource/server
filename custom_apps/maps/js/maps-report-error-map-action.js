@@ -1,0 +1,2 @@
+(()=>{var o;null===(o=OCA.Maps)||void 0===o||o.registerMapsAction({label:t("maps","Report Error"),icon:"icon-alert-outline",callback:t=>{var o;const n="https://www.openstreetmap.org/note/new?lat=".concat(t.latitude,"&lon=").concat(t.longitude,"#map=18/").concat(t.latitude,"/").concat(t.longitude);null===(o=window.open(n,"_blank"))||void 0===o||o.focus()}})})();
+//# sourceMappingURL=maps-report-error-map-action.js.map

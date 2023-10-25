@@ -33,12 +33,13 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ListConfigs extends Base {
 	protected string $defaultOutputFormat = self::OUTPUT_FORMAT_JSON_PRETTY;
+	protected SystemConfig $systemConfig;
+	protected IAppConfig $appConfig;
 
-	public function __construct(
-		protected SystemConfig $systemConfig,
-		protected IAppConfig $appConfig,
-	) {
+	public function __construct(SystemConfig $systemConfig, IAppConfig $appConfig) {
 		parent::__construct();
+		$this->systemConfig = $systemConfig;
+		$this->appConfig = $appConfig;
 	}
 
 	protected function configure() {

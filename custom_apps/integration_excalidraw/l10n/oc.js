@@ -1,0 +1,26 @@
+OC.L10N.register(
+    "integration_excalidraw",
+    {
+    "Connected accounts" : "Comptes connectats",
+    "Excalidraw integration" : "integracion Excalidraw",
+    "Excalidraw" : "Excalidraw",
+    "Create a room" : "Crear un salon",
+    "No selected room" : "Cap de salon pas seleccionat",
+    "New room was created" : "Salon novèl creat",
+    "Failed to create new room" : "Fracàs de la creacion del salon novèl",
+    "{name} deleted" : "{name} suprimit",
+    "Open here" : "Dobrir aquí",
+    "Copy to clipboard" : "Copiar dins lo quichapapièrs",
+    "Enabled" : "Activada",
+    "Disabled" : "Desactivat",
+    "Delete" : "Suprimir",
+    "Choose color" : "Causir color",
+    "Cancel" : "Anullar",
+    "Create" : "Crear",
+    "Conversations" : "Discussions",
+    "Users" : "Utilizaires",
+    "Groups" : "Gropes",
+    "Send" : "Enviar",
+    "Room name" : "Nom de la sala"
+},
+"nplurals=2; plural=(n > 1);");

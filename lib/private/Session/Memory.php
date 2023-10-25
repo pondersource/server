@@ -30,6 +30,7 @@ declare(strict_types=1);
  */
 namespace OC\Session;
 
+use Exception;
 use OCP\Session\Exceptions\SessionNotAvailableException;
 
 /**
@@ -111,5 +112,16 @@ class Memory extends Session {
 		$reopened = $this->sessionClosed;
 		$this->sessionClosed = false;
 		return $reopened;
+	}
+
+	/**
+	 * In case the session has already been locked an exception will be thrown
+	 *
+	 * @throws Exception
+	 */
+	private function validateSession() {
+		if ($this->sessionClosed) {
+			throw new Exception('Session has been closed - no further changes to the session are allowed');
+		}
 	}
 }

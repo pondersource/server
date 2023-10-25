@@ -64,7 +64,6 @@ use OCA\DAV\Connector\Sabre\TagsPlugin;
 use OCA\DAV\DAV\CustomPropertiesBackend;
 use OCA\DAV\DAV\PublicAuth;
 use OCA\DAV\DAV\ViewOnlyPlugin;
-use OCA\DAV\Events\SabrePluginAddEvent;
 use OCA\DAV\Events\SabrePluginAuthInitEvent;
 use OCA\DAV\Files\BrowserErrorPagePlugin;
 use OCA\DAV\Files\LazySearchBackend;
@@ -103,16 +102,15 @@ class Server {
 		$this->request = $request;
 		$this->baseUri = $baseUri;
 		$logger = \OC::$server->get(LoggerInterface::class);
-		/** @var IEventDispatcher $dispatcher */
-		$dispatcher = \OC::$server->get(IEventDispatcher::class);
+		$dispatcher = \OC::$server->getEventDispatcher();
+		/** @var IEventDispatcher $newDispatcher */
+		$newDispatcher = \OC::$server->query(IEventDispatcher::class);
 
 		$root = new RootCollection();
 		$this->server = new \OCA\DAV\Connector\Sabre\Server(new CachingTree($root));
 
 		// Add maintenance plugin
 		$this->server->addPlugin(new \OCA\DAV\Connector\Sabre\MaintenancePlugin(\OC::$server->getConfig(), \OC::$server->getL10N('dav')));
-
-		$this->server->addPlugin(new \OCA\DAV\Connector\Sabre\AppleQuirksPlugin());
 
 		// Backends
 		$authBackend = new Auth(
@@ -139,7 +137,7 @@ class Server {
 		$dispatcher->dispatch('OCA\DAV\Connector\Sabre::authInit', $event);
 
 		$newAuthEvent = new SabrePluginAuthInitEvent($this->server);
-		$dispatcher->dispatchTyped($newAuthEvent);
+		$newDispatcher->dispatchTyped($newAuthEvent);
 
 		$bearerAuthBackend = new BearerAuth(
 			\OC::$server->getUserSession(),
@@ -208,7 +206,11 @@ class Server {
 		}
 
 		// system tags plugins
-		$this->server->addPlugin(\OC::$server->get(SystemTagPlugin::class));
+		$this->server->addPlugin(new SystemTagPlugin(
+			\OC::$server->getSystemTagManager(),
+			\OC::$server->getGroupManager(),
+			\OC::$server->getUserSession()
+		));
 
 		// comments plugin
 		$this->server->addPlugin(new CommentsPlugin(
@@ -223,8 +225,6 @@ class Server {
 
 		// allow setup of additional plugins
 		$dispatcher->dispatch('OCA\DAV\Connector\Sabre::addPlugin', $event);
-		$typedEvent = new SabrePluginAddEvent($this->server);
-		$dispatcher->dispatchTyped($typedEvent);
 
 		// Some WebDAV clients do require Class 2 WebDAV support (locking), since
 		// we do not provide locking we emulate it using a fake locking plugin.
@@ -327,7 +327,8 @@ class Server {
 				}
 				$this->server->addPlugin(new \OCA\DAV\CalDAV\BirthdayCalendar\EnablePlugin(
 					\OC::$server->getConfig(),
-					\OC::$server->query(BirthdayService::class)
+					\OC::$server->query(BirthdayService::class),
+					$user
 				));
 				$this->server->addPlugin(new AppleProvisioningPlugin(
 					\OC::$server->getUserSession(),

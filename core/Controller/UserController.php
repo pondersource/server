@@ -30,12 +30,14 @@ use OCP\IRequest;
 use OCP\IUserManager;
 
 class UserController extends Controller {
-	public function __construct(
-		string $appName,
-		IRequest $request,
-		protected IUserManager $userManager,
+	protected IUserManager $userManager;
+
+	public function __construct($appName,
+								IRequest $request,
+								IUserManager $userManager
 	) {
 		parent::__construct($appName, $request);
+		$this->userManager = $userManager;
 	}
 
 	/**

@@ -39,12 +39,15 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
 class Remove extends Command implements CompletionAwareInterface {
-	public function __construct(
-		protected IAppManager $manager,
-		private Installer $installer,
-		private LoggerInterface $logger,
-	) {
+	protected IAppManager $manager;
+	private Installer $installer;
+	private LoggerInterface $logger;
+
+	public function __construct(IAppManager $manager, Installer $installer, LoggerInterface $logger) {
 		parent::__construct();
+		$this->manager = $manager;
+		$this->installer = $installer;
+		$this->logger = $logger;
 	}
 
 	protected function configure() {
@@ -113,7 +116,7 @@ class Remove extends Command implements CompletionAwareInterface {
 			return 1;
 		}
 
-		$appVersion = $this->manager->getAppVersion($appId);
+		$appVersion = \OC_App::getAppVersion($appId);
 		$output->writeln($appId . ' ' . $appVersion . ' removed');
 
 		return 0;

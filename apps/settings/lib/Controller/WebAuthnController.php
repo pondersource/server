@@ -7,7 +7,6 @@ declare(strict_types=1);
  *
  * @author Joas Schilling <coding@schilljs.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -31,7 +30,6 @@ use OC\Authentication\WebAuthn\Manager;
 use OCA\Settings\AppInfo\Application;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\ILogger;
 use OCP\IRequest;
@@ -39,7 +37,6 @@ use OCP\ISession;
 use OCP\IUserSession;
 use Webauthn\PublicKeyCredentialCreationOptions;
 
-#[IgnoreOpenAPI]
 class WebAuthnController extends Controller {
 	private const WEBAUTHN_REGISTRATION = 'webauthn_registration';
 

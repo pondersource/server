@@ -45,7 +45,6 @@ class Quota extends Wrapper {
 	protected int|float|null $quota;
 	protected string $sizeRoot;
 	private SystemConfig $config;
-	private bool $quotaIncludeExternalStorage;
 
 	/**
 	 * @param array $parameters
@@ -55,7 +54,7 @@ class Quota extends Wrapper {
 		$this->quota = $parameters['quota'] ?? null;
 		$this->quotaCallback = $parameters['quotaCallback'] ?? null;
 		$this->sizeRoot = $parameters['root'] ?? '';
-		$this->quotaIncludeExternalStorage = $parameters['include_external_storage'] ?? false;
+		$this->config = \OC::$server->get(SystemConfig::class);
 	}
 
 	/**
@@ -83,7 +82,7 @@ class Quota extends Wrapper {
 	 * @return int|float
 	 */
 	protected function getSize($path, $storage = null) {
-		if ($this->quotaIncludeExternalStorage) {
+		if ($this->config->getValue('quota_include_external_storage', false)) {
 			$rootInfo = Filesystem::getFileInfo('', 'ext');
 			if ($rootInfo) {
 				return $rootInfo->getSize(true);
@@ -110,7 +109,7 @@ class Quota extends Wrapper {
 		if (!$this->hasQuota()) {
 			return $this->storage->free_space($path);
 		}
-		if ($this->getQuota() < 0 || str_starts_with($path, 'cache') || str_starts_with($path, 'uploads')) {
+		if ($this->getQuota() < 0 || strpos($path, 'cache') === 0 || strpos($path, 'uploads') === 0) {
 			return $this->storage->free_space($path);
 		} else {
 			$used = $this->getSize($this->sizeRoot);
@@ -208,7 +207,7 @@ class Quota extends Wrapper {
 	 * Only apply quota for files, not metadata, trash or others
 	 */
 	private function shouldApplyQuota(string $path): bool {
-		return str_starts_with(ltrim($path, '/'), 'files/');
+		return strpos(ltrim($path, '/'), 'files/') === 0;
 	}
 
 	/**

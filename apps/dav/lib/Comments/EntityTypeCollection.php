@@ -42,14 +42,25 @@ use Sabre\DAV\Exception\NotFound;
  * @package OCA\DAV\Comments
  */
 class EntityTypeCollection extends RootCollection {
+
 	protected LoggerInterface $logger;
-	protected IUserManager $userManager;
+
+	/** @var IUserManager */
+	protected $userManager;
 
 	/** @var \Closure */
 	protected $childExistsFunction;
 
+	/**
+	 * @param string $name
+	 * @param ICommentsManager $commentsManager
+	 * @param IUserManager $userManager
+	 * @param IUserSession $userSession
+	 * @param LoggerInterface $logger
+	 * @param \Closure $childExistsFunction
+	 */
 	public function __construct(
-		string $name,
+		$name,
 		ICommentsManager $commentsManager,
 		IUserManager $userManager,
 		IUserSession $userSession,
@@ -57,7 +68,7 @@ class EntityTypeCollection extends RootCollection {
 		\Closure $childExistsFunction
 	) {
 		$name = trim($name);
-		if (empty($name)) {
+		if (empty($name) || !is_string($name)) {
 			throw new \InvalidArgumentException('"name" parameter must be non-empty string');
 		}
 		$this->name = $name;

@@ -34,10 +34,11 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Test extends Command {
-	public function __construct(
-		private IEventDispatcher $eventDispatcher,
-	) {
+	private IEventDispatcher $eventDispatcher;
+
+	public function __construct(IEventDispatcher $eventDispatcher) {
 		parent::__construct();
+		$this->eventDispatcher = $eventDispatcher;
 	}
 
 	protected function configure(): void {

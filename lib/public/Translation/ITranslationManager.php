@@ -28,6 +28,7 @@ namespace OCP\Translation;
 
 use InvalidArgumentException;
 use OCP\PreConditionNotMetException;
+use RuntimeException;
 
 /**
  * @since 26.0.0
@@ -37,12 +38,6 @@ interface ITranslationManager {
 	 * @since 26.0.0
 	 */
 	public function hasProviders(): bool;
-
-	/**
-	 * @return ITranslationProvider[]
-	 * @since 27.1.0
-	 */
-	public function getProviders(): array;
 
 	/**
 	 * @since 26.0.0
@@ -59,7 +54,7 @@ interface ITranslationManager {
 	 * @since 26.0.0
 	 * @throws PreConditionNotMetException If no provider was registered but this method was still called
 	 * @throws InvalidArgumentException If no matching provider was found that can detect a language
-	 * @throws CouldNotTranslateException If the translation failed for other reasons
+	 * @throws RuntimeException If the translation failed for other reasons
 	 */
-	public function translate(string $text, ?string &$fromLanguage, string $toLanguage): string;
+	public function translate(string $text, ?string $fromLanguage, string $toLanguage): string;
 }

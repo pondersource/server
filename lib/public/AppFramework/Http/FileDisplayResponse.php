@@ -4,7 +4,6 @@
  *
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -25,33 +24,31 @@
 namespace OCP\AppFramework\Http;
 
 use OCP\AppFramework\Http;
-use OCP\Files\File;
-use OCP\Files\SimpleFS\ISimpleFile;
 
 /**
  * Class FileDisplayResponse
  *
  * @since 11.0.0
- * @template S of int
- * @template H of array<string, mixed>
- * @template-extends Response<int, array<string, mixed>>
  */
 class FileDisplayResponse extends Response implements ICallbackResponse {
-	/** @var File|ISimpleFile */
+	/** @var \OCP\Files\File|\OCP\Files\SimpleFS\ISimpleFile */
 	private $file;
 
 	/**
 	 * FileDisplayResponse constructor.
 	 *
-	 * @param File|ISimpleFile $file
-	 * @param S $statusCode
-	 * @param H $headers
+	 * @param \OCP\Files\File|\OCP\Files\SimpleFS\ISimpleFile $file
+	 * @param int $statusCode
+	 * @param array $headers
 	 * @since 11.0.0
 	 */
-	public function __construct(File|ISimpleFile $file, int $statusCode = Http::STATUS_OK, array $headers = []) {
-		parent::__construct($statusCode, $headers);
+	public function __construct($file, $statusCode = Http::STATUS_OK,
+								$headers = []) {
+		parent::__construct();
 
 		$this->file = $file;
+		$this->setStatus($statusCode);
+		$this->setHeaders(array_merge($this->getHeaders(), $headers));
 		$this->addHeader('Content-Disposition', 'inline; filename="' . rawurldecode($file->getName()) . '"');
 
 		$this->setETag($file->getEtag());

@@ -10,7 +10,6 @@ declare(strict_types=1);
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Tom Needham <tom@owncloud.com>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license AGPL-3.0
  *
@@ -30,18 +29,13 @@ declare(strict_types=1);
 namespace OCA\Provisioning_API\Controller;
 
 use OC_App;
-use OCA\Provisioning_API\ResponseDefinitions;
 use OCP\App\AppPathNotFoundException;
 use OCP\App\IAppManager;
-use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCS\OCSException;
 use OCP\AppFramework\OCSController;
 use OCP\IRequest;
 
-/**
- * @psalm-import-type ProvisioningApiAppInfo from ResponseDefinitions
- */
 class AppsController extends OCSController {
 	/** @var IAppManager */
 	private $appManager;
@@ -57,19 +51,16 @@ class AppsController extends OCSController {
 	}
 
 	/**
-	 * Get a list of installed apps
-	 *
-	 * @param ?string $filter Filter for enabled or disabled apps
-	 * @return DataResponse<Http::STATUS_OK, array{apps: string[]}, array{}>
+	 * @param string|null $filter
+	 * @return DataResponse
 	 * @throws OCSException
 	 */
-	public function getApps(?string $filter = null): DataResponse {
+	public function getApps(string $filter = null): DataResponse {
 		$apps = (new OC_App())->listAllApps();
 		$list = [];
 		foreach ($apps as $app) {
 			$list[] = $app['id'];
 		}
-		/** @var string[] $list */
 		if ($filter) {
 			switch ($filter) {
 				case 'enabled':
@@ -89,10 +80,8 @@ class AppsController extends OCSController {
 	}
 
 	/**
-	 * Get the app info for an app
-	 *
-	 * @param string $app ID of the app
-	 * @return DataResponse<Http::STATUS_OK, ProvisioningApiAppInfo, array{}>
+	 * @param string $app
+	 * @return DataResponse
 	 * @throws OCSException
 	 */
 	public function getAppInfo(string $app): DataResponse {
@@ -106,11 +95,8 @@ class AppsController extends OCSController {
 
 	/**
 	 * @PasswordConfirmationRequired
-	 *
-	 * Enable an app
-	 *
-	 * @param string $app ID of the app
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @param string $app
+	 * @return DataResponse
 	 * @throws OCSException
 	 */
 	public function enable(string $app): DataResponse {
@@ -124,11 +110,8 @@ class AppsController extends OCSController {
 
 	/**
 	 * @PasswordConfirmationRequired
-	 *
-	 * Disable an app
-	 *
-	 * @param string $app ID of the app
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @param string $app
+	 * @return DataResponse
 	 */
 	public function disable(string $app): DataResponse {
 		$this->appManager->disableApp($app);

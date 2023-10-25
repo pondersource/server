@@ -36,16 +36,24 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 class EncryptAll extends Command {
+	protected IManager $encryptionManager;
+	protected IAppManager $appManager;
+	protected IConfig $config;
+	protected QuestionHelper $questionHelper;
 	protected bool $wasTrashbinEnabled = false;
-	protected bool $wasMaintenanceModeEnabled = false;
+	protected bool $wasMaintenanceModeEnabled;
 
 	public function __construct(
-		protected IManager $encryptionManager,
-		protected IAppManager $appManager,
-		protected IConfig $config,
-		protected QuestionHelper $questionHelper,
+		IManager $encryptionManager,
+		IAppManager $appManager,
+		IConfig $config,
+		QuestionHelper $questionHelper
 	) {
 		parent::__construct();
+		$this->appManager = $appManager;
+		$this->encryptionManager = $encryptionManager;
+		$this->config = $config;
+		$this->questionHelper = $questionHelper;
 	}
 
 	/**

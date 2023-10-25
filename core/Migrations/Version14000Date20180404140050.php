@@ -35,9 +35,11 @@ use OCP\Migration\SimpleMigrationStep;
  * Auto-generated migration step: Please modify to your needs!
  */
 class Version14000Date20180404140050 extends SimpleMigrationStep {
-	public function __construct(
-		private IDBConnection $connection,
-	) {
+	/** @var IDBConnection */
+	private $connection;
+
+	public function __construct(IDBConnection $connection) {
+		$this->connection = $connection;
 	}
 
 	public function name(): string {

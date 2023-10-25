@@ -31,7 +31,9 @@ use OCP\AppFramework\Services\InitialStateProvider;
 use OCP\IConfig;
 
 class MaxAutoCompleteResultsInitialState extends InitialStateProvider {
-	private IConfig $config;
+
+	/** @var IConfig */
+	private $config;
 
 	public function __construct(IConfig $config) {
 		$this->config = $config;

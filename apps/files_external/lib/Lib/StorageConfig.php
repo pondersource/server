@@ -31,12 +31,9 @@ namespace OCA\Files_External\Lib;
 use OCA\Files_External\Lib\Auth\AuthMechanism;
 use OCA\Files_External\Lib\Auth\IUserProvided;
 use OCA\Files_External\Lib\Backend\Backend;
-use OCA\Files_External\ResponseDefinitions;
 
 /**
  * External storage configuration
- *
- * @psalm-import-type FilesExternalStorageConfig from ResponseDefinitions
  */
 class StorageConfig implements \JsonSerializable {
 	public const MOUNT_TYPE_ADMIN = 1;
@@ -66,7 +63,7 @@ class StorageConfig implements \JsonSerializable {
 	/**
 	 * Backend options
 	 *
-	 * @var array<string, mixed>
+	 * @var array
 	 */
 	private $backendOptions = [];
 
@@ -115,7 +112,7 @@ class StorageConfig implements \JsonSerializable {
 	/**
 	 * Mount-specific options
 	 *
-	 * @var array<string, mixed>
+	 * @var array
 	 */
 	private $mountOptions = [];
 
@@ -139,7 +136,7 @@ class StorageConfig implements \JsonSerializable {
 	/**
 	 * Returns the configuration id
 	 *
-	 * @return int
+	 * @retun int
 	 */
 	public function getId() {
 		return $this->id;
@@ -399,19 +396,12 @@ class StorageConfig implements \JsonSerializable {
 
 	/**
 	 * Serialize config to JSON
-	 * @return FilesExternalStorageConfig
 	 */
-	public function jsonSerialize(bool $obfuscate = false): array {
+	public function jsonSerialize(): array {
 		$result = [];
 		if (!is_null($this->id)) {
 			$result['id'] = $this->id;
 		}
-
-		// obfuscate sensitive data if requested
-		if ($obfuscate) {
-			$this->formatStorageForUI();
-		}
-
 		$result['mountPoint'] = $this->mountPoint;
 		$result['backend'] = $this->backend->getIdentifier();
 		$result['authMechanism'] = $this->authMechanism->getIdentifier();
@@ -437,20 +427,5 @@ class StorageConfig implements \JsonSerializable {
 		$result['userProvided'] = $this->authMechanism instanceof IUserProvided;
 		$result['type'] = ($this->getType() === self::MOUNT_TYPE_PERSONAl) ? 'personal': 'system';
 		return $result;
-	}
-
-	protected function formatStorageForUI(): void {
-		/** @var DefinitionParameter[] $parameters */
-		$parameters = array_merge($this->getBackend()->getParameters(), $this->getAuthMechanism()->getParameters());
-
-		$options = $this->getBackendOptions();
-		foreach ($options as $key => $value) {
-			foreach ($parameters as $parameter) {
-				if ($parameter->getName() === $key && $parameter->getType() === DefinitionParameter::VALUE_PASSWORD) {
-					$this->setBackendOption($key, DefinitionParameter::UNMODIFIED_PLACEHOLDER);
-					break;
-				}
-			}
-		}
 	}
 }

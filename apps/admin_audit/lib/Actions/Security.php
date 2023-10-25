@@ -26,7 +26,6 @@ declare(strict_types=1);
  */
 namespace OCA\AdminAudit\Actions;
 
-use OCP\Authentication\TwoFactorAuth\IProvider;
 use OCP\IUser;
 
 /**
@@ -36,14 +35,14 @@ use OCP\IUser;
  */
 class Security extends Action {
 	/**
-	 * Logs failed twofactor challenge
+	 * Log twofactor auth enabled
+	 *
+	 * @param IUser $user
+	 * @param array $params
 	 */
-	public function twofactorFailed(IUser $user, IProvider $provider): void {
-		$params = [
-			'displayName' => $user->getDisplayName(),
-			'uid' => $user->getUID(),
-			'provider' => $provider->getDisplayName(),
-		];
+	public function twofactorFailed(IUser $user, array $params): void {
+		$params['uid'] = $user->getUID();
+		$params['displayName'] = $user->getDisplayName();
 
 		$this->log(
 			'Failed two factor attempt by user %s (%s) with provider %s',
@@ -57,14 +56,14 @@ class Security extends Action {
 	}
 
 	/**
-	 * Logs successful twofactor challenge
+	 * Logs unsharing of data
+	 *
+	 * @param IUser $user
+	 * @param array $params
 	 */
-	public function twofactorSuccess(IUser $user, IProvider $provider): void {
-		$params = [
-			'displayName' => $user->getDisplayName(),
-			'uid' => $user->getUID(),
-			'provider' => $provider->getDisplayName(),
-		];
+	public function twofactorSuccess(IUser $user, array $params): void {
+		$params['uid'] = $user->getUID();
+		$params['displayName'] = $user->getDisplayName();
 
 		$this->log(
 			'Successful two factor attempt by user %s (%s) with provider %s',

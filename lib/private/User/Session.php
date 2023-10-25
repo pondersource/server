@@ -51,7 +51,6 @@ use OC_User;
 use OC_Util;
 use OCA\DAV\Connector\Sabre\Auth;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\EventDispatcher\GenericEvent;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\NotPermittedException;
 use OCP\IConfig;
@@ -64,9 +63,9 @@ use OCP\Security\Bruteforce\IThrottler;
 use OCP\Security\ISecureRandom;
 use OCP\Session\Exceptions\SessionNotAvailableException;
 use OCP\User\Events\PostLoginEvent;
-use OCP\User\Events\UserFirstTimeLoggedInEvent;
 use OCP\Util;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\GenericEvent;
 
 /**
  * Class Session
@@ -419,7 +418,7 @@ class Session implements IUserSession, Emitter {
 	 * @param string $user
 	 * @param string $password
 	 * @param IRequest $request
-	 * @param IThrottler $throttler
+	 * @param OC\Security\Bruteforce\Throttler $throttler
 	 * @throws LoginException
 	 * @throws PasswordLoginForbiddenException
 	 * @return boolean
@@ -427,7 +426,7 @@ class Session implements IUserSession, Emitter {
 	public function logClientIn($user,
 								$password,
 								IRequest $request,
-								IThrottler $throttler) {
+								OC\Security\Bruteforce\Throttler $throttler) {
 		$remoteAddress = $request->getRemoteAddress();
 		$currentDelay = $throttler->sleepDelayOrThrowOnMax($remoteAddress, 'login');
 
@@ -492,8 +491,8 @@ class Session implements IUserSession, Emitter {
 		return false;
 	}
 
-	private function isTokenAuthEnforced(): bool {
-		return $this->config->getSystemValueBool('token_auth_enforced', false);
+	private function isTokenAuthEnforced() {
+		return $this->config->getSystemValue('token_auth_enforced', false);
 	}
 
 	protected function isTwoFactorEnforced($username) {
@@ -562,8 +561,7 @@ class Session implements IUserSession, Emitter {
 			}
 
 			// trigger any other initialization
-			\OC::$server->get(IEventDispatcher::class)->dispatch(IUser::class . '::firstLogin', new GenericEvent($this->getUser()));
-			\OC::$server->get(IEventDispatcher::class)->dispatchTyped(new UserFirstTimeLoggedInEvent($this->getUser()));
+			\OC::$server->getEventDispatcher()->dispatch(IUser::class . '::firstLogin', new GenericEvent($this->getUser()));
 		}
 	}
 
@@ -572,11 +570,11 @@ class Session implements IUserSession, Emitter {
 	 *
 	 * @todo do not allow basic auth if the user is 2FA enforced
 	 * @param IRequest $request
-	 * @param IThrottler $throttler
+	 * @param OC\Security\Bruteforce\Throttler $throttler
 	 * @return boolean if the login was successful
 	 */
 	public function tryBasicAuthLogin(IRequest $request,
-									  IThrottler $throttler) {
+									  OC\Security\Bruteforce\Throttler $throttler) {
 		if (!empty($request->server['PHP_AUTH_USER']) && !empty($request->server['PHP_AUTH_PW'])) {
 			try {
 				if ($this->logClientIn($request->server['PHP_AUTH_USER'], $request->server['PHP_AUTH_PW'], $request, $throttler)) {
@@ -820,7 +818,7 @@ class Session implements IUserSession, Emitter {
 	 */
 	public function tryTokenLogin(IRequest $request) {
 		$authHeader = $request->getHeader('Authorization');
-		if (str_starts_with($authHeader, 'Bearer ')) {
+		if (strpos($authHeader, 'Bearer ') === 0) {
 			$token = substr($authHeader, 7);
 		} else {
 			// No auth header, let's try session id
@@ -960,7 +958,7 @@ class Session implements IUserSession, Emitter {
 			$webRoot = '/';
 		}
 
-		$maxAge = $this->config->getSystemValueInt('remember_login_cookie_lifetime', 60 * 60 * 24 * 15);
+		$maxAge = $this->config->getSystemValue('remember_login_cookie_lifetime', 60 * 60 * 24 * 15);
 		\OC\Http\CookieHelper::setCookie(
 			'nc_username',
 			$username,

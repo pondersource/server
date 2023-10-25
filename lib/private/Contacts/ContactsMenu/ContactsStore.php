@@ -44,16 +44,33 @@ use OCP\IUserManager;
 use OCP\L10N\IFactory as IL10NFactory;
 
 class ContactsStore implements IContactsStore {
+	private IManager $contactsManager;
+	private IConfig $config;
+	private ProfileManager $profileManager;
+	private IUserManager $userManager;
+	private IURLGenerator $urlGenerator;
+	private IGroupManager $groupManager;
+	private KnownUserService $knownUserService;
+	private IL10NFactory $l10nFactory;
+
 	public function __construct(
-		private IManager $contactsManager,
-		private IConfig $config,
-		private ProfileManager $profileManager,
-		private IUserManager $userManager,
-		private IURLGenerator $urlGenerator,
-		private IGroupManager $groupManager,
-		private KnownUserService $knownUserService,
-		private IL10NFactory $l10nFactory,
+		IManager $contactsManager,
+		IConfig $config,
+		ProfileManager $profileManager,
+		IUserManager $userManager,
+		IURLGenerator $urlGenerator,
+		IGroupManager $groupManager,
+		KnownUserService $knownUserService,
+		IL10NFactory $l10nFactory
 	) {
+		$this->contactsManager = $contactsManager;
+		$this->config = $config;
+		$this->profileManager = $profileManager;
+		$this->userManager = $userManager;
+		$this->urlGenerator = $urlGenerator;
+		$this->groupManager = $groupManager;
+		$this->knownUserService = $knownUserService;
+		$this->l10nFactory = $l10nFactory;
 	}
 
 	/**
@@ -109,7 +126,9 @@ class ContactsStore implements IContactsStore {
 	 * enabled it will filter all users which doesn't have a common group
 	 * with the current user.
 	 *
+	 * @param IUser $self
 	 * @param Entry[] $entries
+	 * @param string|null $filter
 	 * @return Entry[] the filtered contacts
 	 */
 	private function filterContacts(
@@ -283,7 +302,7 @@ class ContactsStore implements IContactsStore {
 		}
 
 		$avatarPrefix = "VALUE=uri:";
-		if (isset($contact['PHOTO']) && str_starts_with($contact['PHOTO'], $avatarPrefix)) {
+		if (isset($contact['PHOTO']) && strpos($contact['PHOTO'], $avatarPrefix) === 0) {
 			$entry->setAvatar(substr($contact['PHOTO'], strlen($avatarPrefix)));
 		}
 

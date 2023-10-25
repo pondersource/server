@@ -51,9 +51,6 @@ $authBackend = new OCA\DAV\Connector\PublicAuth(
 );
 $authPlugin = new \Sabre\DAV\Auth\Plugin($authBackend);
 
-/** @var IEventDispatcher $eventDispatcher */
-$eventDispatcher = \OC::$server->get(IEventDispatcher::class);
-
 $serverFactory = new OCA\DAV\Connector\Sabre\ServerFactory(
 	\OC::$server->getConfig(),
 	\OC::$server->get(LoggerInterface::class),
@@ -63,7 +60,7 @@ $serverFactory = new OCA\DAV\Connector\Sabre\ServerFactory(
 	\OC::$server->getTagManager(),
 	\OC::$server->getRequest(),
 	\OC::$server->getPreviewManager(),
-	$eventDispatcher,
+	\OC::$server->getEventDispatcher(),
 	\OC::$server->getL10N('dav')
 );
 
@@ -118,6 +115,8 @@ $server->addPlugin($linkCheckPlugin);
 $server->addPlugin($filesDropPlugin);
 // allow setup of additional plugins
 $event = new BeforeSabrePubliclyLoadedEvent($server);
+/** @var IEventDispatcher $eventDispatcher */
+$eventDispatcher = \OC::$server->get(IEventDispatcher::class);
 $eventDispatcher->dispatchTyped($event);
 
 // And off we go!

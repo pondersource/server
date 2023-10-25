@@ -1,0 +1,25 @@
+OC.L10N.register(
+    "login_notes",
+    {
+    "Login notes" : "Login-Hinweise",
+    "Display notes on log-in page" : "Zeigt einen Hinweis auf dem Login-Bereich an",
+    "This app will show admin defined notes the log-in page" : "Diese App zeigt vom Administrator hinterlegte Hinweise auf dem Login-Bereich an.",
+    "Enter the text for the updated login note here. Markdown supported." : "Geben Sie hier den Text für den aktualisierten Login-Hinweis hier ein. Markdown wird unterstützt.",
+    "Update note" : "Login-Hinweis aktualisieren",
+    "Cancel" : "Abbrechen",
+    "Edit" : "Bearbeiten",
+    "Delete" : "Löschen",
+    "Notes on login screen" : "Hinweis auf dem Login-Bereich",
+    "Text alignment" : "Textausrichtung",
+    "Aligned" : "Linksbündig",
+    "Note content will be aligned to left (or right with RTL languages)." : "Der Login-Hinweis wird linksbündig ausgerichtet (oder rechtsbündig bei RTL-Sprachen).",
+    "Centered" : "Zentriert",
+    "Note content will be centered." : "Der Login-Hinweis wird zentriert ausgerichtet.",
+    "Notes list" : "Liste der Login-Hinweise",
+    "These notes will be shown on the login screen." : "Diese Hinweise werden auf dem Anmeldebildschirm angezeigt.",
+    "No notes yet" : "Noch keine Notizen",
+    "New login note" : "Neuer Login-Hinweis",
+    "Enter the text for your new login note here. Markdown supported." : "Geben Sie hier den Text für den neuen Login-Hinweis hier ein. Markdown wird unterstützt.",
+    "Add new note" : "Neuen Login-Hinweis anlegen"
+},
+"nplurals=2; plural=n != 1;");

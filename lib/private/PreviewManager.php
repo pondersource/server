@@ -46,6 +46,7 @@ use OCP\IConfig;
 use OCP\IPreview;
 use OCP\IServerContainer;
 use OCP\Preview\IProviderV2;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use function array_key_exists;
 
 class PreviewManager implements IPreview {
@@ -53,6 +54,7 @@ class PreviewManager implements IPreview {
 	protected IRootFolder $rootFolder;
 	protected IAppData $appData;
 	protected IEventDispatcher $eventDispatcher;
+	protected EventDispatcherInterface $legacyEventDispatcher;
 	private ?Generator $generator = null;
 	private GeneratorHelper $helper;
 	protected bool $providerListDirty = false;
@@ -79,6 +81,7 @@ class PreviewManager implements IPreview {
 		IRootFolder              $rootFolder,
 		IAppData                 $appData,
 		IEventDispatcher 		 $eventDispatcher,
+		EventDispatcherInterface $legacyEventDispatcher,
 		GeneratorHelper          $helper,
 		?string                  $userId,
 		Coordinator              $bootstrapCoordinator,
@@ -90,6 +93,7 @@ class PreviewManager implements IPreview {
 		$this->rootFolder = $rootFolder;
 		$this->appData = $appData;
 		$this->eventDispatcher = $eventDispatcher;
+		$this->legacyEventDispatcher = $legacyEventDispatcher;
 		$this->helper = $helper;
 		$this->userId = $userId;
 		$this->bootstrapCoordinator = $bootstrapCoordinator;
@@ -109,7 +113,7 @@ class PreviewManager implements IPreview {
 	 * @return void
 	 */
 	public function registerProvider($mimeTypeRegex, \Closure $callable): void {
-		if (!$this->config->getSystemValueBool('enable_previews', true)) {
+		if (!$this->config->getSystemValue('enable_previews', true)) {
 			return;
 		}
 
@@ -124,7 +128,7 @@ class PreviewManager implements IPreview {
 	 * Get all providers
 	 */
 	public function getProviders(): array {
-		if (!$this->config->getSystemValueBool('enable_previews', true)) {
+		if (!$this->config->getSystemValue('enable_previews', true)) {
 			return [];
 		}
 
@@ -157,6 +161,7 @@ class PreviewManager implements IPreview {
 					$this->rootFolder,
 					$this->config
 				),
+				$this->legacyEventDispatcher,
 				$this->eventDispatcher
 			);
 		}
@@ -214,7 +219,7 @@ class PreviewManager implements IPreview {
 	 * @return boolean
 	 */
 	public function isMimeSupported($mimeType = '*') {
-		if (!$this->config->getSystemValueBool('enable_previews', true)) {
+		if (!$this->config->getSystemValue('enable_previews', true)) {
 			return false;
 		}
 
@@ -239,7 +244,7 @@ class PreviewManager implements IPreview {
 	 * Check if a preview can be generated for a file
 	 */
 	public function isAvailable(\OCP\Files\FileInfo $file): bool {
-		if (!$this->config->getSystemValueBool('enable_previews', true)) {
+		if (!$this->config->getSystemValue('enable_previews', true)) {
 			return false;
 		}
 

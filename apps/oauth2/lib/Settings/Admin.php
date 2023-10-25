@@ -35,14 +35,24 @@ use OCP\IURLGenerator;
 use Psr\Log\LoggerInterface;
 
 class Admin implements ISettings {
+	private IInitialState $initialState;
+	private ClientMapper $clientMapper;
+	private IURLGenerator $urlGenerator;
+	private ICrypto $crypto;
+	private LoggerInterface $logger;
 
 	public function __construct(
-		private IInitialState $initialState,
-		private ClientMapper $clientMapper,
-		private IURLGenerator $urlGenerator,
-		private ICrypto $crypto,
-		private LoggerInterface $logger,
+		IInitialState $initialState,
+		ClientMapper $clientMapper,
+		IURLGenerator $urlGenerator,
+		ICrypto $crypto,
+		LoggerInterface $logger
 	) {
+		$this->initialState = $initialState;
+		$this->clientMapper = $clientMapper;
+		$this->urlGenerator = $urlGenerator;
+		$this->crypto = $crypto;
+		$this->logger = $logger;
 	}
 
 	public function getForm(): TemplateResponse {

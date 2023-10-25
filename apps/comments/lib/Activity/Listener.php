@@ -59,7 +59,10 @@ class Listener {
 		$this->shareHelper = $shareHelper;
 	}
 
-	public function commentEvent(CommentsEvent $event): void {
+	/**
+	 * @param CommentsEvent $event
+	 */
+	public function commentEvent(CommentsEvent $event) {
 		if ($event->getComment()->getObjectType() !== 'files'
 			|| $event->getEvent() !== CommentsEvent::EVENT_ADD
 			|| !$this->appManager->isInstalled('activity')) {

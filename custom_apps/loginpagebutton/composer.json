@@ -1,0 +1,13 @@
+{
+    "name": "Login Page Button",
+    "description": "This app will place a single button with a custom link on the login page",
+    "type": "project",
+    "license": "AGPL",
+    "authors": [
+        {
+            "name": "Micke Nordin"
+        }
+    ],
+    "require": {},
+    "require-dev": {}
+}

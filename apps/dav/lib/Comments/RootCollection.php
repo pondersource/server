@@ -26,7 +26,6 @@ namespace OCA\DAV\Comments;
 
 use OCP\Comments\CommentsEntityEvent;
 use OCP\Comments\ICommentsManager;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
@@ -34,22 +33,35 @@ use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\Exception\NotAuthenticated;
 use Sabre\DAV\Exception\NotFound;
 use Sabre\DAV\ICollection;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class RootCollection implements ICollection {
+
 	/** @var EntityTypeCollection[]|null */
-	private ?array $entityTypeCollections = null;
-	protected ICommentsManager $commentsManager;
-	protected string $name = 'comments';
+	private $entityTypeCollections;
+
+	/** @var ICommentsManager */
+	protected $commentsManager;
+
+	/** @var string */
+	protected $name = 'comments';
+
 	protected LoggerInterface $logger;
-	protected IUserManager $userManager;
-	protected IUserSession $userSession;
-	protected IEventDispatcher $dispatcher;
+
+	/** @var IUserManager */
+	protected $userManager;
+
+	/** @var IUserSession */
+	protected $userSession;
+
+	/** @var EventDispatcherInterface */
+	protected $dispatcher;
 
 	public function __construct(
 		ICommentsManager $commentsManager,
 		IUserManager $userManager,
 		IUserSession $userSession,
-		IEventDispatcher $dispatcher,
+		EventDispatcherInterface $dispatcher,
 		LoggerInterface $logger) {
 		$this->commentsManager = $commentsManager;
 		$this->logger = $logger;
@@ -74,8 +86,7 @@ class RootCollection implements ICollection {
 			throw new NotAuthenticated();
 		}
 
-		$event = new CommentsEntityEvent();
-		$this->dispatcher->dispatchTyped($event);
+		$event = new CommentsEntityEvent(CommentsEntityEvent::EVENT_ENTITY);
 		$this->dispatcher->dispatch(CommentsEntityEvent::EVENT_ENTITY, $event);
 
 		$this->entityTypeCollections = [];
@@ -138,7 +149,6 @@ class RootCollection implements ICollection {
 	 */
 	public function getChildren() {
 		$this->initCollections();
-		assert(!is_null($this->entityTypeCollections));
 		return $this->entityTypeCollections;
 	}
 
@@ -150,7 +160,6 @@ class RootCollection implements ICollection {
 	 */
 	public function childExists($name) {
 		$this->initCollections();
-		assert(!is_null($this->entityTypeCollections));
 		return isset($this->entityTypeCollections[$name]);
 	}
 
@@ -187,7 +196,7 @@ class RootCollection implements ICollection {
 	/**
 	 * Returns the last modification time, as a unix timestamp
 	 *
-	 * @return ?int
+	 * @return int
 	 */
 	public function getLastModified() {
 		return null;

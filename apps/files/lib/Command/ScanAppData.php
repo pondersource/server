@@ -36,7 +36,6 @@ use OC\DB\ConnectionAdapter;
 use OC\ForbiddenException;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\IRootFolder;
-use OCP\Files\Node;
 use OCP\Files\NotFoundException;
 use OCP\Files\StorageNotAvailableException;
 use OCP\IConfig;
@@ -47,20 +46,26 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ScanAppData extends Base {
-	protected float $execTime = 0;
 
-	protected int $foldersCounter = 0;
+	/** @var IRootFolder */
+	protected $root;
+	/** @var IConfig */
+	protected $config;
+	/** @var float */
+	protected $execTime = 0;
+	/** @var int */
+	protected $foldersCounter = 0;
+	/** @var int */
+	protected $filesCounter = 0;
 
-	protected int $filesCounter = 0;
-
-	public function __construct(
-		protected IRootFolder $rootFolder,
-		protected IConfig $config,
-	) {
+	public function __construct(IRootFolder $rootFolder, IConfig $config) {
 		parent::__construct();
+
+		$this->root = $rootFolder;
+		$this->config = $config;
 	}
 
-	protected function configure(): void {
+	protected function configure() {
 		parent::configure();
 
 		$this
@@ -72,11 +77,10 @@ class ScanAppData extends Base {
 
 	protected function scanFiles(OutputInterface $output, string $folder): int {
 		try {
-			/** @var \OCP\Files\Folder $appData */
 			$appData = $this->getAppDataFolder();
 		} catch (NotFoundException $e) {
 			$output->writeln('<error>NoAppData folder found</error>');
-			return self::FAILURE;
+			return 1;
 		}
 
 		if ($folder !== '') {
@@ -84,7 +88,7 @@ class ScanAppData extends Base {
 				$appData = $appData->get($folder);
 			} catch (NotFoundException $e) {
 				$output->writeln('<error>Could not find folder: ' . $folder . '</error>');
-				return self::FAILURE;
+				return 1;
 			}
 		}
 
@@ -122,21 +126,21 @@ class ScanAppData extends Base {
 		} catch (ForbiddenException $e) {
 			$output->writeln('<error>Storage not writable</error>');
 			$output->writeln('<info>Make sure you\'re running the scan command only as the user the web server runs as</info>');
-			return self::FAILURE;
+			return 1;
 		} catch (InterruptedException $e) {
 			# exit the function if ctrl-c has been pressed
 			$output->writeln('<info>Interrupted by user</info>');
-			return self::FAILURE;
+			return 1;
 		} catch (NotFoundException $e) {
 			$output->writeln('<error>Path not found: ' . $e->getMessage() . '</error>');
-			return self::FAILURE;
+			return 1;
 		} catch (\Exception $e) {
 			$output->writeln('<error>Exception during scan: ' . $e->getMessage() . '</error>');
 			$output->writeln('<error>' . $e->getTraceAsString() . '</error>');
-			return self::FAILURE;
+			return 1;
 		}
 
-		return self::SUCCESS;
+		return 0;
 	}
 
 
@@ -163,7 +167,7 @@ class ScanAppData extends Base {
 	/**
 	 * Initialises some useful tools for the Command
 	 */
-	protected function initTools(): void {
+	protected function initTools() {
 		// Start the timer
 		$this->execTime = -microtime(true);
 		// Convert PHP errors to exceptions
@@ -190,7 +194,10 @@ class ScanAppData extends Base {
 		throw new \ErrorException($message, 0, $severity, $file, $line);
 	}
 
-	protected function presentStats(OutputInterface $output): void {
+	/**
+	 * @param OutputInterface $output
+	 */
+	protected function presentStats(OutputInterface $output) {
 		// Stop the timer
 		$this->execTime += microtime(true);
 
@@ -206,8 +213,9 @@ class ScanAppData extends Base {
 	 *
 	 * @param string[] $headers
 	 * @param string[] $rows
+	 * @param OutputInterface $output
 	 */
-	protected function showSummary($headers, $rows, OutputInterface $output): void {
+	protected function showSummary($headers, $rows, OutputInterface $output) {
 		$niceDate = $this->formatExecTime();
 		if (!$rows) {
 			$rows = [
@@ -225,9 +233,11 @@ class ScanAppData extends Base {
 
 
 	/**
-	 * Formats microtime into a human-readable format
+	 * Formats microtime into a human readable format
+	 *
+	 * @return string
 	 */
-	protected function formatExecTime(): string {
+	protected function formatExecTime() {
 		$secs = round($this->execTime);
 		# convert seconds into HH:MM:SS form
 		return sprintf('%02d:%02d:%02d', (int)($secs / 3600), ((int)($secs / 60) % 60), (int)$secs % 60);
@@ -253,15 +263,16 @@ class ScanAppData extends Base {
 	}
 
 	/**
+	 * @return \OCP\Files\Folder
 	 * @throws NotFoundException
 	 */
-	private function getAppDataFolder(): Node {
+	private function getAppDataFolder() {
 		$instanceId = $this->config->getSystemValue('instanceid', null);
 
 		if ($instanceId === null) {
 			throw new NotFoundException();
 		}
 
-		return $this->rootFolder->get('appdata_'.$instanceId);
+		return $this->root->get('appdata_'.$instanceId);
 	}
 }

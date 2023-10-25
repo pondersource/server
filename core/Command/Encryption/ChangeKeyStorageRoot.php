@@ -40,14 +40,19 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 class ChangeKeyStorageRoot extends Command {
-	public function __construct(
-		protected View $rootView,
-		protected IUserManager $userManager,
-		protected IConfig $config,
-		protected Util $util,
-		protected QuestionHelper $questionHelper,
-	) {
+	protected View $rootView;
+	protected IUserManager $userManager;
+	protected IConfig $config;
+	protected Util $util;
+	protected QuestionHelper $questionHelper;
+
+	public function __construct(View $view, IUserManager $userManager, IConfig $config, Util $util, QuestionHelper $questionHelper) {
 		parent::__construct();
+		$this->rootView = $view;
+		$this->userManager = $userManager;
+		$this->config = $config;
+		$this->util = $util;
+		$this->questionHelper = $questionHelper;
 	}
 
 	protected function configure() {

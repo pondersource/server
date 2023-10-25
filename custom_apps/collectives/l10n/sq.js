@@ -1,0 +1,28 @@
+OC.L10N.register(
+    "collectives",
+    {
+    "You are not allowed to share %s" : "Nuk ju lejohet ta ndani %s me të tjerët",
+    "Share link" : "Lidhje ndarjeje",
+    "Unshare" : "Hiqe ndarjen",
+    "Settings" : "Rregullimet",
+    "Copied" : "Kopjuar",
+    "Members" : "Anëtar",
+    "Remove" : "Hiqe",
+    "Loading…" : "Duke u ngarkuar…",
+    "Permissions" : "Lejet",
+    "View" : "Shiko",
+    "Edit" : "Përpuno",
+    "Restore" : "Rikthe",
+    "Delete permanently" : "Fshije përgjithmonë",
+    "Cancel" : "Anullo",
+    "Back" : "Prapa",
+    "Create" : "Krijo",
+    "Done" : "U krye",
+    "Title" : "Titulli",
+    "Deleted" : "E fshirë",
+    "Download" : "Shkarko",
+    "No other versions available" : "Nuk ka versione të tjera të gatshme",
+    "Attachments" : "Bashkangjitjet",
+    "Versions" : "Versione"
+},
+"nplurals=2; plural=(n != 1);");

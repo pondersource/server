@@ -37,7 +37,7 @@ class PathHelper {
 		}
 		if ($path === $root) {
 			return '/';
-		} elseif (!str_starts_with($path, $root . '/')) {
+		} elseif (strpos($path, $root . '/') !== 0) {
 			return null;
 		} else {
 			$path = substr($path, strlen($root));
@@ -60,7 +60,7 @@ class PathHelper {
 			$path = '/' . $path;
 		}
 		//remove duplicate slashes
-		while (str_contains($path, '//')) {
+		while (strpos($path, '//') !== false) {
 			$path = str_replace('//', '/', $path);
 		}
 		//remove trailing slash

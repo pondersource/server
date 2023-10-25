@@ -32,12 +32,13 @@ use OCP\IConfig;
 use Psr\Log\LoggerInterface;
 
 class BackgroundCleanupUpdaterBackupsJob extends QueuedJob {
-	public function __construct(
-		protected IConfig $config,
-		protected LoggerInterface $log,
-		ITimeFactory $time,
-	) {
+	protected IConfig $config;
+	protected LoggerInterface $log;
+
+	public function __construct(IConfig $config, LoggerInterface $log, ITimeFactory $time) {
 		parent::__construct($time);
+		$this->config = $config;
+		$this->log = $log;
 	}
 
 	/**

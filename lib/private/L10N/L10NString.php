@@ -65,12 +65,12 @@ class L10NString implements \JsonSerializable {
 
 		if (is_array($identity)) {
 			$pipeCheck = implode('', $identity);
-			if (str_contains($pipeCheck, '|')) {
+			if (strpos($pipeCheck, '|') !== false) {
 				return 'Can not use pipe character in translations';
 			}
 
 			$identity = implode('|', $identity);
-		} elseif (str_contains($identity, '|')) {
+		} elseif (strpos($identity, '|') !== false) {
 			return 'Can not use pipe character in translations';
 		}
 

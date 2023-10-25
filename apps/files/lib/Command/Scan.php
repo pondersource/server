@@ -37,9 +37,6 @@ use OC\Core\Command\Base;
 use OC\Core\Command\InterruptedException;
 use OC\DB\Connection;
 use OC\DB\ConnectionAdapter;
-use OCP\Files\Events\FileCacheUpdated;
-use OCP\Files\Events\NodeAddedToCache;
-use OCP\Files\Events\NodeRemovedFromCache;
 use OCP\Files\File;
 use OC\ForbiddenException;
 use OC\Metadata\MetadataManager;
@@ -57,25 +54,26 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Scan extends Base {
+	private IUserManager $userManager;
 	protected float $execTime = 0;
 	protected int $foldersCounter = 0;
 	protected int $filesCounter = 0;
 	protected int $errorsCounter = 0;
-	protected int $newCounter = 0;
-	protected int $updatedCounter = 0;
-	protected int $removedCounter = 0;
+	private IRootFolder $root;
+	private MetadataManager $metadataManager;
 
 	public function __construct(
-		private IUserManager $userManager,
-		private IRootFolder $rootFolder,
-		private MetadataManager $metadataManager,
-		private IEventDispatcher $eventDispatcher,
-		private LoggerInterface $logger,
+		IUserManager $userManager,
+		IRootFolder $rootFolder,
+		MetadataManager $metadataManager
 	) {
+		$this->userManager = $userManager;
 		parent::__construct();
+		$this->root = $rootFolder;
+		$this->metadataManager = $metadataManager;
 	}
 
-	protected function configure(): void {
+	protected function configure() {
 		parent::configure();
 
 		$this
@@ -136,7 +134,7 @@ class Scan extends Base {
 			++$this->filesCounter;
 			$this->abortIfInterrupted();
 			if ($scanMetadata) {
-				$node = $this->rootFolder->get($path);
+				$node = $this->root->get($path);
 				if ($node instanceof File) {
 					$this->metadataManager->generateMetadata($node, false);
 				}
@@ -159,16 +157,6 @@ class Scan extends Base {
 			++$this->errorsCounter;
 		});
 
-		$this->eventDispatcher->addListener(NodeAddedToCache::class, function() {
-			++$this->newCounter;
-		});
-		$this->eventDispatcher->addListener(FileCacheUpdated::class, function() {
-			++$this->updatedCounter;
-		});
-		$this->eventDispatcher->addListener(NodeRemovedFromCache::class, function() {
-			++$this->removedCounter;
-		});
-
 		try {
 			if ($backgroundScan) {
 				$scanner->backgroundScan($path);
@@ -177,7 +165,6 @@ class Scan extends Base {
 			}
 		} catch (ForbiddenException $e) {
 			$output->writeln("<error>Home storage for user $user not writable or 'files' subdirectory missing</error>");
-			$output->writeln('  ' . $e->getMessage());
 			$output->writeln('Make sure you\'re running the scan command only as the user the web server runs as');
 			++$this->errorsCounter;
 		} catch (InterruptedException $e) {
@@ -193,7 +180,7 @@ class Scan extends Base {
 		}
 	}
 
-	public function filterHomeMount(IMountPoint $mountPoint): bool {
+	public function filterHomeMount(IMountPoint $mountPoint) {
 		// any mountpoint inside '/$user/files/'
 		return substr_count($mountPoint->getMountPoint(), '/') <= 3;
 	}
@@ -214,7 +201,7 @@ class Scan extends Base {
 		$users_total = count($users);
 		if ($users_total === 0) {
 			$output->writeln('<error>Please specify the user id to scan, --all to scan for all users or --path=...</error>');
-			return self::FAILURE;
+			return 1;
 		}
 
 		$this->initTools($output);
@@ -224,7 +211,7 @@ class Scan extends Base {
 			if (is_object($user)) {
 				$user = $user->getUID();
 			}
-			$path = $inputPath ?: '/' . $user;
+			$path = $inputPath ? $inputPath : '/' . $user;
 			++$user_count;
 			if ($this->userManager->userExists($user)) {
 				$output->writeln("Starting scan for user $user_count out of $users_total ($user)");
@@ -243,13 +230,13 @@ class Scan extends Base {
 		}
 
 		$this->presentStats($output);
-		return self::SUCCESS;
+		return 0;
 	}
 
 	/**
 	 * Initialises some useful tools for the Command
 	 */
-	protected function initTools(OutputInterface $output): void {
+	protected function initTools(OutputInterface $output) {
 		// Start the timer
 		$this->execTime = -microtime(true);
 		// Convert PHP errors to exceptions
@@ -282,18 +269,16 @@ class Scan extends Base {
 		return true;
 	}
 
-	protected function presentStats(OutputInterface $output): void {
+	/**
+	 * @param OutputInterface $output
+	 */
+	protected function presentStats(OutputInterface $output) {
 		// Stop the timer
 		$this->execTime += microtime(true);
-
-		$this->logger->info("Completed scan of {$this->filesCounter} files in {$this->foldersCounter} folder. Found {$this->newCounter} new, {$this->updatedCounter} updated and {$this->removedCounter} removed items");
 
 		$headers = [
 			'Folders',
 			'Files',
-			'New',
-			'Updated',
-			'Removed',
 			'Errors',
 			'Elapsed time',
 		];
@@ -301,9 +286,6 @@ class Scan extends Base {
 		$rows = [
 			$this->foldersCounter,
 			$this->filesCounter,
-			$this->newCounter,
-			$this->updatedCounter,
-			$this->removedCounter,
 			$this->errorsCounter,
 			$niceDate,
 		];
@@ -316,9 +298,11 @@ class Scan extends Base {
 
 
 	/**
-	 * Formats microtime into a human-readable format
+	 * Formats microtime into a human readable format
+	 *
+	 * @return string
 	 */
-	protected function formatExecTime(): string {
+	protected function formatExecTime() {
 		$secs = (int)round($this->execTime);
 		# convert seconds into HH:MM:SS form
 		return sprintf('%02d:%02d:%02d', (int)($secs / 3600), ((int)($secs / 60) % 60), $secs % 60);

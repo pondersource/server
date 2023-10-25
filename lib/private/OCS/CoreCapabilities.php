@@ -44,6 +44,8 @@ class CoreCapabilities implements ICapability {
 
 	/**
 	 * Return this classes capabilities
+	 *
+	 * @return array
 	 */
 	public function getCapabilities() {
 		return [

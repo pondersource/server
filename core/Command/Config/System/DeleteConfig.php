@@ -30,9 +30,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class DeleteConfig extends Base {
-	public function __construct(
-		SystemConfig $systemConfig,
-	) {
+	public function __construct(SystemConfig $systemConfig) {
 		parent::__construct($systemConfig);
 	}
 

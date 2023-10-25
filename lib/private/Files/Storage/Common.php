@@ -577,7 +577,7 @@ abstract class Common implements Storage, ILockingStorage, IWriteStreamStorage {
 	 */
 	private function scanForInvalidCharacters($fileName, $invalidChars) {
 		foreach (str_split($invalidChars) as $char) {
-			if (str_contains($fileName, $char)) {
+			if (strpos($fileName, $char) !== false) {
 				throw new InvalidCharacterInPathException();
 			}
 		}
@@ -764,7 +764,6 @@ abstract class Common implements Storage, ILockingStorage, IWriteStreamStorage {
 		try {
 			$provider->acquireLock('files/' . md5($this->getId() . '::' . trim($path, '/')), $type, $this->getId() . '::' . $path);
 		} catch (LockedException $e) {
-			$e = new LockedException($e->getPath(), $e, $e->getExistingLock(), $path);
 			if ($logger) {
 				$logger->info($e->getMessage(), ['exception' => $e]);
 			}
@@ -797,7 +796,6 @@ abstract class Common implements Storage, ILockingStorage, IWriteStreamStorage {
 		try {
 			$provider->releaseLock('files/' . md5($this->getId() . '::' . trim($path, '/')), $type);
 		} catch (LockedException $e) {
-			$e = new LockedException($e->getPath(), $e, $e->getExistingLock(), $path);
 			if ($logger) {
 				$logger->info($e->getMessage(), ['exception' => $e]);
 			}
@@ -830,7 +828,6 @@ abstract class Common implements Storage, ILockingStorage, IWriteStreamStorage {
 		try {
 			$provider->changeLock('files/' . md5($this->getId() . '::' . trim($path, '/')), $type);
 		} catch (LockedException $e) {
-			$e = new LockedException($e->getPath(), $e, $e->getExistingLock(), $path);
 			if ($logger) {
 				$logger->info($e->getMessage(), ['exception' => $e]);
 			}
@@ -840,7 +837,7 @@ abstract class Common implements Storage, ILockingStorage, IWriteStreamStorage {
 
 	private function getLockLogger(): ?LoggerInterface {
 		if (is_null($this->shouldLogLocks)) {
-			$this->shouldLogLocks = \OC::$server->getConfig()->getSystemValueBool('filelocking.debug', false);
+			$this->shouldLogLocks = \OC::$server->getConfig()->getSystemValue('filelocking.debug', false);
 			$this->logger = $this->shouldLogLocks ? \OC::$server->get(LoggerInterface::class) : null;
 		}
 		return $this->logger;

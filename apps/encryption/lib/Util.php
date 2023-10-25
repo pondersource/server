@@ -29,24 +29,59 @@ namespace OCA\Encryption;
 use OC\Files\View;
 use OCA\Encryption\Crypto\Crypt;
 use OCP\IConfig;
+use OCP\ILogger;
 use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\PreConditionNotMetException;
 
 class Util {
-	private IUser|false $user;
+	/**
+	 * @var View
+	 */
+	private $files;
+	/**
+	 * @var Crypt
+	 */
+	private $crypt;
+	/**
+	 * @var ILogger
+	 */
+	private $logger;
+	/**
+	 * @var bool|IUser
+	 */
+	private $user;
+	/**
+	 * @var IConfig
+	 */
+	private $config;
+	/**
+	 * @var IUserManager
+	 */
+	private $userManager;
 
-	public function __construct(
-		private View $files,
-		private Crypt $crypt,
-		IUserSession $userSession,
-		private IConfig $config,
-		private IUserManager $userManager,
+	/**
+	 * Util constructor.
+	 *
+	 * @param View $files
+	 * @param Crypt $crypt
+	 * @param ILogger $logger
+	 * @param IUserSession $userSession
+	 * @param IConfig $config
+	 * @param IUserManager $userManager
+	 */
+	public function __construct(View $files,
+								Crypt $crypt,
+								ILogger $logger,
+								IUserSession $userSession,
+								IConfig $config,
+								IUserManager $userManager
 	) {
 		$this->files = $files;
 		$this->crypt = $crypt;
-		$this->user = $userSession->isLoggedIn() ? $userSession->getUser() : false;
+		$this->logger = $logger;
+		$this->user = $userSession && $userSession->isLoggedIn() ? $userSession->getUser() : false;
 		$this->config = $config;
 		$this->userManager = $userManager;
 	}
@@ -97,8 +132,10 @@ class Util {
 
 	/**
 	 * check if master key is enabled
+	 *
+	 * @return bool
 	 */
-	public function isMasterKeyEnabled(): bool {
+	public function isMasterKeyEnabled() {
 		$userMasterKey = $this->config->getAppValue('encryption', 'useMasterKey', '1');
 		return ($userMasterKey === '1');
 	}

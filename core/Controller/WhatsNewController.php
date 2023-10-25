@@ -4,7 +4,6 @@
  *
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -38,30 +37,39 @@ use OCP\IUserSession;
 use OCP\L10N\IFactory;
 
 class WhatsNewController extends OCSController {
+	/** @var IConfig */
+	protected $config;
+	/** @var IUserSession */
+	private $userSession;
+	/** @var ChangesCheck */
+	private $whatsNewService;
+	/** @var IFactory */
+	private $langFactory;
+	/** @var Defaults */
+	private $defaults;
+
 	public function __construct(
 		string $appName,
 		IRequest $request,
 		CapabilitiesManager $capabilitiesManager,
-		private IUserSession $userSession,
+		IUserSession $userSession,
 		IUserManager $userManager,
 		Manager $keyManager,
-		private IConfig $config,
-		private ChangesCheck $whatsNewService,
-		private IFactory $langFactory,
-		private Defaults $defaults,
+		IConfig $config,
+		ChangesCheck $whatsNewService,
+		IFactory $langFactory,
+		Defaults $defaults
 	) {
 		parent::__construct($appName, $request, $capabilitiesManager, $userSession, $userManager, $keyManager);
+		$this->config = $config;
+		$this->userSession = $userSession;
+		$this->whatsNewService = $whatsNewService;
+		$this->langFactory = $langFactory;
+		$this->defaults = $defaults;
 	}
 
 	/**
 	 * @NoAdminRequired
-	 *
-	 * Get the changes
-	 *
-	 * @return DataResponse<Http::STATUS_OK, array{changelogURL: string, product: string, version: string, whatsNew?: array{regular: string[], admin: string[]}}, array{}>|DataResponse<Http::STATUS_NO_CONTENT, array<empty>, array{}>
-	 *
-	 * 200: Changes returned
-	 * 204: No changes
 	 */
 	public function get():DataResponse {
 		$user = $this->userSession->getUser();
@@ -100,15 +108,8 @@ class WhatsNewController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 *
-	 * Dismiss the changes
-	 *
-	 * @param string $version Version to dismiss the changes for
-	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
 	 * @throws \OCP\PreConditionNotMetException
 	 * @throws DoesNotExistException
-	 *
-	 * 200: Changes dismissed
 	 */
 	public function dismiss(string $version):DataResponse {
 		$user = $this->userSession->getUser();

@@ -53,9 +53,9 @@ class File extends PagedProvider {
 	 */
 	public function search($query, int $limit = null, int $offset = null) {
 		/** @var IRootFolder $rootFolder */
-		$rootFolder = \OCP\Server::get(IRootFolder::class);
+		$rootFolder = \OC::$server->query(IRootFolder::class);
 		/** @var IUserSession $userSession */
-		$userSession = \OCP\Server::get(IUserSession::class);
+		$userSession = \OC::$server->query(IUserSession::class);
 		$user = $userSession->getUser();
 		if (!$user) {
 			return [];

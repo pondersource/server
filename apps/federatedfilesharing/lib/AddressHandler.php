@@ -67,7 +67,7 @@ class AddressHandler {
 	 * split user and remote from federated cloud id
 	 *
 	 * @param string $address federated share address
-	 * @return array<string> [user, remoteURL]
+	 * @return array [user, remoteURL]
 	 * @throws HintException
 	 */
 	public function splitUserRemote($address) {

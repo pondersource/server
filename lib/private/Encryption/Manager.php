@@ -32,8 +32,6 @@ use OC\Memcache\ArrayCache;
 use OC\ServiceUnavailableException;
 use OCP\Encryption\IEncryptionModule;
 use OCP\Encryption\IManager;
-use OCP\Files\Mount\IMountPoint;
-use OCP\Files\Storage\IStorage;
 use OCP\IConfig;
 use OCP\IL10N;
 use Psr\Log\LoggerInterface;
@@ -75,7 +73,7 @@ class Manager implements IManager {
 	 * @return bool true if enabled, false if not
 	 */
 	public function isEnabled() {
-		$installed = $this->config->getSystemValueBool('installed', false);
+		$installed = $this->config->getSystemValue('installed', false);
 		if (!$installed) {
 			return false;
 		}
@@ -234,11 +232,6 @@ class Manager implements IManager {
 			$encryptionWrapper = new EncryptionWrapper($this->arrayCache, $this, $this->logger);
 			Filesystem::addStorageWrapper('oc_encryption', [$encryptionWrapper, 'wrapStorage'], 2);
 		}
-	}
-
-	public function forceWrapStorage(IMountPoint $mountPoint, IStorage $storage) {
-		$encryptionWrapper = new EncryptionWrapper($this->arrayCache, $this, $this->logger);
-		return $encryptionWrapper->wrapStorage($mountPoint->getMountPoint(), $storage, $mountPoint, true);
 	}
 
 

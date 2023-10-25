@@ -41,7 +41,6 @@ use OCP\Files\Search\ISearchOperator;
 use OCP\Files\StorageNotAvailableException;
 use OCP\ICacheFactory;
 use OCP\IUserManager;
-use OCP\Share\IShare;
 
 /**
  * Metadata cache for shared files
@@ -56,22 +55,15 @@ class Cache extends CacheJail {
 	private ?string $ownerDisplayName = null;
 	private $numericId;
 	private DisplayNameCache $displayNameCache;
-	private IShare $share;
 
 	/**
 	 * @param SharedStorage $storage
 	 */
-	public function __construct(
-		$storage,
-		ICacheEntry $sourceRootInfo,
-		DisplayNameCache $displayNameCache,
-		IShare $share
-	) {
+	public function __construct($storage, ICacheEntry $sourceRootInfo, DisplayNameCache $displayNameCache) {
 		$this->storage = $storage;
 		$this->sourceRootInfo = $sourceRootInfo;
 		$this->numericId = $sourceRootInfo->getStorageId();
 		$this->displayNameCache = $displayNameCache;
-		$this->share = $share;
 
 		parent::__construct(
 			null,
@@ -158,7 +150,7 @@ class Cache extends CacheJail {
 
 		try {
 			if (isset($entry['permissions'])) {
-				$entry['permissions'] &= $this->share->getPermissions();
+				$entry['permissions'] &= $this->storage->getShare()->getPermissions();
 			} else {
 				$entry['permissions'] = $this->storage->getPermissions($entry['path']);
 			}
@@ -167,7 +159,7 @@ class Cache extends CacheJail {
 			// (IDE may say the exception is never thrown – false negative)
 			$sharePermissions = 0;
 		}
-		$entry['uid_owner'] = $this->share->getShareOwner();
+		$entry['uid_owner'] = $this->storage->getOwner('');
 		$entry['displayname_owner'] = $this->getOwnerDisplayName();
 		if ($path === '') {
 			$entry['is_share_mount_point'] = true;
@@ -177,7 +169,7 @@ class Cache extends CacheJail {
 
 	private function getOwnerDisplayName() {
 		if (!$this->ownerDisplayName) {
-			$uid = $this->share->getShareOwner();
+			$uid = $this->storage->getOwner('');
 			$this->ownerDisplayName = $this->displayNameCache->getDisplayName($uid) ?? $uid;
 		}
 		return $this->ownerDisplayName;

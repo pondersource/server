@@ -34,11 +34,11 @@ class LinkAction implements ILinkAction {
 	/**
 	 * @param string $icon absolute URI to an icon
 	 */
-	public function setIcon(string $icon): void {
+	public function setIcon(string $icon) {
 		$this->icon = $icon;
 	}
 
-	public function setName(string $name): void {
+	public function setName(string $name) {
 		$this->name = $name;
 	}
 
@@ -46,7 +46,7 @@ class LinkAction implements ILinkAction {
 		return $this->name;
 	}
 
-	public function setPriority(int $priority): void {
+	public function setPriority(int $priority) {
 		$this->priority = $priority;
 	}
 
@@ -54,7 +54,7 @@ class LinkAction implements ILinkAction {
 		return $this->priority;
 	}
 
-	public function setHref(string $href): void {
+	public function setHref(string $href) {
 		$this->href = $href;
 	}
 
@@ -65,7 +65,7 @@ class LinkAction implements ILinkAction {
 	/**
 	 * @since 23.0.0
 	 */
-	public function setAppId(string $appId): void {
+	public function setAppId(string $appId) {
 		$this->appId = $appId;
 	}
 
@@ -76,9 +76,6 @@ class LinkAction implements ILinkAction {
 		return $this->appId;
 	}
 
-	/**
-	 * @return array{title: string, icon: string, hyperlink: string, appId: string}
-	 */
 	public function jsonSerialize(): array {
 		return [
 			'title' => $this->name,

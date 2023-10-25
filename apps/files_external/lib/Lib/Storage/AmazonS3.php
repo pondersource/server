@@ -497,7 +497,7 @@ class AmazonS3 extends \OC\Files\Storage\Common {
 
 				try {
 					return $this->readObject($path);
-				} catch (\Exception $e) {
+				} catch (S3Exception $e) {
 					$this->logger->error($e->getMessage(), [
 						'app' => 'files_external',
 						'exception' => $e,
@@ -724,7 +724,7 @@ class AmazonS3 extends \OC\Files\Storage\Common {
 			'mimetype' => $this->mimeDetector->detectPath($object['Key']),
 			'mtime' => strtotime($object['LastModified']),
 			'storage_mtime' => strtotime($object['LastModified']),
-			'etag' => trim($object['ETag'], '"'),
+			'etag' => $object['ETag'],
 			'permissions' => Constants::PERMISSION_ALL - Constants::PERMISSION_CREATE,
 			'size' => (int)($object['Size'] ?? $object['ContentLength']),
 		];

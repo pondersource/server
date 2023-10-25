@@ -26,7 +26,6 @@ declare(strict_types=1);
 namespace OC\Log;
 
 use OC\Log;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\ILogger;
 use OCP\Log\IDataLogger;
 use Psr\Log\InvalidArgumentException;
@@ -41,10 +40,6 @@ final class PsrLoggerAdapter implements LoggerInterface, IDataLogger {
 
 	public function __construct(Log $logger) {
 		$this->logger = $logger;
-	}
-
-	public function setEventDispatcher(IEventDispatcher $eventDispatcher) {
-		$this->logger->setEventDispatcher($eventDispatcher);
 	}
 
 	private function containsThrowable(array $context): bool {

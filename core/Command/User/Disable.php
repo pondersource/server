@@ -32,9 +32,10 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Disable extends Base {
-	public function __construct(
-		protected IUserManager $userManager,
-	) {
+	protected IUserManager $userManager;
+
+	public function __construct(IUserManager $userManager) {
+		$this->userManager = $userManager;
 		parent::__construct();
 	}
 

@@ -44,17 +44,22 @@ class AddressBook extends ExternalAddressBook implements IACL {
 
 	public const URI = 'recent';
 
-	public function __construct(
-		private RecentContactMapper $mapper,
-		private IL10N $l10n,
-		private string $principalUri,
-	) {
+	private RecentContactMapper $mapper;
+	private IL10N $l10n;
+	private string $principalUri;
+
+	public function __construct(RecentContactMapper $mapper,
+								IL10N $l10n,
+								string $principalUri) {
 		parent::__construct(Application::APP_ID, self::URI);
+
+		$this->mapper = $mapper;
+		$this->l10n = $l10n;
+		$this->principalUri = $principalUri;
 	}
 
 	/**
 	 * @inheritDoc
-	 * @throws Exception
 	 */
 	public function delete(): void {
 		throw new Exception("This addressbook is immutable");
@@ -62,7 +67,6 @@ class AddressBook extends ExternalAddressBook implements IACL {
 
 	/**
 	 * @inheritDoc
-	 * @throws Exception
 	 */
 	public function createFile($name, $data = null) {
 		throw new Exception("This addressbook is immutable");
@@ -127,7 +131,6 @@ class AddressBook extends ExternalAddressBook implements IACL {
 
 	/**
 	 * @inheritDoc
-	 * @throws Exception
 	 */
 	public function propPatch(PropPatch $propPatch) {
 		throw new Exception("This addressbook is immutable");
@@ -136,7 +139,7 @@ class AddressBook extends ExternalAddressBook implements IACL {
 	/**
 	 * @inheritDoc
 	 */
-	public function getProperties($properties): array {
+	public function getProperties($properties) {
 		return [
 			'principaluri' => $this->principalUri,
 			'{DAV:}displayname' => $this->l10n->t('Recently contacted'),

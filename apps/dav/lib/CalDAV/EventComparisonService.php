@@ -90,7 +90,7 @@ class EventComparisonService {
 	 *
 	 * @param VCalendar $new
 	 * @param VCalendar|null $old
-	 * @return array<string, VEvent[]|null>
+	 * @return array<string, VEvent[]>
 	 */
 	public function findModified(VCalendar $new, ?VCalendar $old): array {
 		$newEventComponents = $new->getComponents();

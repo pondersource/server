@@ -53,7 +53,6 @@ use Exception;
 use InvalidArgumentException;
 use OC\Authentication\Token\PublicKeyTokenProvider;
 use OC\Authentication\Token\TokenCleanupJob;
-use OC\TextProcessing\RemoveOldTasksBackgroundJob;
 use OC\Log\Rotate;
 use OC\Preview\BackgroundCleanupJob;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -392,8 +391,8 @@ class Setup {
 
 		if (empty($error)) {
 			$config = \OC::$server->getConfig();
-			$config->setAppValue('core', 'installedat', (string)microtime(true));
-			$config->setAppValue('core', 'lastupdatedat', (string)microtime(true));
+			$config->setAppValue('core', 'installedat', microtime(true));
+			$config->setAppValue('core', 'lastupdatedat', microtime(true));
 
 			$vendorData = $this->getVendorData();
 			$config->setAppValue('core', 'vendor', $vendorData['vendor']);
@@ -411,7 +410,7 @@ class Setup {
 
 			// create empty file in data dir, so we can later find
 			// out that this is indeed an ownCloud data directory
-			file_put_contents($config->getSystemValueString('datadirectory', \OC::$SERVERROOT . '/data') . '/.ocdata', '');
+			file_put_contents($config->getSystemValue('datadirectory', \OC::$SERVERROOT . '/data') . '/.ocdata', '');
 
 			// Update .htaccess files
 			self::updateHtaccess();
@@ -425,20 +424,20 @@ class Setup {
 				unlink(\OC::$configDir.'/CAN_INSTALL');
 			}
 
-			$bootstrapCoordinator = \OCP\Server::get(\OC\AppFramework\Bootstrap\Coordinator::class);
+			$bootstrapCoordinator = \OC::$server->query(\OC\AppFramework\Bootstrap\Coordinator::class);
 			$bootstrapCoordinator->runInitialRegistration();
 
 			// Create a session token for the newly created user
 			// The token provider requires a working db, so it's not injected on setup
 			/* @var $userSession User\Session */
 			$userSession = \OC::$server->getUserSession();
-			$provider = \OCP\Server::get(PublicKeyTokenProvider::class);
+			$provider = \OC::$server->query(PublicKeyTokenProvider::class);
 			$userSession->setTokenProvider($provider);
 			$userSession->login($username, $password);
 			$userSession->createSessionToken($request, $userSession->getUser()->getUID(), $username, $password);
 
 			$session = $userSession->getSession();
-			$session->set('last-password-confirm', \OCP\Server::get(ITimeFactory::class)->getTime());
+			$session->set('last-password-confirm', \OC::$server->query(ITimeFactory::class)->getTime());
 
 			// Set email for admin
 			if (!empty($options['adminemail'])) {
@@ -454,7 +453,6 @@ class Setup {
 		$jobList->add(TokenCleanupJob::class);
 		$jobList->add(Rotate::class);
 		$jobList->add(BackgroundCleanupJob::class);
-		$jobList->add(RemoveOldTasksBackgroundJob::class);
 	}
 
 	/**
@@ -508,10 +506,10 @@ class Setup {
 			$config,
 			\OC::$server->get(IniGetWrapper::class),
 			\OC::$server->getL10N('lib'),
-			\OCP\Server::get(Defaults::class),
+			\OC::$server->query(Defaults::class),
 			\OC::$server->get(LoggerInterface::class),
 			\OC::$server->getSecureRandom(),
-			\OCP\Server::get(Installer::class)
+			\OC::$server->query(Installer::class)
 		);
 
 		$htaccessContent = file_get_contents($setupHelper->pathToHtaccess());
@@ -531,7 +529,7 @@ class Setup {
 			$content .= "\n  Options -MultiViews";
 			$content .= "\n  RewriteRule ^core/js/oc.js$ index.php [PT,E=PATH_INFO:$1]";
 			$content .= "\n  RewriteRule ^core/preview.png$ index.php [PT,E=PATH_INFO:$1]";
-			$content .= "\n  RewriteCond %{REQUEST_FILENAME} !\\.(css|js|mjs|svg|gif|png|html|ttf|woff2?|ico|jpg|jpeg|map|webm|mp4|mp3|ogg|wav|wasm|tflite)$";
+			$content .= "\n  RewriteCond %{REQUEST_FILENAME} !\\.(css|js|svg|gif|png|html|ttf|woff2?|ico|jpg|jpeg|map|webm|mp4|mp3|ogg|wav|wasm|tflite)$";
 			$content .= "\n  RewriteCond %{REQUEST_FILENAME} !/core/ajax/update\\.php";
 			$content .= "\n  RewriteCond %{REQUEST_FILENAME} !/core/img/(favicon\\.ico|manifest\\.json)$";
 			$content .= "\n  RewriteCond %{REQUEST_FILENAME} !/(cron|public|remote|status)\\.php";
@@ -587,7 +585,7 @@ class Setup {
 		$content .= "  IndexIgnore *\n";
 		$content .= "</IfModule>";
 
-		$baseDir = \OC::$server->getConfig()->getSystemValueString('datadirectory', \OC::$SERVERROOT . '/data');
+		$baseDir = \OC::$server->getConfig()->getSystemValue('datadirectory', \OC::$SERVERROOT . '/data');
 		file_put_contents($baseDir . '/.htaccess', $content);
 		file_put_contents($baseDir . '/index.html', '');
 	}

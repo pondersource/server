@@ -205,7 +205,7 @@ class ExceptionSerializer {
 				return $this->editTrace($sensitiveValues, $traceLine);
 			}
 			foreach (self::methodsWithSensitiveParameters as $sensitiveMethod) {
-				if (str_contains($traceLine['function'], $sensitiveMethod)) {
+				if (strpos($traceLine['function'], $sensitiveMethod) !== false) {
 					return $this->editTrace($sensitiveValues, $traceLine);
 				}
 			}

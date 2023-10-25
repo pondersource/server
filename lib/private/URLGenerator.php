@@ -141,7 +141,7 @@ class URLGenerator implements IURLGenerator {
 	 * Returns a url to the given app and file.
 	 */
 	public function linkTo(string $appName, string $file, array $args = []): string {
-		$frontControllerActive = ($this->config->getSystemValueBool('htaccess.IgnoreFrontController', false) || getenv('front_controller_active') === 'true');
+		$frontControllerActive = ($this->config->getSystemValue('htaccess.IgnoreFrontController', false) === true || getenv('front_controller_active') === 'true');
 
 		if ($appName !== '') {
 			$app_path = $this->getAppManager()->getAppPath($appName);
@@ -214,7 +214,7 @@ class URLGenerator implements IURLGenerator {
 
 		// Check if the app is in the app folder
 		$path = '';
-		$themingEnabled = $this->config->getSystemValueBool('installed', false) && $this->getAppManager()->isEnabledForUser('theming');
+		$themingEnabled = $this->config->getSystemValue('installed', false) && $this->getAppManager()->isEnabledForUser('theming');
 		$themingImagePath = false;
 		if ($themingEnabled) {
 			$themingDefaults = \OC::$server->getThemingDefaults();
@@ -272,13 +272,13 @@ class URLGenerator implements IURLGenerator {
 	 * @return string the absolute version of the url
 	 */
 	public function getAbsoluteURL(string $url): string {
-		$separator = str_starts_with($url, '/') ? '' : '/';
+		$separator = strpos($url, '/') === 0 ? '' : '/';
 
 		if (\OC::$CLI && !\defined('PHPUNIT_RUN')) {
-			return rtrim($this->config->getSystemValueString('overwrite.cli.url'), '/') . '/' . ltrim($url, '/');
+			return rtrim($this->config->getSystemValue('overwrite.cli.url'), '/') . '/' . ltrim($url, '/');
 		}
 		// The ownCloud web root can already be prepended.
-		if (\OC::$WEBROOT !== '' && str_starts_with($url, \OC::$WEBROOT)) {
+		if (\OC::$WEBROOT !== '' && strpos($url, \OC::$WEBROOT) === 0) {
 			$url = substr($url, \strlen(\OC::$WEBROOT));
 		}
 
@@ -302,7 +302,7 @@ class URLGenerator implements IURLGenerator {
 	public function linkToDefaultPageUrl(): string {
 		// Deny the redirect if the URL contains a @
 		// This prevents unvalidated redirects like ?redirect_url=:user@domain.com
-		if (isset($_REQUEST['redirect_url']) && !str_contains($_REQUEST['redirect_url'], '@')) {
+		if (isset($_REQUEST['redirect_url']) && strpos($_REQUEST['redirect_url'], '@') === false) {
 			return $this->getAbsoluteURL(urldecode($_REQUEST['redirect_url']));
 		}
 
@@ -313,7 +313,7 @@ class URLGenerator implements IURLGenerator {
 
 		$appId = $this->getAppManager()->getDefaultAppForUser();
 
-		if ($this->config->getSystemValueBool('htaccess.IgnoreFrontController', false)
+		if ($this->config->getSystemValue('htaccess.IgnoreFrontController', false) === true
 			|| getenv('front_controller_active') === 'true') {
 			return $this->getAbsoluteURL('/apps/' . $appId . '/');
 		}

@@ -6,7 +6,6 @@ declare(strict_types=1);
  * @copyright Copyright (c) 2020, Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @author Jan C. Borchardt <hey@jancborchardt.net>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -27,10 +26,8 @@ declare(strict_types=1);
 namespace OCA\Settings\Controller;
 
 use OCP\AppFramework\Controller;
-use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\DataDisplayResponse;
 
-#[IgnoreOpenAPI]
 class ReasonsController extends Controller {
 
 	/**

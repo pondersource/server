@@ -32,10 +32,11 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ListCommand extends Base {
-	public function __construct(
-		protected IJobList $jobList,
-	) {
+	protected IJobList $jobList;
+
+	public function __construct(IJobList $jobList) {
 		parent::__construct();
+		$this->jobList = $jobList;
 	}
 
 	protected function configure(): void {

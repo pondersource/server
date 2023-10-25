@@ -29,7 +29,6 @@ use OC\Files\Storage\PolyFill\CopyDirectory;
 use OCP\Constants;
 use OCP\Files\FileInfo;
 use OCP\Files\StorageNotAvailableException;
-use Psr\Log\LoggerInterface;
 
 class FTP extends Common {
 	use CopyDirectory;
@@ -117,21 +116,20 @@ class FTP extends Common {
 			if ($this->is_dir($path)) {
 				$list = $this->getConnection()->mlsd($this->buildPath($path));
 				if (!$list) {
-					\OC::$server->get(LoggerInterface::class)->warning("Unable to get last modified date for ftp folder ($path), failed to list folder contents");
+					\OC::$server->getLogger()->warning("Unable to get last modified date for ftp folder ($path), failed to list folder contents");
 					return time();
 				}
 				$currentDir = current(array_filter($list, function ($item) {
 					return $item['type'] === 'cdir';
 				}));
 				if ($currentDir) {
-					[$modify] = explode('.', $currentDir['modify'] ?? '', 2);
-					$time = \DateTime::createFromFormat('YmdHis', $modify);
+					$time = \DateTime::createFromFormat('YmdHis', $currentDir['modify'] ?? '');
 					if ($time === false) {
 						throw new \Exception("Invalid date format for directory: $currentDir");
 					}
 					return $time->getTimestamp();
 				} else {
-					\OC::$server->get(LoggerInterface::class)->warning("Unable to get last modified date for ftp folder ($path), folder contents doesn't include current folder");
+					\OC::$server->getLogger()->warning("Unable to get last modified date for ftp folder ($path), folder contents doesn't include current folder");
 					return time();
 				}
 			} else {
@@ -357,11 +355,10 @@ class FTP extends Common {
 
 			$data = [];
 			$data['mimetype'] = $isDir ? FileInfo::MIMETYPE_FOLDER : $mimeTypeDetector->detectPath($name);
-
-			// strip fractional seconds
-			[$modify] = explode('.', $file['modify'], 2);
-			$mtime = \DateTime::createFromFormat('YmdGis', $modify);
-			$data['mtime'] = $mtime === false ? time() : $mtime->getTimestamp();
+			$data['mtime'] = \DateTime::createFromFormat('YmdGis', $file['modify'])->getTimestamp();
+			if ($data['mtime'] === false) {
+				$data['mtime'] = time();
+			}
 			if ($isDir) {
 				$data['size'] = -1; //unknown
 			} elseif (isset($file['size'])) {

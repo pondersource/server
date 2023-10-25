@@ -57,11 +57,6 @@ class BackgroundJob extends TimedJob {
 	}
 
 	protected function run($argument) {
-		// Do not check for updates if not connected to the internet
-		if (!$this->config->getSystemValueBool('has_internet_connection', true)) {
-			return;
-		}
-
 		if (\OC::$CLI && !$this->config->getSystemValueBool('debug', false)) {
 			try {
 				// Jitter the pinging of the updater server and the appstore a bit.
@@ -94,7 +89,7 @@ class BackgroundJob extends TimedJob {
 				$this->sendErrorNotifications($errors);
 			}
 		} elseif (\is_array($status)) {
-			$this->config->setAppValue('updatenotification', 'update_check_errors', '0');
+			$this->config->setAppValue('updatenotification', 'update_check_errors', 0);
 			$this->clearErrorNotifications();
 
 			if (isset($status['version'])) {

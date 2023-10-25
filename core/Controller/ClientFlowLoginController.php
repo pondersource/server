@@ -12,7 +12,6 @@
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author RussellAult <RussellAult@users.noreply.github.com>
  * @author Sergej Nikolaev <kinolaev@gmail.com>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -42,7 +41,6 @@ use OCA\OAuth2\Db\AccessTokenMapper;
 use OCA\OAuth2\Db\ClientMapper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\Attribute\UseSession;
 use OCP\AppFramework\Http\Response;
 use OCP\AppFramework\Http\StandaloneTemplateResponse;
@@ -58,26 +56,46 @@ use OCP\Security\ICrypto;
 use OCP\Security\ISecureRandom;
 use OCP\Session\Exceptions\SessionNotAvailableException;
 
-#[IgnoreOpenAPI]
 class ClientFlowLoginController extends Controller {
+	private IUserSession $userSession;
+	private IL10N $l10n;
+	private Defaults $defaults;
+	private ISession $session;
+	private IProvider $tokenProvider;
+	private ISecureRandom $random;
+	private IURLGenerator $urlGenerator;
+	private ClientMapper $clientMapper;
+	private AccessTokenMapper $accessTokenMapper;
+	private ICrypto $crypto;
+	private IEventDispatcher $eventDispatcher;
+
 	public const STATE_NAME = 'client.flow.state.token';
 
-	public function __construct(
-		string $appName,
-		IRequest $request,
-		private IUserSession $userSession,
-		private IL10N $l10n,
-		private Defaults $defaults,
-		private ISession $session,
-		private IProvider $tokenProvider,
-		private ISecureRandom $random,
-		private IURLGenerator $urlGenerator,
-		private ClientMapper $clientMapper,
-		private AccessTokenMapper $accessTokenMapper,
-		private ICrypto $crypto,
-		private IEventDispatcher $eventDispatcher,
-	) {
+	public function __construct(string $appName,
+								IRequest $request,
+								IUserSession $userSession,
+								IL10N $l10n,
+								Defaults $defaults,
+								ISession $session,
+								IProvider $tokenProvider,
+								ISecureRandom $random,
+								IURLGenerator $urlGenerator,
+								ClientMapper $clientMapper,
+								AccessTokenMapper $accessTokenMapper,
+								ICrypto $crypto,
+								IEventDispatcher $eventDispatcher) {
 		parent::__construct($appName, $request);
+		$this->userSession = $userSession;
+		$this->l10n = $l10n;
+		$this->defaults = $defaults;
+		$this->session = $session;
+		$this->tokenProvider = $tokenProvider;
+		$this->random = $random;
+		$this->urlGenerator = $urlGenerator;
+		$this->clientMapper = $clientMapper;
+		$this->accessTokenMapper = $accessTokenMapper;
+		$this->crypto = $crypto;
+		$this->eventDispatcher = $eventDispatcher;
 	}
 
 	private function getClientName(): string {
@@ -350,9 +368,9 @@ class ClientFlowLoginController extends Controller {
 	private function getServerPath(): string {
 		$serverPostfix = '';
 
-		if (str_contains($this->request->getRequestUri(), '/index.php')) {
+		if (strpos($this->request->getRequestUri(), '/index.php') !== false) {
 			$serverPostfix = substr($this->request->getRequestUri(), 0, strpos($this->request->getRequestUri(), '/index.php'));
-		} elseif (str_contains($this->request->getRequestUri(), '/login/flow')) {
+		} elseif (strpos($this->request->getRequestUri(), '/login/flow') !== false) {
 			$serverPostfix = substr($this->request->getRequestUri(), 0, strpos($this->request->getRequestUri(), '/login/flow'));
 		}
 

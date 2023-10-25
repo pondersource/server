@@ -39,8 +39,6 @@ ignore_user_abort(true);
 // Turn off output buffering to prevent memory problems
 \OC_Util::obEnd();
 
-$dispatcher = \OC::$server->get(\OCP\EventDispatcher\IEventDispatcher::class);
-
 $serverFactory = new \OCA\DAV\Connector\Sabre\ServerFactory(
 	\OC::$server->getConfig(),
 	\OC::$server->get(LoggerInterface::class),
@@ -50,7 +48,7 @@ $serverFactory = new \OCA\DAV\Connector\Sabre\ServerFactory(
 	\OC::$server->getTagManager(),
 	\OC::$server->getRequest(),
 	\OC::$server->getPreviewManager(),
-	$dispatcher,
+	\OC::$server->getEventDispatcher(),
 	\OC::$server->getL10N('dav')
 );
 
@@ -78,11 +76,10 @@ $server = $serverFactory->createServer($baseuri, $requestUri, $authPlugin, funct
 	return \OC\Files\Filesystem::getView();
 });
 
+$dispatcher = \OC::$server->getEventDispatcher();
 // allow setup of additional plugins
 $event = new \OCP\SabrePluginEvent($server);
 $dispatcher->dispatch('OCA\DAV\Connector\Sabre::addPlugin', $event);
-$event = new \OCA\DAV\Events\SabrePluginAddEvent($server);
-$dispatcher->dispatchTyped($event);
 
 // And off we go!
 $server->exec();

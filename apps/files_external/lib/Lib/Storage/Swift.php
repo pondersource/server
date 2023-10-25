@@ -126,10 +126,9 @@ class Swift extends \OC\Files\Storage\Common {
 	 * @throws \OCP\Files\StorageNotAvailableException
 	 */
 	private function fetchObject(string $path) {
-		$cached = $this->objectCache->get($path);
-		if ($cached !== null) {
+		if ($this->objectCache->hasKey($path)) {
 			// might be "false" if object did not exist from last check
-			return $cached;
+			return $this->objectCache->get($path);
 		}
 		try {
 			$object = $this->getContainer()->getObject($path);

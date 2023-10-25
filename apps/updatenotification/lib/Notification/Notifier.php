@@ -26,7 +26,6 @@ declare(strict_types=1);
  */
 namespace OCA\UpdateNotification\Notification;
 
-use OCP\App\IAppManager;
 use OCP\IConfig;
 use OCP\IGroupManager;
 use OCP\IURLGenerator;
@@ -116,7 +115,7 @@ class Notifier implements INotifier {
 
 		$l = $this->l10NFactory->get('updatenotification', $languageCode);
 		if ($notification->getSubject() === 'connection_error') {
-			$errors = (int) $this->config->getAppValue('updatenotification', 'update_check_errors', '0');
+			$errors = (int) $this->config->getAppValue('updatenotification', 'update_check_errors', 0);
 			if ($errors === 0) {
 				$this->notificationManager->markProcessed($notification);
 				throw new \InvalidArgumentException('Update checked worked again');
@@ -201,6 +200,6 @@ class Notifier implements INotifier {
 	}
 
 	protected function getAppInfo($appId, $languageCode) {
-		return \OCP\Server::get(IAppManager::class)->getAppInfo($appId, false, $languageCode);
+		return \OC_App::getAppInfo($appId, false, $languageCode);
 	}
 }

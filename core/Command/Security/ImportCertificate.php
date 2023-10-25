@@ -30,9 +30,10 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ImportCertificate extends Base {
-	public function __construct(
-		protected ICertificateManager $certificateManager,
-	) {
+	protected ICertificateManager $certificateManager;
+
+	public function __construct(ICertificateManager $certificateManager) {
+		$this->certificateManager = $certificateManager;
 		parent::__construct();
 	}
 

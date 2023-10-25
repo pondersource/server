@@ -34,8 +34,6 @@ use OCP\IDBConnection;
  * Class ProxyMapper
  *
  * @package OCA\DAV\CalDAV\Proxy
- *
- * @template-extends QBMapper<Proxy>
  */
 class ProxyMapper extends QBMapper {
 	public const PERMISSION_READ = 1;

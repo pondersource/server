@@ -28,9 +28,6 @@ namespace OCA\Comments;
 use OCP\Capabilities\ICapability;
 
 class Capabilities implements ICapability {
-	/**
-	 * @return array{files: array{comments: bool}}
-	 */
 	public function getCapabilities(): array {
 		return [
 			'files' => [

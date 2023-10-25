@@ -165,8 +165,10 @@ class CommentNode implements \Sabre\DAV\INode, \Sabre\DAV\IProperties {
 
 	/**
 	 * Returns the last modification time, as a unix timestamp
+	 *
+	 * @return int
 	 */
-	public function getLastModified(): ?int {
+	public function getLastModified() {
 		return null;
 	}
 

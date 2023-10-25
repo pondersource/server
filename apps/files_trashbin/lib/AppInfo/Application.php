@@ -26,10 +26,8 @@
 namespace OCA\Files_Trashbin\AppInfo;
 
 use OCA\DAV\Connector\Sabre\Principal;
-use OCA\Files\Event\LoadAdditionalScriptsEvent;
 use OCA\Files_Trashbin\Capabilities;
 use OCA\Files_Trashbin\Expiration;
-use OCA\Files_Trashbin\Listeners\LoadAdditionalScripts;
 use OCA\Files_Trashbin\Trash\ITrashManager;
 use OCA\Files_Trashbin\Trash\TrashManager;
 use OCA\Files_Trashbin\UserMigration\TrashbinMigrator;
@@ -57,11 +55,6 @@ class Application extends App implements IBootstrap {
 		$context->registerServiceAlias('principalBackend', Principal::class);
 
 		$context->registerUserMigrator(TrashbinMigrator::class);
-
-		$context->registerEventListener(
-			LoadAdditionalScriptsEvent::class,
-			LoadAdditionalScripts::class
-		);
 	}
 
 	public function boot(IBootContext $context): void {
@@ -75,6 +68,18 @@ class Application extends App implements IBootstrap {
 		\OCP\Util::connectHook('OC_Filesystem', 'post_write', 'OCA\Files_Trashbin\Hooks', 'post_write_hook');
 		// pre and post-rename, disable trash logic for the copy+unlink case
 		\OCP\Util::connectHook('OC_Filesystem', 'delete', 'OCA\Files_Trashbin\Trashbin', 'ensureFileScannedHook');
+
+		\OCA\Files\App::getNavigationManager()->add(function () {
+			$l = \OC::$server->getL10N(self::APP_ID);
+			return [
+				'id' => 'trashbin',
+				'appname' => self::APP_ID,
+				'script' => 'list.php',
+				'order' => 50,
+				'name' => $l->t('Deleted files'),
+				'classes' => 'pinned',
+			];
+		});
 	}
 
 	public function registerTrashBackends(IServerContainer $serverContainer, ILogger $logger, IAppManager $appManager, ITrashManager $trashManager) {

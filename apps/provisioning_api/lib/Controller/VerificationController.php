@@ -6,7 +6,6 @@ declare(strict_types=1);
  * @copyright Copyright (c) 2021 Arthur Schiwon <blizzz@arthur-schiwon.de>
  *
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -31,7 +30,6 @@ use InvalidArgumentException;
 use OC\Security\Crypto;
 use OCP\Accounts\IAccountManager;
 use OCP\AppFramework\Controller;
-use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -40,7 +38,6 @@ use OCP\IUserSession;
 use OCP\Security\VerificationToken\InvalidTokenException;
 use OCP\Security\VerificationToken\IVerificationToken;
 
-#[IgnoreOpenAPI]
 class VerificationController extends Controller {
 
 	/** @var IVerificationToken */

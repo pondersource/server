@@ -8,7 +8,6 @@ declare(strict_types=1);
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -31,6 +30,7 @@ namespace OCA\OAuth2\Controller;
 use OC\Authentication\Exceptions\ExpiredTokenException;
 use OC\Authentication\Exceptions\InvalidTokenException;
 use OC\Authentication\Token\IProvider as TokenProvider;
+use OC\Security\Bruteforce\Throttler;
 use OCA\OAuth2\Db\AccessTokenMapper;
 use OCA\OAuth2\Db\ClientMapper;
 use OCA\OAuth2\Exceptions\AccessTokenNotFoundException;
@@ -40,26 +40,47 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IRequest;
-use OCP\Security\Bruteforce\IThrottler;
 use OCP\Security\ICrypto;
 use OCP\Security\ISecureRandom;
 use Psr\Log\LoggerInterface;
 
 class OauthApiController extends Controller {
+	/** @var AccessTokenMapper */
+	private $accessTokenMapper;
+	/** @var ClientMapper */
+	private $clientMapper;
+	/** @var ICrypto */
+	private $crypto;
+	/** @var TokenProvider */
+	private $tokenProvider;
+	/** @var ISecureRandom */
+	private $secureRandom;
+	/** @var ITimeFactory */
+	private $time;
+	/** @var Throttler */
+	private $throttler;
+	/** @var LoggerInterface */
+	private $logger;
 
-	public function __construct(
-		string $appName,
-		IRequest $request,
-		private ICrypto $crypto,
-		private AccessTokenMapper $accessTokenMapper,
-		private ClientMapper $clientMapper,
-		private TokenProvider $tokenProvider,
-		private ISecureRandom $secureRandom,
-		private ITimeFactory $time,
-		private LoggerInterface $logger,
-		private IThrottler $throttler
-	) {
+	public function __construct(string $appName,
+								IRequest $request,
+								ICrypto $crypto,
+								AccessTokenMapper $accessTokenMapper,
+								ClientMapper $clientMapper,
+								TokenProvider $tokenProvider,
+								ISecureRandom $secureRandom,
+								ITimeFactory $time,
+								LoggerInterface $logger,
+								Throttler $throttler) {
 		parent::__construct($appName, $request);
+		$this->crypto = $crypto;
+		$this->accessTokenMapper = $accessTokenMapper;
+		$this->clientMapper = $clientMapper;
+		$this->tokenProvider = $tokenProvider;
+		$this->secureRandom = $secureRandom;
+		$this->time = $time;
+		$this->throttler = $throttler;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -67,17 +88,12 @@ class OauthApiController extends Controller {
 	 * @NoCSRFRequired
 	 * @BruteForceProtection(action=oauth2GetToken)
 	 *
-	 * Get a token
-	 *
-	 * @param string $grant_type Token type that should be granted
-	 * @param string $code Code of the flow
-	 * @param string $refresh_token Refresh token
-	 * @param string $client_id Client ID
-	 * @param string $client_secret Client secret
-	 * @return JSONResponse<Http::STATUS_OK, array{access_token: string, token_type: string, expires_in: int, refresh_token: string, user_id: string}, array{}>|JSONResponse<Http::STATUS_BAD_REQUEST, array{error: string}, array{}>
-	 *
-	 * 200: Token returned
-	 * 400: Getting token is not possible
+	 * @param string $grant_type
+	 * @param string $code
+	 * @param string $refresh_token
+	 * @param string $client_id
+	 * @param string $client_secret
+	 * @return JSONResponse
 	 */
 	public function getToken($grant_type, $code, $refresh_token, $client_id, $client_secret): JSONResponse {
 

@@ -28,7 +28,6 @@
 namespace OCA\Theming\Settings;
 
 use OCA\Theming\AppInfo\Application;
-use OCA\Theming\Controller\ThemingController;
 use OCA\Theming\ImageManager;
 use OCA\Theming\ThemingDefaults;
 use OCP\AppFramework\Http\TemplateResponse;
@@ -76,11 +75,6 @@ class Admin implements IDelegatedSettings {
 			$errorMessage = $this->l->t('You are already using a custom theme. Theming app settings might be overwritten by that.');
 		}
 
-		$allowedMimeTypes = array_reduce(ThemingController::VALID_UPLOAD_KEYS, function($carry, $key) {
-			$carry[$key] = $this->imageManager->getSupportedUploadImageFormats($key);
-			return $carry;
-		}, []);
-		
 		$this->initialState->provideInitialState('adminThemingParameters', [
 			'isThemable' => $themable,
 			'notThemableErrorMessage' => $errorMessage,
@@ -98,7 +92,6 @@ class Admin implements IDelegatedSettings {
 			'docUrlIcons' => $this->urlGenerator->linkToDocs('admin-theming-icons'),
 			'canThemeIcons' => $this->imageManager->shouldReplaceIcons(),
 			'userThemingDisabled' => $this->themingDefaults->isUserThemingDisabled(),
-			'allowedMimeTypes' => $allowedMimeTypes,
 		]);
 
 		Util::addScript($this->appName, 'admin-theming');

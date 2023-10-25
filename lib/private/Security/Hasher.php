@@ -209,7 +209,7 @@ class Hasher implements IHasher {
 		}
 
 		// Check if we should use PASSWORD_DEFAULT
-		if ($this->config->getSystemValueBool('hashing_default_password', false)) {
+		if ($this->config->getSystemValue('hashing_default_password', false) === true) {
 			$default = PASSWORD_DEFAULT;
 		}
 

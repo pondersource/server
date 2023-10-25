@@ -109,9 +109,9 @@ if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 	$application->add(new OC\Core\Command\Db\ConvertType(\OC::$server->getConfig(), new \OC\DB\ConnectionFactory(\OC::$server->getSystemConfig())));
 	$application->add(new OC\Core\Command\Db\ConvertMysqlToMB4(\OC::$server->getConfig(), \OC::$server->getDatabaseConnection(), \OC::$server->getURLGenerator(), \OC::$server->get(LoggerInterface::class)));
 	$application->add(new OC\Core\Command\Db\ConvertFilecacheBigInt(\OC::$server->get(\OC\DB\Connection::class)));
-	$application->add(\OCP\Server::get(\OC\Core\Command\Db\AddMissingColumns::class));
 	$application->add(\OCP\Server::get(\OC\Core\Command\Db\AddMissingIndices::class));
-	$application->add(\OCP\Server::get(\OC\Core\Command\Db\AddMissingPrimaryKeys::class));
+	$application->add(new OC\Core\Command\Db\AddMissingColumns(\OC::$server->get(\OC\DB\Connection::class), \OC::$server->getEventDispatcher()));
+	$application->add(new OC\Core\Command\Db\AddMissingPrimaryKeys(\OC::$server->get(\OC\DB\Connection::class), \OC::$server->getEventDispatcher()));
 
 	if (\OC::$server->getConfig()->getSystemValueBool('debug', false)) {
 		$application->add(new OC\Core\Command\Db\Migrations\StatusCommand(\OC::$server->get(\OC\DB\Connection::class)));
@@ -178,7 +178,6 @@ if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 	));
 	$application->add(\OC::$server->query(OC\Core\Command\Maintenance\RepairShareOwnership::class));
 
-	$application->add(\OC::$server->get(\OC\Core\Command\Preview\Generate::class));
 	$application->add(\OC::$server->query(\OC\Core\Command\Preview\Repair::class));
 	$application->add(\OC::$server->query(\OC\Core\Command\Preview\ResetRenderedTexts::class));
 
@@ -192,10 +191,7 @@ if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 	$application->add(new OC\Core\Command\User\Setting(\OC::$server->getUserManager(), \OC::$server->getConfig()));
 	$application->add(new OC\Core\Command\User\ListCommand(\OC::$server->getUserManager(), \OC::$server->getGroupManager()));
 	$application->add(new OC\Core\Command\User\Info(\OC::$server->getUserManager(), \OC::$server->getGroupManager()));
-	$application->add(new OC\Core\Command\User\SyncAccountDataCommand(\OC::$server->getUserManager(), \OC::$server->get(\OCP\Accounts\IAccountManager::class)));
-	$application->add(\OC::$server->get(\OC\Core\Command\User\AuthTokens\Add::class));
-	$application->add(\OC::$server->get(\OC\Core\Command\User\AuthTokens\ListCommand::class));
-	$application->add(\OC::$server->get(\OC\Core\Command\User\AuthTokens\Delete::class));
+	$application->add(new OC\Core\Command\User\AddAppPassword(\OC::$server->get(\OCP\IUserManager::class), \OC::$server->get(\OC\Authentication\Token\IProvider::class), \OC::$server->get(\OCP\Security\ISecureRandom::class), \OC::$server->get(\OCP\EventDispatcher\IEventDispatcher::class)));
 
 	$application->add(new OC\Core\Command\Group\Add(\OC::$server->getGroupManager()));
 	$application->add(new OC\Core\Command\Group\Delete(\OC::$server->getGroupManager()));
@@ -212,8 +208,7 @@ if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 	$application->add(new OC\Core\Command\Security\ListCertificates(\OC::$server->getCertificateManager(), \OC::$server->getL10N('core')));
 	$application->add(new OC\Core\Command\Security\ImportCertificate(\OC::$server->getCertificateManager()));
 	$application->add(new OC\Core\Command\Security\RemoveCertificate(\OC::$server->getCertificateManager()));
-	$application->add(\OC::$server->get(\OC\Core\Command\Security\BruteforceAttempts::class));
-	$application->add(\OC::$server->get(\OC\Core\Command\Security\BruteforceResetAttempts::class));
+	$application->add(new OC\Core\Command\Security\ResetBruteforceAttempts(\OC::$server->getBruteForceThrottler()));
 } else {
 	$application->add(\OC::$server->get(\OC\Core\Command\Maintenance\Install::class));
 }

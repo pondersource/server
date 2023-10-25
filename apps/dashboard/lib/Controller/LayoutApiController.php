@@ -31,6 +31,7 @@ use OCP\IConfig;
 use OCP\IRequest;
 
 class LayoutApiController extends OCSController {
+
 	/** @var IConfig */
 	private $config;
 	/** @var string */
@@ -55,7 +56,6 @@ class LayoutApiController extends OCSController {
 	 * @return JSONResponse
 	 */
 	public function create(string $layout): JSONResponse {
-		$layout = htmlspecialchars($layout);
 		$this->config->setUserValue($this->userId, 'dashboard', 'layout', $layout);
 		return new JSONResponse(['layout' => $layout]);
 	}

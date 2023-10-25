@@ -27,7 +27,6 @@ declare(strict_types=1);
 namespace OC\Files\Node;
 
 use OC\Files\Utils\PathHelper;
-use OCP\Files\Folder;
 use OCP\Constants;
 use OCP\Files\Mount\IMountPoint;
 
@@ -39,8 +38,8 @@ use OCP\Files\Mount\IMountPoint;
  *
  * @package OC\Files\Node
  */
-class LazyFolder implements Folder {
-	/** @var \Closure(): Folder */
+class LazyFolder implements \OCP\Files\Folder {
+	/** @var \Closure */
 	private $folderClosure;
 
 	/** @var LazyFolder | null */
@@ -51,7 +50,7 @@ class LazyFolder implements Folder {
 	/**
 	 * LazyFolder constructor.
 	 *
-	 * @param \Closure(): Folder $folderClosure
+	 * @param \Closure $folderClosure
 	 */
 	public function __construct(\Closure $folderClosure, array $data = []) {
 		$this->folderClosure = $folderClosure;
@@ -449,7 +448,7 @@ class LazyFolder implements Folder {
 		return $this->__call(__FUNCTION__, func_get_args());
 	}
 
-	public function searchBySystemTag(string $tagName, string $userId, int $limit = 0, int $offset = 0) {
+	public function searchBySystemTag(string $tagName, string $userId, int $limit = 0, int $offset = 0): array {
 		return $this->__call(__FUNCTION__, func_get_args());
 	}
 

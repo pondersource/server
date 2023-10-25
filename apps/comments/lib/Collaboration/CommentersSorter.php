@@ -27,13 +27,14 @@ use OCP\Collaboration\AutoComplete\ISorter;
 use OCP\Comments\ICommentsManager;
 
 class CommentersSorter implements ISorter {
+
 	private ICommentsManager $commentsManager;
 
 	public function __construct(ICommentsManager $commentsManager) {
 		$this->commentsManager = $commentsManager;
 	}
 
-	public function getId(): string {
+	public function getId() {
 		return 'commenters';
 	}
 
@@ -41,10 +42,10 @@ class CommentersSorter implements ISorter {
 	 * Sorts people who commented on the given item atop (descelating) of the
 	 * others
 	 *
-	 * @param array &$sortArray
+	 * @param array $sortArray
 	 * @param array $context
 	 */
-	public function sort(array &$sortArray, array $context): void {
+	public function sort(array &$sortArray, array $context) {
 		$commenters = $this->retrieveCommentsInformation($context['itemType'], $context['itemId']);
 		if (count($commenters) === 0) {
 			return;
@@ -75,9 +76,6 @@ class CommentersSorter implements ISorter {
 		}
 	}
 
-	/**
-	 * @return array<string, array<string, int>>
-	 */
 	protected function retrieveCommentsInformation(string $type, string $id): array {
 		$comments = $this->commentsManager->getForObject($type, $id);
 		if (count($comments) === 0) {

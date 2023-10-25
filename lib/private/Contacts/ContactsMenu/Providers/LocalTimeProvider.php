@@ -37,18 +37,36 @@ use OCP\IUserManager;
 use OCP\L10N\IFactory as IL10NFactory;
 
 class LocalTimeProvider implements IProvider {
+	private IActionFactory $actionFactory;
+	private IL10NFactory $l10nFactory;
+	private IURLGenerator $urlGenerator;
+	private IUserManager $userManager;
+	private ITimeFactory $timeFactory;
+	private IDateTimeFormatter $dateTimeFormatter;
+	private IConfig $config;
+
 	public function __construct(
-		private IActionFactory $actionFactory,
-		private IL10NFactory $l10nFactory,
-		private IURLGenerator $urlGenerator,
-		private IUserManager $userManager,
-		private ITimeFactory $timeFactory,
-		private IDateTimeFormatter $dateTimeFormatter,
-		private IConfig $config,
+		IActionFactory $actionFactory,
+		IL10NFactory $l10nFactory,
+		IURLGenerator $urlGenerator,
+		IUserManager $userManager,
+		ITimeFactory $timeFactory,
+		IDateTimeFormatter $dateTimeFormatter,
+		IConfig $config
 	) {
+		$this->actionFactory = $actionFactory;
+		$this->l10nFactory = $l10nFactory;
+		$this->urlGenerator = $urlGenerator;
+		$this->userManager = $userManager;
+		$this->timeFactory = $timeFactory;
+		$this->dateTimeFormatter = $dateTimeFormatter;
+		$this->config = $config;
 	}
 
-	public function process(IEntry $entry): void {
+	/**
+	 * @param IEntry $entry
+	 */
+	public function process(IEntry $entry) {
 		$targetUserId = $entry->getProperty('UID');
 		$targetUser = $this->userManager->get($targetUserId);
 		if (!empty($targetUser)) {

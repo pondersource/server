@@ -1,0 +1,5 @@
+{ "translations": {
+    "No rule given" : "Дүрэм заагаагүй байна",
+    "File access control" : " Файлд хандах эрхийн удирдлага"
+},"pluralForm" :"nplurals=2; plural=(n != 1);"
+}

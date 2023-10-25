@@ -26,7 +26,6 @@
  * @author Timo Förster <tfoerster@webfoersterei.de>
  * @author Valdnet <47037905+Valdnet@users.noreply.github.com>
  * @author MichaIng <micha@dietpi.com>
- * @author Kate Döen <kate.doeen@nextcloud.com>
  *
  * @license AGPL-3.0
  *
@@ -60,10 +59,8 @@ use OC\DB\MissingPrimaryKeyInformation;
 use OC\DB\SchemaWrapper;
 use OC\IntegrityCheck\Checker;
 use OC\Lock\NoopLockingProvider;
-use OC\Lock\DBLockingProvider;
 use OC\MemoryInfo;
 use OCA\Settings\SetupChecks\CheckUserCertificates;
-use OCA\Settings\SetupChecks\NeedsSystemAddressBookSync;
 use OCA\Settings\SetupChecks\LdapInvalidUuids;
 use OCA\Settings\SetupChecks\LegacySSEKeyFormat;
 use OCA\Settings\SetupChecks\PhpDefaultCharset;
@@ -71,13 +68,10 @@ use OCA\Settings\SetupChecks\PhpOutputBuffering;
 use OCA\Settings\SetupChecks\SupportedDatabase;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Controller;
-use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
-use OCP\DB\Events\AddMissingColumnsEvent;
 use OCP\DB\Events\AddMissingIndicesEvent;
-use OCP\DB\Events\AddMissingPrimaryKeyEvent;
 use OCP\DB\Types;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Http\Client\IClientService;
@@ -91,11 +85,11 @@ use OCP\ITempManager;
 use OCP\IURLGenerator;
 use OCP\Lock\ILockingProvider;
 use OCP\Notification\IManager;
-use OCP\Security\Bruteforce\IThrottler;
 use OCP\Security\ISecureRandom;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\EventDispatcher\GenericEvent;
 
-#[IgnoreOpenAPI]
 class CheckSetupController extends Controller {
 	/** @var IConfig */
 	private $config;
@@ -110,6 +104,8 @@ class CheckSetupController extends Controller {
 	/** @var LoggerInterface */
 	private $logger;
 	/** @var IEventDispatcher */
+	private $eventDispatcher;
+	/** @var EventDispatcherInterface */
 	private $dispatcher;
 	/** @var Connection */
 	private $db;
@@ -125,8 +121,6 @@ class CheckSetupController extends Controller {
 	private $iniGetWrapper;
 	/** @var IDBConnection */
 	private $connection;
-	/** @var IThrottler */
-	private $throttler;
 	/** @var ITempManager */
 	private $tempManager;
 	/** @var IManager */
@@ -144,7 +138,8 @@ class CheckSetupController extends Controller {
 								IL10N $l10n,
 								Checker $checker,
 								LoggerInterface $logger,
-								IEventDispatcher $dispatcher,
+								IEventDispatcher $eventDispatcher,
+								EventDispatcherInterface $dispatcher,
 								Connection $db,
 								ILockingProvider $lockingProvider,
 								IDateTimeFormatter $dateTimeFormatter,
@@ -152,7 +147,6 @@ class CheckSetupController extends Controller {
 								ISecureRandom $secureRandom,
 								IniGetWrapper $iniGetWrapper,
 								IDBConnection $connection,
-								IThrottler $throttler,
 								ITempManager $tempManager,
 								IManager $manager,
 								IAppManager $appManager,
@@ -165,9 +159,9 @@ class CheckSetupController extends Controller {
 		$this->l10n = $l10n;
 		$this->checker = $checker;
 		$this->logger = $logger;
+		$this->eventDispatcher = $eventDispatcher;
 		$this->dispatcher = $dispatcher;
 		$this->db = $db;
-		$this->throttler = $throttler;
 		$this->lockingProvider = $lockingProvider;
 		$this->dateTimeFormatter = $dateTimeFormatter;
 		$this->memoryInfo = $memoryInfo;
@@ -301,8 +295,19 @@ class CheckSetupController extends Controller {
 			$features = $this->l10n->t('Federated Cloud Sharing');
 		}
 
+		// Check if at least OpenSSL after 1.01d or 1.0.2b
+		if (strpos($versionString, 'OpenSSL/') === 0) {
+			$majorVersion = substr($versionString, 8, 5);
+			$patchRelease = substr($versionString, 13, 6);
+
+			if (($majorVersion === '1.0.1' && ord($patchRelease) < ord('d')) ||
+				($majorVersion === '1.0.2' && ord($patchRelease) < ord('b'))) {
+				return $this->l10n->t('cURL is using an outdated %1$s version (%2$s). Please update your operating system or features such as %3$s will not work reliably.', ['OpenSSL', $versionString, $features]);
+			}
+		}
+
 		// Check if NSS and perform heuristic check
-		if (str_starts_with($versionString, 'NSS/')) {
+		if (strpos($versionString, 'NSS/') === 0) {
 			try {
 				$firstClient = $this->clientService->newClient();
 				$firstClient->get('https://nextcloud.com/');
@@ -331,7 +336,7 @@ class CheckSetupController extends Controller {
 	 * @return bool
 	 */
 	protected function isPhpOutdated(): bool {
-		return PHP_VERSION_ID < 80100;
+		return PHP_VERSION_ID < 80000;
 	}
 
 	/**
@@ -394,7 +399,7 @@ class CheckSetupController extends Controller {
 	 */
 	private function isSettimelimitAvailable() {
 		if (function_exists('set_time_limit')
-			&& !str_contains(ini_get('disable_functions'), 'set_time_limit')) {
+			&& strpos(ini_get('disable_functions'), 'set_time_limit') === false) {
 			return true;
 		}
 
@@ -554,8 +559,11 @@ Raw output
 		$indexInfo = new MissingIndexInformation();
 
 		// Dispatch event so apps can also hint for pending index updates if needed
+		$event = new GenericEvent($indexInfo);
+		$this->dispatcher->dispatch(IDBConnection::CHECK_MISSING_INDEXES_EVENT, $event);
+
 		$event = new AddMissingIndicesEvent();
-		$this->dispatcher->dispatchTyped($event);
+		$this->eventDispatcher->dispatchTyped($event);
 		$missingIndices = $event->getMissingIndices();
 
 		if ($missingIndices !== []) {
@@ -575,50 +583,24 @@ Raw output
 
 	protected function hasMissingPrimaryKeys(): array {
 		$info = new MissingPrimaryKeyInformation();
-		// Dispatch event so apps can also hint for pending key updates if needed
-		$event = new AddMissingPrimaryKeyEvent();
-		$this->dispatcher->dispatchTyped($event);
-		$missingKeys = $event->getMissingPrimaryKeys();
-
-		if (!empty($missingKeys)) {
-			$schema = new SchemaWrapper(\OCP\Server::get(Connection::class));
-			foreach ($missingKeys as $missingKey) {
-				if ($schema->hasTable($missingKey['tableName'])) {
-					$table = $schema->getTable($missingKey['tableName']);
-					if (!$table->hasPrimaryKey()) {
-						$info->addHintForMissingSubject($missingKey['tableName']);
-					}
-				}
-			}
-		}
+		// Dispatch event so apps can also hint for pending index updates if needed
+		$event = new GenericEvent($info);
+		$this->dispatcher->dispatch(IDBConnection::CHECK_MISSING_PRIMARY_KEYS_EVENT, $event);
 
 		return $info->getListOfMissingPrimaryKeys();
 	}
 
 	protected function hasMissingColumns(): array {
-		$columnInfo = new MissingColumnInformation();
-		// Dispatch event so apps can also hint for pending column updates if needed
-		$event = new AddMissingColumnsEvent();
-		$this->dispatcher->dispatchTyped($event);
-		$missingColumns = $event->getMissingColumns();
+		$indexInfo = new MissingColumnInformation();
+		// Dispatch event so apps can also hint for pending index updates if needed
+		$event = new GenericEvent($indexInfo);
+		$this->dispatcher->dispatch(IDBConnection::CHECK_MISSING_COLUMNS_EVENT, $event);
 
-		if (!empty($missingColumns)) {
-			$schema = new SchemaWrapper(\OCP\Server::get(Connection::class));
-			foreach ($missingColumns as $missingColumn) {
-				if ($schema->hasTable($missingColumn['tableName'])) {
-					$table = $schema->getTable($missingColumn['tableName']);
-					if (!$table->hasColumn($missingColumn['columnName'])) {
-						$columnInfo->addHintForMissingColumn($missingColumn['tableName'], $missingColumn['columnName']);
-					}
-				}
-			}
-		}
-
-		return $columnInfo->getListOfMissingColumns();
+		return $indexInfo->getListOfMissingColumns();
 	}
 
 	protected function isSqliteUsed() {
-		return str_contains($this->config->getSystemValue('dbtype'), 'sqlite');
+		return strpos($this->config->getSystemValue('dbtype'), 'sqlite') !== false;
 	}
 
 	protected function isReadOnlyConfig(): bool {
@@ -661,10 +643,6 @@ Raw output
 		return !($this->lockingProvider instanceof NoopLockingProvider);
 	}
 
-	protected function hasDBFileLocking(): bool {
-		return ($this->lockingProvider instanceof DBLockingProvider);
-	}
-
 	protected function getSuggestedOverwriteCliURL(): string {
 		$currentOverwriteCliUrl = $this->config->getSystemValue('overwrite.cli.url', '');
 		$suggestedOverwriteCliUrl = $this->request->getServerProtocol() . '://' . $this->request->getInsecureServerHost() . \OC::$WEBROOT;
@@ -678,7 +656,7 @@ Raw output
 	}
 
 	protected function getLastCronInfo(): array {
-		$lastCronRun = (int)$this->config->getAppValue('core', 'lastcron', '0');
+		$lastCronRun = $this->config->getAppValue('core', 'lastcron', 0);
 		return [
 			'diffInSeconds' => time() - $lastCronRun,
 			'relativeTime' => $this->dateTimeFormatter->formatTimeSpan($lastCronRun),
@@ -768,12 +746,6 @@ Raw output
 		if (!extension_loaded('sysvsem')) {
 			// used to limit the usage of resources by preview generator
 			$recommendedPHPModules[] = 'sysvsem';
-		}
-
-		if (!extension_loaded('exif')) {
-			// used to extract metadata from images
-			// required for correct orientation of preview images
-			$recommendedPHPModules[] = 'exif';
 		}
 
 		if (!defined('PASSWORD_ARGON2I')) {
@@ -912,7 +884,6 @@ Raw output
 		$checkUserCertificates = new CheckUserCertificates($this->l10n, $this->config, $this->urlGenerator);
 		$supportedDatabases = new SupportedDatabase($this->l10n, $this->connection);
 		$ldapInvalidUuids = new LdapInvalidUuids($this->appManager, $this->l10n, $this->serverContainer);
-		$needsSystemAddressBookSync = new NeedsSystemAddressBookSync($this->config, $this->l10n);
 
 		return new DataResponse(
 			[
@@ -922,13 +893,10 @@ Raw output
 				'wasEmailTestSuccessful' => $this->wasEmailTestSuccessful(),
 				'hasFileinfoInstalled' => $this->hasFileinfoInstalled(),
 				'hasWorkingFileLocking' => $this->hasWorkingFileLocking(),
-				'hasDBFileLocking' => $this->hasDBFileLocking(),
 				'suggestedOverwriteCliURL' => $this->getSuggestedOverwriteCliURL(),
 				'cronInfo' => $this->getLastCronInfo(),
 				'cronErrors' => $this->getCronErrors(),
 				'isFairUseOfFreePushService' => $this->isFairUseOfFreePushService(),
-				'isBruteforceThrottled' => $this->throttler->getAttempts($this->request->getRemoteAddress()) !== 0,
-				'bruteforceRemoteAddress' => $this->request->getRemoteAddress(),
 				'serverHasInternetConnectionProblems' => $this->hasInternetConnectivityProblems(),
 				'isMemcacheConfigured' => $this->isMemcacheConfigured(),
 				'memcacheDocs' => $this->urlGenerator->linkToDocs('admin-performance'),
@@ -968,7 +936,6 @@ Raw output
 				SupportedDatabase::class => ['pass' => $supportedDatabases->run(), 'description' => $supportedDatabases->description(), 'severity' => $supportedDatabases->severity()],
 				'temporaryDirectoryWritable' => $this->isTemporaryDirectoryWritable(),
 				LdapInvalidUuids::class => ['pass' => $ldapInvalidUuids->run(), 'description' => $ldapInvalidUuids->description(), 'severity' => $ldapInvalidUuids->severity()],
-				NeedsSystemAddressBookSync::class => ['pass' => $needsSystemAddressBookSync->run(), 'description' => $needsSystemAddressBookSync->description(), 'severity' => $needsSystemAddressBookSync->severity()],
 			]
 		);
 	}

@@ -47,23 +47,35 @@ use OCP\Util;
 use Psr\Log\LoggerInterface;
 
 class Manager implements ICommentsManager {
-	protected IDBConnection $dbConn;
-	protected LoggerInterface $logger;
-	protected IConfig $config;
-	protected ITimeFactory $timeFactory;
-	protected IEmojiHelper $emojiHelper;
-	protected IInitialStateService $initialStateService;
+	/** @var  IDBConnection */
+	protected $dbConn;
+
+	/** @var  LoggerInterface */
+	protected $logger;
+
+	/** @var IConfig */
+	protected $config;
+
+	/** @var ITimeFactory */
+	protected $timeFactory;
+
+	/** @var IEmojiHelper */
+	protected $emojiHelper;
+
+	/** @var IInitialStateService */
+	protected $initialStateService;
+
 	/** @var IComment[] */
-	protected array $commentsCache = [];
+	protected $commentsCache = [];
 
 	/** @var  \Closure[] */
-	protected array $eventHandlerClosures = [];
+	protected $eventHandlerClosures = [];
 
 	/** @var  ICommentsEventHandler[] */
-	protected array $eventHandlers = [];
+	protected $eventHandlers = [];
 
 	/** @var \Closure[] */
-	protected array $displayNameResolvers = [];
+	protected $displayNameResolvers = [];
 
 	public function __construct(IDBConnection $dbConn,
 								LoggerInterface $logger,
@@ -84,8 +96,9 @@ class Manager implements ICommentsManager {
 	 * IComment interface.
 	 *
 	 * @param array $data
+	 * @return array
 	 */
-	protected function normalizeDatabaseData(array $data): array {
+	protected function normalizeDatabaseData(array $data) {
 		$data['id'] = (string)$data['id'];
 		$data['parent_id'] = (string)$data['parent_id'];
 		$data['topmost_parent_id'] = (string)$data['topmost_parent_id'];
@@ -121,6 +134,11 @@ class Manager implements ICommentsManager {
 		return $data;
 	}
 
+
+	/**
+	 * @param array $data
+	 * @return IComment
+	 */
 	public function getCommentFromData(array $data): IComment {
 		return new Comment($this->normalizeDatabaseData($data));
 	}
@@ -134,7 +152,7 @@ class Manager implements ICommentsManager {
 	 *                  by parameter for convenience
 	 * @throws \UnexpectedValueException
 	 */
-	protected function prepareCommentForDatabaseWrite(IComment $comment): IComment {
+	protected function prepareCommentForDatabaseWrite(IComment $comment) {
 		if (!$comment->getActorType()
 			|| $comment->getActorId() === ''
 			|| !$comment->getObjectType()
@@ -154,9 +172,7 @@ class Manager implements ICommentsManager {
 			$comment->setLatestChildDateTime(null);
 		}
 
-		try {
-			$comment->getCreationDateTime();
-		} catch(\LogicException $e) {
+		if (is_null($comment->getCreationDateTime())) {
 			$comment->setCreationDateTime(new \DateTime());
 		}
 
@@ -175,9 +191,10 @@ class Manager implements ICommentsManager {
 	 * returns the topmost parent id of a given comment identified by ID
 	 *
 	 * @param string $id
+	 * @return string
 	 * @throws NotFoundException
 	 */
-	protected function determineTopmostParentId($id): string {
+	protected function determineTopmostParentId($id) {
 		$comment = $this->get($id);
 		if ($comment->getParentId() === '0') {
 			return $comment->getId();
@@ -193,7 +210,7 @@ class Manager implements ICommentsManager {
 	 * @param \DateTime $cDateTime the date time of the most recent child
 	 * @throws NotFoundException
 	 */
-	protected function updateChildrenInformation($id, \DateTime $cDateTime): void {
+	protected function updateChildrenInformation($id, \DateTime $cDateTime) {
 		$qb = $this->dbConn->getQueryBuilder();
 		$query = $qb->select($qb->func()->count('id'))
 			->from('comments')
@@ -220,7 +237,7 @@ class Manager implements ICommentsManager {
 	 * @param string $id
 	 * @throws \InvalidArgumentException
 	 */
-	protected function checkRoleParameters($role, $type, $id): void {
+	protected function checkRoleParameters($role, $type, $id) {
 		if (
 			!is_string($type) || empty($type)
 			|| !is_string($id) || empty($id)
@@ -231,8 +248,10 @@ class Manager implements ICommentsManager {
 
 	/**
 	 * run-time caches a comment
+	 *
+	 * @param IComment $comment
 	 */
-	protected function cache(IComment $comment): void {
+	protected function cache(IComment $comment) {
 		$id = $comment->getId();
 		if (empty($id)) {
 			return;
@@ -245,7 +264,7 @@ class Manager implements ICommentsManager {
 	 *
 	 * @param mixed $id the comment's id
 	 */
-	protected function uncache($id): void {
+	protected function uncache($id) {
 		$id = (string)$id;
 		if (isset($this->commentsCache[$id])) {
 			unset($this->commentsCache[$id]);
@@ -256,11 +275,12 @@ class Manager implements ICommentsManager {
 	 * returns a comment instance
 	 *
 	 * @param string $id the ID of the comment
+	 * @return IComment
 	 * @throws NotFoundException
 	 * @throws \InvalidArgumentException
 	 * @since 9.0.0
 	 */
-	public function get($id): IComment {
+	public function get($id) {
 		if ((int)$id === 0) {
 			throw new \InvalidArgumentException('IDs must be translatable to a number in this implementation.');
 		}
@@ -289,9 +309,35 @@ class Manager implements ICommentsManager {
 	}
 
 	/**
-	 * @inheritDoc
+	 * returns the comment specified by the id and all it's child comments.
+	 * At this point of time, we do only support one level depth.
+	 *
+	 * @param string $id
+	 * @param int $limit max number of entries to return, 0 returns all
+	 * @param int $offset the start entry
+	 * @return array
+	 * @since 9.0.0
+	 *
+	 * The return array looks like this
+	 * [
+	 *   'comment' => IComment, // root comment
+	 *   'replies' =>
+	 *   [
+	 *     0 =>
+	 *     [
+	 *       'comment' => IComment,
+	 *       'replies' => []
+	 *     ]
+	 *     1 =>
+	 *     [
+	 *       'comment' => IComment,
+	 *       'replies'=> []
+	 *     ],
+	 *     …
+	 *   ]
+	 * ]
 	 */
-	public function getTree($id, $limit = 0, $offset = 0): array {
+	public function getTree($id, $limit = 0, $offset = 0) {
 		$tree = [];
 		$tree['comment'] = $this->get($id);
 		$tree['replies'] = [];
@@ -336,7 +382,7 @@ class Manager implements ICommentsManager {
 	 * @param int $offset optional, starting point
 	 * @param \DateTime $notOlderThan optional, timestamp of the oldest comments
 	 * that may be returned
-	 * @return list<IComment>
+	 * @return IComment[]
 	 * @since 9.0.0
 	 */
 	public function getForObject(
@@ -388,7 +434,8 @@ class Manager implements ICommentsManager {
 	 * @param int $limit optional, number of maximum comments to be returned. if
 	 * set to 0, all comments are returned.
 	 * @param bool $includeLastKnown
-	 * @return list<IComment>
+	 * @return IComment[]
+	 * @return array
 	 */
 	public function getForObjectSince(
 		string $objectType,
@@ -418,7 +465,7 @@ class Manager implements ICommentsManager {
 	 * @param int $limit optional, number of maximum comments to be returned. if
 	 * set to 0, all comments are returned.
 	 * @param bool $includeLastKnown
-	 * @return list<IComment>
+	 * @return IComment[]
 	 */
 	public function getCommentsWithVerbForObjectSinceComment(
 		string $objectType,
@@ -501,6 +548,22 @@ class Manager implements ICommentsManager {
 					)
 				);
 			}
+		} elseif ($lastKnownCommentId > 0) {
+			// We didn't find the "$lastKnownComment" but we still use the ID as an offset.
+			// This is required as a fall-back for expired messages in talk and deleted comments in other apps.
+			if ($sortDirection === 'desc') {
+				if ($includeLastKnown) {
+					$query->andWhere($query->expr()->lte('id', $query->createNamedParameter($lastKnownCommentId)));
+				} else {
+					$query->andWhere($query->expr()->lt('id', $query->createNamedParameter($lastKnownCommentId)));
+				}
+			} else {
+				if ($includeLastKnown) {
+					$query->andWhere($query->expr()->gte('id', $query->createNamedParameter($lastKnownCommentId)));
+				} else {
+					$query->andWhere($query->expr()->gt('id', $query->createNamedParameter($lastKnownCommentId)));
+				}
+			}
 		}
 
 		$resultStatement = $query->execute();
@@ -518,10 +581,11 @@ class Manager implements ICommentsManager {
 	 * @param string $objectType the object type, e.g. 'files'
 	 * @param string $objectId the id of the object
 	 * @param int $id the comment to look for
+	 * @return Comment|null
 	 */
 	protected function getLastKnownComment(string $objectType,
 										   string $objectId,
-										   int $id): ?IComment {
+										   int $id) {
 		$query = $this->dbConn->getQueryBuilder();
 		$query->select('*')
 			->from('comments')
@@ -551,7 +615,7 @@ class Manager implements ICommentsManager {
 	 * @param string $verb Limit the verb of the comment
 	 * @param int $offset
 	 * @param int $limit
-	 * @return list<IComment>
+	 * @return IComment[]
 	 */
 	public function search(string $search, string $objectType, string $objectId, string $verb, int $offset, int $limit = 50): array {
 		$objectIds = [];
@@ -570,7 +634,7 @@ class Manager implements ICommentsManager {
 	 * @param string $verb Limit the verb of the comment
 	 * @param int $offset
 	 * @param int $limit
-	 * @return list<IComment>
+	 * @return IComment[]
 	 */
 	public function searchForObjects(string $search, string $objectType, array $objectIds, string $verb, int $offset, int $limit = 50): array {
 		$query = $this->dbConn->getQueryBuilder();
@@ -983,7 +1047,6 @@ class Manager implements ICommentsManager {
 			->select('message_id')
 			->from('reactions')
 			->where($qb->expr()->eq('parent_id', $qb->createNamedParameter($parentId)))
-			->orderBy('message_id', 'DESC')
 			->executeQuery();
 
 		$commentIds = [];
@@ -1059,29 +1122,22 @@ class Manager implements ICommentsManager {
 		if (!$commentIds) {
 			return [];
 		}
-
-		$chunks = array_chunk($commentIds, 500);
-
 		$query = $this->dbConn->getQueryBuilder();
+
 		$query->select('*')
 			->from('comments')
-			->where($query->expr()->in('id', $query->createParameter('ids')))
+			->where($query->expr()->in('id', $query->createNamedParameter($commentIds, IQueryBuilder::PARAM_STR_ARRAY)))
 			->orderBy('creation_timestamp', 'DESC')
 			->addOrderBy('id', 'DESC');
 
 		$comments = [];
-		foreach ($chunks as $ids) {
-			$query->setParameter('ids', $ids, IQueryBuilder::PARAM_STR_ARRAY);
-
-			$result = $query->executeQuery();
-			while ($data = $result->fetch()) {
-				$comment = $this->getCommentFromData($data);
-				$this->cache($comment);
-				$comments[] = $comment;
-			}
-			$result->closeCursor();
+		$result = $query->executeQuery();
+		while ($data = $result->fetch()) {
+			$comment = $this->getCommentFromData($data);
+			$this->cache($comment);
+			$comments[] = $comment;
 		}
-
+		$result->closeCursor();
 		return $comments;
 	}
 

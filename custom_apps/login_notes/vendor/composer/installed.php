@@ -1,0 +1,41 @@
+<?php return array(
+    'root' => array(
+        'name' => 'framasoft/login_notes',
+        'pretty_version' => '1.2.0',
+        'version' => '1.2.0.0',
+        'reference' => NULL,
+        'type' => 'library',
+        'install_path' => __DIR__ . '/../../',
+        'aliases' => array(),
+        'dev' => false,
+    ),
+    'versions' => array(
+        'bamarni/composer-bin-plugin' => array(
+            'pretty_version' => '1.8.2',
+            'version' => '1.8.2.0',
+            'reference' => '92fd7b1e6e9cdae19b0d57369d8ad31a37b6a880',
+            'type' => 'composer-plugin',
+            'install_path' => __DIR__ . '/../bamarni/composer-bin-plugin',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'framasoft/login_notes' => array(
+            'pretty_version' => '1.2.0',
+            'version' => '1.2.0.0',
+            'reference' => NULL,
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../../',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'league/commonmark' => array(
+            'pretty_version' => '1.6.7',
+            'version' => '1.6.7.0',
+            'reference' => '2b8185c13bc9578367a5bf901881d1c1b5bbd09b',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../league/commonmark',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+    ),
+);

@@ -40,19 +40,16 @@ namespace OCP\Security\Bruteforce;
 interface IThrottler {
 	/**
 	 * @since 25.0.0
-	 * @deprecated 28.0.0
 	 */
 	public const MAX_DELAY = 25;
 
 	/**
 	 * @since 25.0.0
-	 * @deprecated 28.0.0
 	 */
 	public const MAX_DELAY_MS = 25000; // in milliseconds
 
 	/**
 	 * @since 25.0.0
-	 * @deprecated 28.0.0
 	 */
 	public const MAX_ATTEMPTS = 10;
 
@@ -61,20 +58,10 @@ interface IThrottler {
 	 *
 	 * @param string $action
 	 * @param string $ip
-	 * @param array $metadata Optional metadata logged with the attempt
+	 * @param array $metadata Optional metadata logged to the database
 	 * @since 25.0.0
 	 */
 	public function registerAttempt(string $action, string $ip, array $metadata = []): void;
-
-
-	/**
-	 * Check if the IP is allowed to bypass the brute force protection
-	 *
-	 * @param string $ip
-	 * @return bool
-	 * @since 28.0.0
-	 */
-	public function isBypassListed(string $ip): bool;
 
 	/**
 	 * Get the throttling delay (in milliseconds)
@@ -84,19 +71,8 @@ interface IThrottler {
 	 * @param float $maxAgeHours
 	 * @return int
 	 * @since 25.0.0
-	 * @deprecated 28.0.0 This method is considered internal as of Nextcloud 28. Use {@see showBruteforceWarning()} to decide whether a warning should be shown.
 	 */
 	public function getAttempts(string $ip, string $action = '', float $maxAgeHours = 12): int;
-
-	/**
-	 * Whether a warning should be shown about the throttle
-	 *
-	 * @param string $ip
-	 * @param string $action optionally filter by action
-	 * @return bool
-	 * @since 28.0.0
-	 */
-	public function showBruteforceWarning(string $ip, string $action = ''): bool;
 
 	/**
 	 * Get the throttling delay (in milliseconds)
@@ -105,7 +81,6 @@ interface IThrottler {
 	 * @param string $action optionally filter by action
 	 * @return int
 	 * @since 25.0.0
-	 * @deprecated 28.0.0 This method is considered internal as of Nextcloud 28. Use {@see showBruteforceWarning()} to decide whether a warning should be shown.
 	 */
 	public function getDelay(string $ip, string $action = ''): int;
 
@@ -124,7 +99,6 @@ interface IThrottler {
 	 *
 	 * @param string $ip
 	 * @since 25.0.0
-	 * @deprecated 28.0.0 This method is considered internal as of Nextcloud 28. Use {@see resetDelay()} and only reset the entries of your action and metadata
 	 */
 	public function resetDelayForIP(string $ip): void;
 
@@ -135,7 +109,6 @@ interface IThrottler {
 	 * @param string $action optionally filter by action
 	 * @return int the time spent sleeping
 	 * @since 25.0.0
-	 * @deprecated 28.0.0 Use {@see sleepDelayOrThrowOnMax()} instead and abort handling the request when it throws
 	 */
 	public function sleepDelay(string $ip, string $action = ''): int;
 

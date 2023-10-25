@@ -72,7 +72,6 @@ use OCP\IServerContainer;
 use OCP\ISession;
 use OCP\IURLGenerator;
 use OCP\IUserSession;
-use OCP\Security\Bruteforce\IThrottler;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -234,7 +233,7 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 					$c->get(IRequest::class),
 					$c->get(IControllerMethodReflector::class),
 					$c->get(IUserSession::class),
-					$c->get(IThrottler::class)
+					$c->get(OC\Security\Bruteforce\Throttler::class)
 				)
 			);
 			$dispatcher->registerMiddleware(
@@ -292,9 +291,8 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 			$dispatcher->registerMiddleware(
 				new OC\AppFramework\Middleware\Security\BruteForceMiddleware(
 					$c->get(IControllerMethodReflector::class),
-					$c->get(IThrottler::class),
-					$c->get(IRequest::class),
-					$c->get(LoggerInterface::class)
+					$c->get(OC\Security\Bruteforce\Throttler::class),
+					$c->get(IRequest::class)
 				)
 			);
 			$dispatcher->registerMiddleware(
@@ -310,7 +308,7 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 					$c->get(IRequest::class),
 					$c->get(ISession::class),
 					$c->get(\OCP\IConfig::class),
-					$c->get(IThrottler::class)
+					$c->get(OC\Security\Bruteforce\Throttler::class)
 				)
 			);
 			$dispatcher->registerMiddleware(

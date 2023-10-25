@@ -160,7 +160,7 @@ class File implements ICache {
 			$dh = $storage->opendir('/');
 			if (is_resource($dh)) {
 				while (($file = readdir($dh)) !== false) {
-					if ($file != '.' and $file != '..' and ($prefix === '' || str_starts_with($file, $prefix))) {
+					if ($file != '.' and $file != '..' and ($prefix === '' || strpos($file, $prefix) === 0)) {
 						$storage->unlink('/' . $file);
 					}
 				}
