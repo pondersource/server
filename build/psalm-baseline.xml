@@ -827,14 +827,6 @@
       <code>$objectName</code>
     </ParamNameMismatch>
   </file>
-  <file src="apps/dav/lib/SystemTag/SystemTagsRelationsCollection.php">
-    <InvalidArgument>
-      <code>SystemTagsEntityEvent::EVENT_ENTITY</code>
-    </InvalidArgument>
-    <TooManyArguments>
-      <code>dispatch</code>
-    </TooManyArguments>
-  </file>
   <file src="apps/dav/lib/Traits/PrincipalProxyTrait.php">
     <MoreSpecificImplementedParamType>
       <code>$members</code>
@@ -886,9 +878,6 @@
     </MoreSpecificReturnType>
   </file>
   <file src="apps/encryption/lib/Crypto/Crypt.php">
-    <RedundantCondition>
-      <code>$userSession</code>
-    </RedundantCondition>
     <TypeDoesNotContainType>
       <code>get_class($res) === 'OpenSSLAsymmetricKey'</code>
     </TypeDoesNotContainType>
@@ -899,11 +888,6 @@
     </ImplementedParamTypeMismatch>
   </file>
   <file src="apps/encryption/lib/KeyManager.php">
-    <InvalidScalarArgument>
-      <code>time()</code>
-      <code>time()</code>
-      <code>time()</code>
-    </InvalidScalarArgument>
     <InvalidThrow>
       <code>throw $exception;</code>
     </InvalidThrow>
@@ -920,9 +904,6 @@
     <MoreSpecificReturnType>
       <code>\OC\Files\Storage\Storage|null</code>
     </MoreSpecificReturnType>
-    <RedundantCondition>
-      <code>$userSession</code>
-    </RedundantCondition>
   </file>
   <file src="apps/federatedfilesharing/lib/Controller/RequestHandlerController.php">
     <InvalidArgument>
@@ -1034,12 +1015,6 @@
     </TypeDoesNotContainType>
   </file>
   <file src="apps/files/lib/Command/ScanAppData.php">
-    <LessSpecificReturnStatement>
-      <code><![CDATA[$this->root->get('appdata_'.$instanceId)]]></code>
-    </LessSpecificReturnStatement>
-    <MoreSpecificReturnType>
-      <code>\OCP\Files\Folder</code>
-    </MoreSpecificReturnType>
     <NullArgument>
       <code>null</code>
       <code>null</code>
@@ -1052,16 +1027,6 @@
     <UndefinedInterfaceMethod>
       <code>getTemplates</code>
       <code>open</code>
-    </UndefinedInterfaceMethod>
-  </file>
-  <file src="apps/files/lib/Controller/ViewController.php">
-    <InvalidArgument>
-      <code>$fileId</code>
-    </InvalidArgument>
-    <UndefinedInterfaceMethod>
-      <code>getById</code>
-      <code>getRelativePath</code>
-      <code>getRelativePath</code>
     </UndefinedInterfaceMethod>
   </file>
   <file src="apps/files/lib/Helper.php">
@@ -1081,14 +1046,6 @@
       <code>$i</code>
     </UndefinedInterfaceMethod>
   </file>
-  <file src="apps/files/lib/Listener/LegacyLoadAdditionalScriptsAdapter.php">
-    <InvalidArgument>
-      <code>$legacyEvent</code>
-    </InvalidArgument>
-    <MissingTemplateParam>
-      <code>IEventListener</code>
-    </MissingTemplateParam>
-  </file>
   <file src="apps/files/lib/Listener/LoadSidebarListener.php">
     <MissingTemplateParam>
       <code>IEventListener</code>
@@ -1107,14 +1064,6 @@
       <code>isReadyForUser</code>
     </UndefinedInterfaceMethod>
   </file>
-  <file src="apps/files/lib/Service/TagService.php">
-    <InvalidArgument>
-      <code>self::class . '::' . $eventName</code>
-    </InvalidArgument>
-    <TooManyArguments>
-      <code>dispatch</code>
-    </TooManyArguments>
-  </file>
   <file src="apps/files_external/appinfo/routes.php">
     <InvalidScope>
       <code>$this</code>
@@ -1125,11 +1074,6 @@
       <code><![CDATA[(int)$e->getCode()]]></code>
       <code>(int)$status</code>
     </RedundantCast>
-  </file>
-  <file src="apps/files_external/lib/Controller/UserGlobalStoragesController.php">
-    <UndefinedMethod>
-      <code>getUniqueStorages</code>
-    </UndefinedMethod>
   </file>
   <file src="apps/files_external/lib/Lib/Backend/Backend.php">
     <LessSpecificReturnStatement>
@@ -1195,14 +1139,6 @@
       <code>test</code>
     </TooManyArguments>
   </file>
-  <file src="apps/files_external/lib/Service/BackendService.php">
-    <InvalidArgument>
-      <code>'OCA\\Files_External::loadAdditionalBackends'</code>
-    </InvalidArgument>
-    <TooManyArguments>
-      <code>dispatch</code>
-    </TooManyArguments>
-  </file>
   <file src="apps/files_sharing/lib/Controller/ShareAPIController.php">
     <RedundantCast>
       <code>(int)$code</code>
@@ -1237,20 +1173,7 @@
       <code>$cacheData</code>
     </MoreSpecificImplementedParamType>
   </file>
-  <file src="apps/files_sharing/lib/Listener/LegacyBeforeTemplateRenderedListener.php">
-    <InvalidArgument>
-      <code>$legacyEvent</code>
-    </InvalidArgument>
-    <MissingTemplateParam>
-      <code>IEventListener</code>
-    </MissingTemplateParam>
-  </file>
   <file src="apps/files_sharing/lib/Listener/LoadAdditionalListener.php">
-    <MissingTemplateParam>
-      <code>IEventListener</code>
-    </MissingTemplateParam>
-  </file>
-  <file src="apps/files_sharing/lib/Listener/LoadSidebarListener.php">
     <MissingTemplateParam>
       <code>IEventListener</code>
     </MissingTemplateParam>
@@ -1365,11 +1288,6 @@
     <InvalidReturnType>
       <code>ITrash</code>
     </InvalidReturnType>
-  </file>
-  <file src="apps/files_trashbin/lib/Storage.php">
-    <InvalidOperand>
-      <code><![CDATA[$this->mountPoint]]></code>
-    </InvalidOperand>
   </file>
   <file src="apps/files_trashbin/lib/Trash/LegacyTrashBackend.php">
     <RedundantCondition>
@@ -1507,12 +1425,6 @@
       <code><![CDATA[$share->getId()]]></code>
       <code>(int)$data['id']</code>
     </InvalidArgument>
-    <LessSpecificReturnStatement>
-      <code>$nodes[0]</code>
-    </LessSpecificReturnStatement>
-    <MoreSpecificReturnType>
-      <code>\OCP\Files\File|\OCP\Files\Folder</code>
-    </MoreSpecificReturnType>
   </file>
   <file src="apps/systemtags/lib/Activity/Listener.php">
     <InvalidArgument>
@@ -1603,14 +1515,6 @@
       <code><![CDATA[(int)$e->getCode()]]></code>
     </RedundantCast>
   </file>
-  <file src="apps/user_ldap/lib/AppInfo/Application.php">
-    <InvalidArgument>
-      <code>'OCA\\User_LDAP\\User\\User::postLDAPBackendAdded'</code>
-    </InvalidArgument>
-    <TooManyArguments>
-      <code>dispatch</code>
-    </TooManyArguments>
-  </file>
   <file src="apps/user_ldap/lib/Connection.php">
     <NoValue>
       <code>$subj</code>
@@ -1646,11 +1550,6 @@
     <TypeDoesNotContainNull>
       <code>isset($qb)</code>
     </TypeDoesNotContainNull>
-  </file>
-  <file src="apps/user_ldap/lib/Proxy.php">
-    <InvalidDocblock>
-      <code>protected function handleRequest($id, $method, $parameters, $passOnWhen = false) {</code>
-    </InvalidDocblock>
   </file>
   <file src="apps/user_ldap/lib/User/Manager.php">
     <InvalidDocblock>
@@ -1875,11 +1774,6 @@
       <code>updateFilecache</code>
     </UndefinedInterfaceMethod>
   </file>
-  <file src="core/Command/Maintenance/Mimetype/UpdateJS.php">
-    <UndefinedInterfaceMethod>
-      <code>getAllAliases</code>
-    </UndefinedInterfaceMethod>
-  </file>
   <file src="core/Command/Maintenance/RepairShareOwnership.php">
     <LessSpecificReturnStatement>
       <code>$found</code>
@@ -1953,14 +1847,6 @@
       <code>$restrictions</code>
     </InvalidArgument>
   </file>
-  <file src="lib/private/Accounts/AccountManager.php">
-    <InvalidArgument>
-      <code>'OC\AccountManager::userUpdated'</code>
-    </InvalidArgument>
-    <TooManyArguments>
-      <code>dispatch</code>
-    </TooManyArguments>
-  </file>
   <file src="lib/private/Activity/Event.php">
     <ParamNameMismatch>
       <code>$affectedUser</code>
@@ -1991,20 +1877,10 @@
     </TypeDoesNotContainType>
   </file>
   <file src="lib/private/App/AppManager.php">
-    <InvalidArgument>
-      <code>ManagerEvent::EVENT_APP_DISABLE</code>
-      <code>ManagerEvent::EVENT_APP_ENABLE</code>
-      <code>ManagerEvent::EVENT_APP_ENABLE_FOR_GROUPS</code>
-    </InvalidArgument>
     <LessSpecificImplementedReturnType>
       <code>array</code>
       <code>array</code>
     </LessSpecificImplementedReturnType>
-    <TooManyArguments>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-    </TooManyArguments>
   </file>
   <file src="lib/private/App/AppStore/Fetcher/Fetcher.php">
     <TooManyArguments>
@@ -2108,16 +1984,6 @@
       <code>log</code>
     </InvalidReturnType>
   </file>
-  <file src="lib/private/AppFramework/Middleware/AdditionalScriptsMiddleware.php">
-    <InvalidArgument>
-      <code>TemplateResponse::EVENT_LOAD_ADDITIONAL_SCRIPTS</code>
-      <code>TemplateResponse::EVENT_LOAD_ADDITIONAL_SCRIPTS_LOGGEDIN</code>
-    </InvalidArgument>
-    <TooManyArguments>
-      <code>dispatch</code>
-      <code>dispatch</code>
-    </TooManyArguments>
-  </file>
   <file src="lib/private/AppFramework/Middleware/OCSMiddleware.php">
     <InternalMethod>
       <code>setOCSVersion</code>
@@ -2214,7 +2080,7 @@
       <code>$trySession</code>
     </RedundantCondition>
   </file>
-  <file src="lib/private/Authentication/Token/IToken.php">
+  <file src="lib/public/Authentication/Token/IToken.php">
     <AmbiguousConstantInheritance>
       <code>DO_NOT_REMEMBER</code>
       <code>PERMANENT_TOKEN</code>
@@ -2256,16 +2122,6 @@
     <MoreSpecificReturnType>
       <code><![CDATA[list<array{provider_id: string, uid: string, enabled: bool}>]]></code>
     </MoreSpecificReturnType>
-  </file>
-  <file src="lib/private/Authentication/TwoFactorAuth/Manager.php">
-    <InvalidArgument>
-      <code>IProvider::EVENT_FAILED</code>
-      <code>IProvider::EVENT_SUCCESS</code>
-    </InvalidArgument>
-    <TooManyArguments>
-      <code>dispatch</code>
-      <code>dispatch</code>
-    </TooManyArguments>
   </file>
   <file src="lib/private/Authentication/TwoFactorAuth/ProviderSet.php">
     <InvalidArgument>
@@ -2381,30 +2237,6 @@
     <InvalidArgument>
       <code>$searchOptions</code>
     </InvalidArgument>
-    <InvalidNullableReturnType>
-      <code>IAddressBook</code>
-      <code>array</code>
-      <code>bool</code>
-    </InvalidNullableReturnType>
-    <NullableReturnStatement>
-      <code>null</code>
-      <code>null</code>
-      <code>null</code>
-      <code>null</code>
-      <code>null</code>
-    </NullableReturnStatement>
-    <ParamNameMismatch>
-      <code>$addressBook</code>
-      <code>$addressBook</code>
-    </ParamNameMismatch>
-  </file>
-  <file src="lib/private/DB/Adapter.php">
-    <InvalidReturnStatement>
-      <code><![CDATA[$builder->execute()]]></code>
-    </InvalidReturnStatement>
-    <InvalidReturnType>
-      <code>int</code>
-    </InvalidReturnType>
   </file>
   <file src="lib/private/DB/AdapterMySQL.php">
     <InternalMethod>
@@ -2425,16 +2257,6 @@
       <code>$params['adapter']</code>
       <code>$params['tablePrefix']</code>
     </InvalidArrayOffset>
-    <InvalidReturnStatement>
-      <code><![CDATA[$this->adapter->lastInsertId($seqName)]]></code>
-    </InvalidReturnStatement>
-    <InvalidReturnType>
-      <code>string</code>
-    </InvalidReturnType>
-    <ParamNameMismatch>
-      <code>$seqName</code>
-      <code>$statement</code>
-    </ParamNameMismatch>
   </file>
   <file src="lib/private/DB/Exceptions/DbalException.php">
     <RedundantCondition>
@@ -2445,21 +2267,12 @@
     </TypeDoesNotContainType>
   </file>
   <file src="lib/private/DB/MigrationService.php">
-    <InvalidOperand>
-      <code>$offset</code>
-      <code>$offset</code>
-    </InvalidOperand>
     <LessSpecificReturnStatement>
       <code>$s</code>
     </LessSpecificReturnStatement>
     <MoreSpecificReturnType>
       <code>IMigrationStep</code>
     </MoreSpecificReturnType>
-  </file>
-  <file src="lib/private/DB/OracleConnection.php">
-    <InvalidArrayAccess>
-      <code>$key[0]</code>
-    </InvalidArrayAccess>
   </file>
   <file src="lib/private/DB/QueryBuilder/ExpressionBuilder/ExpressionBuilder.php">
     <ImplicitToStringCast>
@@ -2580,35 +2393,6 @@
     <ImplementedReturnTypeMismatch>
       <code>bool</code>
     </ImplementedReturnTypeMismatch>
-  </file>
-  <file src="lib/private/EventDispatcher/EventDispatcher.php">
-    <TooManyArguments>
-      <code>dispatch</code>
-    </TooManyArguments>
-  </file>
-  <file src="lib/private/EventDispatcher/GenericEventWrapper.php">
-    <LessSpecificReturnStatement>
-      <code><![CDATA[$this->event->setArgument($key, $value)]]></code>
-      <code><![CDATA[$this->event->setArguments($args)]]></code>
-    </LessSpecificReturnStatement>
-    <MoreSpecificReturnType>
-      <code>setArgument</code>
-      <code>setArguments</code>
-    </MoreSpecificReturnType>
-  </file>
-  <file src="lib/private/EventDispatcher/SymfonyAdapter.php">
-    <ImplementedParamTypeMismatch>
-      <code>$eventName</code>
-    </ImplementedParamTypeMismatch>
-    <NoValue>
-      <code>$listener</code>
-    </NoValue>
-    <ParamNameMismatch>
-      <code>$eventName</code>
-    </ParamNameMismatch>
-    <TooManyArguments>
-      <code>dispatch</code>
-    </TooManyArguments>
   </file>
   <file src="lib/private/Federation/CloudFederationProviderManager.php">
     <ParamNameMismatch>
@@ -2779,36 +2563,6 @@
     </MoreSpecificReturnType>
   </file>
   <file src="lib/private/Files/Node/HookConnector.php">
-    <InvalidArgument>
-      <code>'\OCP\Files::postCopy'</code>
-      <code>'\OCP\Files::postCreate'</code>
-      <code>'\OCP\Files::postDelete'</code>
-      <code>'\OCP\Files::postRename'</code>
-      <code>'\OCP\Files::postTouch'</code>
-      <code>'\OCP\Files::postWrite'</code>
-      <code>'\OCP\Files::preCopy'</code>
-      <code>'\OCP\Files::preCreate'</code>
-      <code>'\OCP\Files::preDelete'</code>
-      <code>'\OCP\Files::preRename'</code>
-      <code>'\OCP\Files::preTouch'</code>
-      <code>'\OCP\Files::preWrite'</code>
-      <code>'\OCP\Files::read'</code>
-    </InvalidArgument>
-    <TooManyArguments>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-    </TooManyArguments>
     <UndefinedInterfaceMethod>
       <code>emit</code>
       <code>emit</code>
@@ -2839,9 +2593,6 @@
     </MoreSpecificReturnType>
   </file>
   <file src="lib/private/Files/Node/Node.php">
-    <InvalidArgument>
-      <code>'\OCP\Files::' . $hook</code>
-    </InvalidArgument>
     <InvalidNullableReturnType>
       <code>FileInfo</code>
     </InvalidNullableReturnType>
@@ -2860,9 +2611,6 @@
     <ParamNameMismatch>
       <code>$type</code>
     </ParamNameMismatch>
-    <TooManyArguments>
-      <code>dispatch</code>
-    </TooManyArguments>
     <UndefinedInterfaceMethod>
       <code><![CDATA[$this->fileInfo]]></code>
       <code><![CDATA[$this->fileInfo]]></code>
@@ -2982,15 +2730,6 @@
     <ImplicitToStringCast>
       <code>$file</code>
     </ImplicitToStringCast>
-    <InvalidOperand>
-      <code>$result</code>
-    </InvalidOperand>
-    <InvalidReturnStatement>
-      <code>$result</code>
-    </InvalidReturnStatement>
-    <InvalidReturnType>
-      <code>rename</code>
-    </InvalidReturnType>
     <TypeDoesNotContainNull>
       <code>$space === false || is_null($space)</code>
       <code>is_null($space)</code>
@@ -3113,16 +2852,6 @@
       <code><![CDATA[is_null($this->getContent())]]></code>
     </TypeDoesNotContainNull>
   </file>
-  <file src="lib/private/Group/Database.php">
-    <InvalidArrayOffset>
-      <code><![CDATA[$this->groupCache[$gid]['displayname']]]></code>
-    </InvalidArrayOffset>
-    <InvalidPropertyAssignmentValue>
-      <code><![CDATA[$this->groupCache]]></code>
-      <code><![CDATA[$this->groupCache]]></code>
-      <code><![CDATA[$this->groupCache]]></code>
-    </InvalidPropertyAssignmentValue>
-  </file>
   <file src="lib/private/Group/DisplayNameCache.php">
     <MissingTemplateParam>
       <code>IEventListener</code>
@@ -3130,12 +2859,6 @@
   </file>
   <file src="lib/private/Group/Group.php">
     <InvalidArgument>
-      <code>IGroup::class . '::postAddUser'</code>
-      <code>IGroup::class . '::postDelete'</code>
-      <code>IGroup::class . '::postRemoveUser'</code>
-      <code>IGroup::class . '::preAddUser'</code>
-      <code>IGroup::class . '::preDelete'</code>
-      <code>IGroup::class . '::preRemoveUser'</code>
       <code>bool</code>
     </InvalidArgument>
     <InvalidOperand>
@@ -3155,14 +2878,6 @@
       <code><![CDATA[$this->emitter]]></code>
       <code><![CDATA[$this->emitter]]></code>
     </RedundantCondition>
-    <TooManyArguments>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-    </TooManyArguments>
     <UndefinedMethod>
       <code>addToGroup</code>
       <code>countUsersInGroup</code>
@@ -3219,7 +2934,6 @@
       <code><![CDATA[$x509->getDN(true)['CN']]]></code>
     </InvalidArrayAccess>
     <UndefinedInterfaceMethod>
-      <code>getAllAliases</code>
       <code>getOnlyDefaultAliases</code>
     </UndefinedInterfaceMethod>
   </file>
@@ -3353,11 +3067,6 @@
       <code>\ArrayAccess</code>
     </MissingTemplateParam>
   </file>
-  <file src="lib/private/NavigationManager.php">
-    <ParamNameMismatch>
-      <code>$id</code>
-    </ParamNameMismatch>
-  </file>
   <file src="lib/private/Preview/BackgroundCleanupJob.php">
     <InvalidReturnStatement>
       <code>[]</code>
@@ -3366,24 +3075,13 @@
   <file src="lib/private/Preview/Generator.php">
     <InvalidArgument>
       <code>$maxPreviewImage</code>
-      <code>$semId</code>
-      <code>IPreview::EVENT</code>
     </InvalidArgument>
-    <InvalidReturnStatement>
-      <code>$sem</code>
-    </InvalidReturnStatement>
-    <InvalidReturnType>
-      <code>false|resource</code>
-    </InvalidReturnType>
     <LessSpecificReturnType>
       <code>null|string</code>
     </LessSpecificReturnType>
     <MismatchingDocblockParamType>
       <code>ISimpleFile</code>
     </MismatchingDocblockParamType>
-    <TooManyArguments>
-      <code>dispatch</code>
-    </TooManyArguments>
     <UndefinedInterfaceMethod>
       <code>height</code>
       <code>height</code>
@@ -3526,9 +3224,6 @@
       <code>\OCP\Calendar\Room\IManager</code>
       <code>\OCP\Files\Folder|null</code>
     </ImplementedReturnTypeMismatch>
-    <InvalidArgument>
-      <code>new GenericEvent($user)</code>
-    </InvalidArgument>
     <LessSpecificReturnStatement>
       <code><![CDATA[$this->get(IFile::class)]]></code>
       <code><![CDATA[$this->get(IGroupManager::class)]]></code>
@@ -3622,20 +3317,8 @@
   <file src="lib/private/Share20/Manager.php">
     <InvalidArgument>
       <code>$id</code>
-      <code>'OCP\Share::postAcceptShare'</code>
-      <code>'OCP\Share::postShare'</code>
-      <code>'OCP\Share::postUnshare'</code>
-      <code>'OCP\Share::postUnshareFromSelf'</code>
-      <code>'OCP\Share::preShare'</code>
-      <code>'OCP\Share::preUnshare'</code>
     </InvalidArgument>
     <TooManyArguments>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
       <code>update</code>
     </TooManyArguments>
     <UndefinedClass>
@@ -3712,28 +3395,6 @@
     <UndefinedInterfaceMethod>
       <code>getSupportedApps</code>
     </UndefinedInterfaceMethod>
-  </file>
-  <file src="lib/private/SystemTag/SystemTagManager.php">
-    <InvalidArgument>
-      <code>ManagerEvent::EVENT_CREATE</code>
-      <code>ManagerEvent::EVENT_DELETE</code>
-      <code>ManagerEvent::EVENT_UPDATE</code>
-    </InvalidArgument>
-    <TooManyArguments>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-    </TooManyArguments>
-  </file>
-  <file src="lib/private/SystemTag/SystemTagObjectMapper.php">
-    <InvalidArgument>
-      <code>MapperEvent::EVENT_ASSIGN</code>
-      <code>MapperEvent::EVENT_UNASSIGN</code>
-    </InvalidArgument>
-    <TooManyArguments>
-      <code>dispatch</code>
-      <code>dispatch</code>
-    </TooManyArguments>
   </file>
   <file src="lib/private/TagManager.php">
     <InvalidNullableReturnType>
@@ -3823,32 +3484,12 @@
     <ImplementedReturnTypeMismatch>
       <code>boolean|null</code>
     </ImplementedReturnTypeMismatch>
-    <InvalidArgument>
-      <code>IUser::class . '::firstLogin'</code>
-    </InvalidArgument>
     <NoInterfaceProperties>
       <code><![CDATA[$request->server]]></code>
       <code><![CDATA[$request->server]]></code>
     </NoInterfaceProperties>
-    <TooManyArguments>
-      <code>dispatch</code>
-    </TooManyArguments>
   </file>
   <file src="lib/private/User/User.php">
-    <InvalidArgument>
-      <code>IUser::class . '::changeUser'</code>
-      <code>IUser::class . '::postDelete'</code>
-      <code>IUser::class . '::postSetPassword'</code>
-      <code>IUser::class . '::preDelete'</code>
-      <code>IUser::class . '::preSetPassword'</code>
-    </InvalidArgument>
-    <TooManyArguments>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-      <code>dispatch</code>
-    </TooManyArguments>
     <UndefinedInterfaceMethod>
       <code>emit</code>
       <code>emit</code>
@@ -3868,7 +3509,6 @@
   <file src="lib/private/legacy/OC_App.php">
     <InvalidArgument>
       <code>$groupsList</code>
-      <code>ManagerEvent::EVENT_APP_UPDATE</code>
     </InvalidArgument>
     <InvalidArrayOffset>
       <code>$dir['path']</code>
@@ -3880,9 +3520,6 @@
     <NullableReturnStatement>
       <code>null</code>
     </NullableReturnStatement>
-    <TooManyArguments>
-      <code>dispatch</code>
-    </TooManyArguments>
     <TypeDoesNotContainNull>
       <code>$appId === null</code>
       <code>$appId === null</code>
@@ -3955,12 +3592,6 @@
     <MoreSpecificReturnType>
       <code>array{X-Request-Id: string, Cache-Control: string, Content-Security-Policy: string, Feature-Policy: string, X-Robots-Tag: string, Last-Modified?: string, ETag?: string, ...H}</code>
     </MoreSpecificReturnType>
-  </file>
-  <file src="lib/public/Authentication/TwoFactorAuth/IProvider.php">
-    <AmbiguousConstantInheritance>
-      <code>EVENT_FAILED</code>
-      <code>EVENT_SUCCESS</code>
-    </AmbiguousConstantInheritance>
   </file>
   <file src="lib/public/Cache/CappedMemoryCache.php">
     <MissingTemplateParam>

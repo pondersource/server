@@ -52,6 +52,7 @@ use function array_filter;
 class Manager {
 	public const SESSION_UID_KEY = 'two_factor_auth_uid';
 	public const SESSION_UID_DONE = 'two_factor_auth_passed';
+	public const SESSION_UID_CONFIGURING = 'two_factor_auth_configuring';
 	public const REMEMBER_LOGIN = 'two_factor_remember_login';
 	public const BACKUP_CODES_PROVIDER_ID = 'backup_codes';
 
@@ -112,9 +113,6 @@ class Manager {
 
 	/**
 	 * Determine whether the user must provide a second factor challenge
-	 *
-	 * @param IUser $user
-	 * @return boolean
 	 */
 	public function isTwoFactorAuthenticated(IUser $user): bool {
 		if (isset($this->userIsTwoFactorAuthenticated[$user->getUID()])) {
@@ -138,18 +136,13 @@ class Manager {
 
 	/**
 	 * Get a 2FA provider by its ID
-	 *
-	 * @param IUser $user
-	 * @param string $challengeProviderId
-	 * @return IProvider|null
 	 */
-	public function getProvider(IUser $user, string $challengeProviderId) {
+	public function getProvider(IUser $user, string $challengeProviderId): ?IProvider {
 		$providers = $this->getProviderSet($user)->getProviders();
 		return $providers[$challengeProviderId] ?? null;
 	}
 
 	/**
-	 * @param IUser $user
 	 * @return IActivatableAtLogin[]
 	 * @throws Exception
 	 */
@@ -270,6 +263,7 @@ class Manager {
 			$this->session->remove(self::SESSION_UID_KEY);
 			$this->session->remove(self::REMEMBER_LOGIN);
 			$this->session->set(self::SESSION_UID_DONE, $user->getUID());
+			$this->session->remove(self::SESSION_UID_CONFIGURING);
 
 			// Clear token from db
 			$sessionId = $this->session->getId();
@@ -350,7 +344,7 @@ class Manager {
 				$tokensNeeding2FA = $this->config->getUserKeys($user->getUID(), 'login_token_2fa');
 
 				if (!\in_array((string) $tokenId, $tokensNeeding2FA, true)) {
-					$this->session->set(self::SESSION_UID_DONE, $user->getUID());
+					$this->session->set(self::SESSION_UID_CONFIGURING, $user->getUID());
 					return false;
 				}
 			} catch (InvalidTokenException|SessionNotAvailableException $e) {

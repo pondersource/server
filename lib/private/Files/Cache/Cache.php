@@ -59,6 +59,7 @@ use OCP\Files\Search\ISearchComparison;
 use OCP\Files\Search\ISearchOperator;
 use OCP\Files\Search\ISearchQuery;
 use OCP\Files\Storage\IStorage;
+use OCP\FilesMetadata\IFilesMetadataManager;
 use OCP\IDBConnection;
 use OCP\Util;
 use Psr\Log\LoggerInterface;
@@ -132,7 +133,8 @@ class Cache implements ICache {
 		return new CacheQueryBuilder(
 			$this->connection,
 			\OC::$server->getSystemConfig(),
-			\OC::$server->get(LoggerInterface::class)
+			\OC::$server->get(LoggerInterface::class),
+			\OC::$server->get(IFilesMetadataManager::class),
 		);
 	}
 
@@ -149,11 +151,12 @@ class Cache implements ICache {
 	 * get the stored metadata of a file or folder
 	 *
 	 * @param string | int $file either the path of a file or folder or the file id for a file or folder
-	 * @return ICacheEntry|false the cache entry as array of false if the file is not found in the cache
+	 * @return ICacheEntry|false the cache entry as array or false if the file is not found in the cache
 	 */
 	public function get($file) {
 		$query = $this->getQueryBuilder();
 		$query->selectFileCache();
+		$metadataQuery = $query->selectMetadata();
 
 		if (is_string($file) || $file == '') {
 			// normalize file
@@ -175,6 +178,7 @@ class Cache implements ICache {
 		} elseif (!$data) {
 			return $data;
 		} else {
+			$data['metadata'] = $metadataQuery?->extractMetadata($data)->asArray() ?? [];
 			return self::cacheEntryFromData($data, $this->mimetypeLoader);
 		}
 	}
@@ -239,11 +243,14 @@ class Cache implements ICache {
 				->whereParent($fileId)
 				->orderBy('name', 'ASC');
 
+			$metadataQuery = $query->selectMetadata();
+
 			$result = $query->execute();
 			$files = $result->fetchAll();
 			$result->closeCursor();
 
-			return array_map(function (array $data) {
+			return array_map(function (array $data) use ($metadataQuery) {
+				$data['metadata'] = $metadataQuery?->extractMetadata($data)->asArray() ?? [];
 				return self::cacheEntryFromData($data, $this->mimetypeLoader);
 			}, $files);
 		}
@@ -668,7 +675,7 @@ class Cache implements ICache {
 			$targetPath = $this->normalize($targetPath);
 
 			$sourceData = $sourceCache->get($sourcePath);
-			if ($sourceData === false) {
+			if (!$sourceData) {
 				throw new \Exception('Invalid source storage path: ' . $sourcePath);
 			}
 
@@ -1012,8 +1019,12 @@ class Cache implements ICache {
 	 * @return string|false the path of the folder or false when no folder matched
 	 */
 	public function getIncomplete() {
+		// we select the fileid here first instead of directly selecting the path since this helps mariadb/mysql
+		// to use the correct index.
+		// The overhead of this should be minimal since the cost of selecting the path by id should be much lower
+		// than the cost of finding an item with size < 0
 		$query = $this->getQueryBuilder();
-		$query->select('path')
+		$query->select('fileid')
 			->from('filecache')
 			->whereStorageId($this->getNumericStorageId())
 			->andWhere($query->expr()->lt('size', $query->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
@@ -1021,15 +1032,15 @@ class Cache implements ICache {
 			->setMaxResults(1);
 
 		$result = $query->execute();
-		$path = $result->fetchOne();
+		$id = $result->fetchOne();
 		$result->closeCursor();
 
-		if ($path === false) {
+		if ($id === false) {
 			return false;
 		}
 
-		// Make sure Oracle does not continue with null for empty strings
-		return (string)$path;
+		$path = $this->getPathById($id);
+		return $path ?? false;
 	}
 
 	/**

@@ -19,19 +19,20 @@
 	<div>
 		<NcListItem class="version"
 			:name="versionLabel"
-			:href="downloadURL"
 			:force-display-actions="true"
-			data-files-versions-version>
+			data-files-versions-version
+			@click="click">
 			<template #icon>
 				<div v-if="!(loadPreview || previewLoaded)" class="version__image" />
-				<img v-else-if="isCurrent || version.hasPreview"
-					:src="previewURL"
+				<img v-else-if="(isCurrent || version.hasPreview) && !previewErrored"
+					:src="version.previewUrl"
 					alt=""
 					decoding="async"
 					fetchpriority="low"
 					loading="lazy"
 					class="version__image"
-					@load="previewLoaded = true">
+					@load="previewLoaded = true"
+					@error="previewErrored = true">
 				<div v-else
 					class="version__image">
 					<ImageOffOutline :size="20" />
@@ -46,13 +47,21 @@
 				</div>
 			</template>
 			<template #actions>
-				<NcActionButton	v-if="enableLabeling"
+				<NcActionButton v-if="enableLabeling"
 					:close-after-click="true"
 					@click="openVersionLabelModal">
 					<template #icon>
 						<Pencil :size="22" />
 					</template>
 					{{ version.label === '' ? t('files_versions', 'Name this version') : t('files_versions', 'Edit version name') }}
+				</NcActionButton>
+				<NcActionButton v-if="!isCurrent && canView && canCompare"
+					:close-after-click="true"
+					@click="compareVersion">
+					<template #icon>
+						<FileCompare :size="22" />
+					</template>
+					{{ t('files_versions', 'Compare to current version') }}
 				</NcActionButton>
 				<NcActionButton v-if="!isCurrent"
 					:close-after-click="true"
@@ -86,15 +95,15 @@
 			<form class="version-label-modal"
 				@submit.prevent="setVersionLabel(formVersionLabelValue)">
 				<label>
-					<div class="version-label-modal__title">{{ t('photos', 'Version name') }}</div>
+					<div class="version-label-modal__title">{{ t('files_versions', 'Version name') }}</div>
 					<NcTextField ref="labelInput"
 						:value.sync="formVersionLabelValue"
-						:placeholder="t('photos', 'Version name')"
+						:placeholder="t('files_versions', 'Version name')"
 						:label-outside="true" />
 				</label>
 
 				<div class="version-label-modal__info">
-					{{ t('photos', 'Named versions are persisted, and excluded from automatic cleanups when your storage quota is full.') }}
+					{{ t('files_versions', 'Named versions are persisted, and excluded from automatic cleanups when your storage quota is full.') }}
 				</div>
 
 				<div class="version-label-modal__actions">
@@ -116,6 +125,7 @@
 <script>
 import BackupRestore from 'vue-material-design-icons/BackupRestore.vue'
 import Download from 'vue-material-design-icons/Download.vue'
+import FileCompare from 'vue-material-design-icons/FileCompare.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -128,9 +138,9 @@ import NcButton from '@nextcloud/vue/dist/Components/NcButton.js'
 import NcTextField from '@nextcloud/vue/dist/Components/NcTextField.js'
 import Tooltip from '@nextcloud/vue/dist/Directives/Tooltip.js'
 import moment from '@nextcloud/moment'
-import { translate } from '@nextcloud/l10n'
+import { translate as t } from '@nextcloud/l10n'
 import { joinPaths } from '@nextcloud/paths'
-import { generateUrl, getRootUrl } from '@nextcloud/router'
+import { getRootUrl } from '@nextcloud/router'
 import { loadState } from '@nextcloud/initial-state'
 
 export default {
@@ -144,6 +154,7 @@ export default {
 		NcTextField,
 		BackupRestore,
 		Download,
+		FileCompare,
 		Pencil,
 		Check,
 		Delete,
@@ -190,10 +201,19 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		canView: {
+			type: Boolean,
+			default: false,
+		},
+		canCompare: {
+			type: Boolean,
+			default: false,
+		},
 	},
 	data() {
 		return {
 			previewLoaded: false,
+			previewErrored: false,
 			showVersionLabelForm: false,
 			formVersionLabelValue: this.version.label,
 			capabilities: loadState('core', 'capabilities', { files: { version_labeling: false, version_deletion: false } }),
@@ -208,14 +228,14 @@ export default {
 
 			if (this.isCurrent) {
 				if (label === '') {
-					return translate('files_versions', 'Current version')
+					return t('files_versions', 'Current version')
 				} else {
-					return `${label} (${translate('files_versions', 'Current version')})`
+					return `${label} (${t('files_versions', 'Current version')})`
 				}
 			}
 
 			if (this.isFirstVersion && label === '') {
-				return translate('files_versions', 'Initial version')
+				return t('files_versions', 'Initial version')
 			}
 
 			return label
@@ -232,20 +252,6 @@ export default {
 			}
 		},
 
-		/**
-		 * @return {string}
-		 */
-		previewURL() {
-			if (this.isCurrent) {
-				return generateUrl('/core/preview?fileId={fileId}&c={fileEtag}&x=250&y=250&forceIcon=0&a=0', {
-					fileId: this.fileInfo.id,
-					fileEtag: this.fileInfo.etag,
-				})
-			} else {
-				return this.version.preview
-			}
-		},
-
 		/** @return {string} */
 		formattedDate() {
 			return moment(this.version.mtime).format('LLL')
@@ -253,13 +259,13 @@ export default {
 
 		/** @return {boolean} */
 		enableLabeling() {
-			return this.capabilities.files.version_labeling === true && this.fileInfo.mountType !== 'group'
+			return this.capabilities.files.version_labeling === true
 		},
 
 		/** @return {boolean} */
 		enableDeletion() {
-			return this.capabilities.files.version_deletion === true && this.fileInfo.mountType !== 'group'
-		}
+			return this.capabilities.files.version_deletion === true
+		},
 	},
 	methods: {
 		openVersionLabelModal() {
@@ -282,6 +288,23 @@ export default {
 		deleteVersion() {
 			this.$emit('delete', this.version)
 		},
+
+		click() {
+			if (!this.canView) {
+				window.location = this.downloadURL
+				return
+			}
+			this.$emit('click', { version: this.version })
+		},
+
+		compareVersion() {
+			if (!this.canView) {
+				throw new Error('Cannot compare version of this file')
+			}
+			this.$emit('compare', { version: this.version })
+		},
+
+		t,
 	},
 }
 </script>
