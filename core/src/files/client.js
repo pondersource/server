@@ -102,7 +102,8 @@ import escapeHTML from 'escape-html'
 	Client.PROPERTY_PERMISSIONS	= '{' + Client.NS_OWNCLOUD + '}permissions'
 	Client.PROPERTY_SIZE	= '{' + Client.NS_OWNCLOUD + '}size'
 	Client.PROPERTY_GETCONTENTLENGTH	= '{' + Client.NS_DAV + '}getcontentlength'
-	Client.PROPERTY_ISENCRYPTED	= '{' + Client.NS_DAV + '}is-encrypted'
+	Client.PROPERTY_ISENCRYPTED	= '{' + Client.NS_DAV + '}is-encrypted' // shouldn't this be in the nextcloud namespace?
+	Client.PROPERTY_REQUIRES_MFA	= '{' + Client.NS_NEXTCLOUD + '}requires-mfa'
 	Client.PROPERTY_SHARE_PERMISSIONS	= '{' + Client.NS_OCS + '}share-permissions'
 	Client.PROPERTY_SHARE_ATTRIBUTES	= '{' + Client.NS_NEXTCLOUD + '}share-attributes'
 	Client.PROPERTY_QUOTA_AVAILABLE_BYTES	= '{' + Client.NS_DAV + '}quota-available-bytes'
@@ -157,6 +158,10 @@ import escapeHTML from 'escape-html'
 		 * Encryption state
 		 */
 		[Client.NS_NEXTCLOUD, 'is-encrypted'],
+		/**
+		 * MFA requirement
+		 */
+		[Client.NS_NEXTCLOUD, 'requires-mfa'],
 		/**
 		 * Share permissions
 		 */
@@ -319,6 +324,8 @@ import escapeHTML from 'escape-html'
 
 			const props = response.propStat[0].properties
 
+			console.log('client sees props', props);
+
 			const data = {
 				id: props[Client.PROPERTY_INTERNAL_FILEID],
 				path: OC.dirname(path) || '/',
@@ -353,6 +360,13 @@ import escapeHTML from 'escape-html'
 				data.isEncrypted = isEncryptedProp === '1'
 			} else {
 				data.isEncrypted = false
+			}
+
+			const requiresMfaProp = props['{' + Client.NS_NEXTCLOUD + '}requires-mfa']
+			if (!_.isUndefined(requiresMfaProp)) {
+				data.requiresMfa = requiresMfaProp === '1'
+			} else {
+				data.requiresMfa = false
 			}
 
 			const isFavouritedProp = props['{' + Client.NS_OWNCLOUD + '}favorite']
@@ -448,6 +462,7 @@ import escapeHTML from 'escape-html'
 				_.extend(data, parserFunction(response, data) || {})
 			})
 
+			console.log('client establishes data', data);
 			return new FileInfo(data)
 		},
 
@@ -508,6 +523,7 @@ import escapeHTML from 'escape-html'
 					return '{' + propDef[0] + '}' + propDef[1]
 				})
 			}
+			console.log('default profind properties', this._propfindProperties);
 			return this._propfindProperties
 		},
 
@@ -536,13 +552,14 @@ import escapeHTML from 'escape-html'
 			} else {
 				properties = options.properties
 			}
-
+			console.log('get folder contents', path, properties);
 			this._client.propFind(
 				this._buildUrl(path),
 				properties,
 				1
 			).then(function(result) {
 				if (self._isSuccessStatus(result.status)) {
+					console.log('success! - body:', result.body);
 					const results = self._parseResult(result.body)
 					if (!options || !options.includeParent) {
 						// remove root dir, the first entry
@@ -658,7 +675,7 @@ import escapeHTML from 'escape-html'
 			} else {
 				properties = options.properties
 			}
-
+			console.log('get file info', path, properties);
 			// TODO: headers
 			this._client.propFind(
 				this._buildUrl(path),
@@ -667,6 +684,7 @@ import escapeHTML from 'escape-html'
 			).then(
 				function(result) {
 					if (self._isSuccessStatus(result.status)) {
+						console.log('success! - body:', result.body);
 						deferred.resolve(result.status, self._parseResult([result.body])[0])
 					} else {
 						result = _.extend(result, self._getSabreException(result))
