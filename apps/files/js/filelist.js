@@ -1642,7 +1642,8 @@
 				"data-quota": fileData.quotaAvailableBytes,
 				"data-permissions": permissions,
 				"data-has-preview": fileData.hasPreview !== false,
-				"data-e2eencrypted": fileData.isEncrypted === true
+				"data-e2eencrypted": fileData.isEncrypted === true,
+				"data-requires-mfa": fileData.requiresMfa === true,
 			});
 
 			if (dataIcon) {
